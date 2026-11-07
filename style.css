@@ -297,3 +297,6 @@ p.clash{color:#8a6d45;font-size:13px;margin:-4px 0 6px}
 .pill{white-space:nowrap}
 #seasonCd{font-variant-numeric:tabular-nums;min-width:0}
 .row2{flex-wrap:nowrap}
+
+#eventBanner{pointer-events:auto;cursor:pointer;background:linear-gradient(#e2731e,#b8441a)}
+.item .cost.free{background:#2f8a2a}

@@ -14,6 +14,7 @@ const CLASH_DIFFS = [
   "<b>Player cards are new.</b> Win packs, level duplicates, and put up to 5 on your Team Sheet to boost players by position.",
   "<b>Raids come from AI clubs</b> every 10–20 minutes, even when you're away. Check the 🛡️ Log for replays, and hit Revenge for 1.5× loot.",
   "<b>Much faster.</b> Timers are seconds to 2 hours, not days. The Clubhouse tops out at level 8.",
+  "<b>Build a Pie Shop and a Drink Tap first</b> (both free). Pie Shops cost drink to upgrade and Drink Taps cost pies, so you need both earning.",
   "<b>Matches are scored like footy.</b> Knock down a building = goal. They get a behind for each building still standing and each player they knock out (goal for big ones). Outscore them to win.",
   "<b>The Season is a real ladder.</b> 4 points a win, percentage splits ties, top 8 play finals, win the Grand Final for a premiership.",
   "<b>Daily tasks</b> pay Brownlow votes, and each weekday has an event (double loot on Grand Final Weekend).",

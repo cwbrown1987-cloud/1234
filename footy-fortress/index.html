@@ -2,497 +2,62 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#4c9631">
 <title>Footy Fortress</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Lilita+One&display=swap" rel="stylesheet">
-<style>
-  :root{--ink:#1c1a17;--panel:#2b2620ee;--gold:#f6c343;--drink:#36c9e8;--good:#5fd16b;--bad:#e8503a}
-  *{box-sizing:border-box}
-  html,body{margin:0;height:100%;background:#4c9631;font-family:"Lilita One","Trebuchet MS",system-ui,sans-serif;letter-spacing:.3px;color:#fff;overflow:hidden;user-select:none}
-  canvas{display:block;width:100%;height:100%;touch-action:none}
-  .hud{position:fixed;left:0;right:0;top:0;display:flex;gap:8px;padding:10px;align-items:center;pointer-events:none}
-  .pill{background:var(--panel);border:2px solid #000;border-radius:14px;padding:4px 10px 4px 6px;display:flex;align-items:center;gap:6px;font-weight:400;text-shadow:0 2px 0 #000;font-size:15px}
-  .ico{width:22px;height:22px;border-radius:50%;display:inline-grid;place-items:center;font-size:13px;border:2px solid #000}
-  .club{background:var(--panel);border:2px solid #000;border-radius:14px;padding:4px 10px;font-weight:400;text-shadow:0 2px 0 #000;display:flex;gap:8px;align-items:center}
-  .guernsey{width:26px;height:26px;border-radius:6px;border:2px solid #000}
-  .spacer{flex:1}
-  .bar{position:fixed;left:0;right:0;bottom:0;display:flex;gap:8px;padding:10px;justify-content:center;flex-wrap:wrap}
-  button{font:inherit;font-weight:400;color:#fff;text-shadow:0 2px 0 #000;border:2px solid #000;border-radius:12px;padding:8px 12px;background:linear-gradient(#6c5b45,#463a2c);box-shadow:0 4px 0 #000;cursor:pointer;min-width:64px}
-  button:active{transform:translateY(3px);box-shadow:0 1px 0 #000}
-  button.go{background:linear-gradient(#ffb547,#e2731e)}
-  button.sel{outline:3px solid var(--gold)}
-  button small{display:block;font-size:11px;opacity:.9}
-  .toast{position:fixed;left:50%;top:64px;transform:translateX(-50%);background:var(--panel);border:2px solid #000;border-radius:12px;padding:8px 14px;font-weight:400;text-shadow:0 2px 0 #000;opacity:0;transition:opacity .25s;pointer-events:none;text-align:center}
-  .toast.show{opacity:1}
-  .modal{position:fixed;inset:0;display:none;place-items:center;background:#0008}
-  .modal.show{display:grid}
-  .card{background:#3a3128;border:3px solid #000;border-radius:16px;padding:16px;width:min(92vw,380px);text-align:center;box-shadow:0 6px 0 #000}
-  .card h2{margin:0 0 8px;color:var(--gold);text-shadow:0 2px 0 #000}
-  .clubs{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
-  .clubs button{display:flex;align-items:center;gap:8px;justify-content:flex-start}
-</style>
+<link rel="stylesheet" href="style.css">
 </head>
 <body>
 <canvas id="c"></canvas>
 
-<div class="hud">
-  <div class="club"><span class="guernsey" id="g"></span><span id="clubName">Club</span></div>
-  <div class="spacer"></div>
-  <div class="pill"><span class="ico" style="background:var(--gold)">🥧</span><span id="pies">0</span></div>
-  <div class="pill"><span class="ico" style="background:var(--drink)">💧</span><span id="drink">0</span></div>
-  <div class="pill"><span class="ico" style="background:#e9e2d0">🏉</span><span id="squad">0</span></div>
-</div>
-
-<div class="bar" id="bar"></div>
-<div class="toast" id="toast"></div>
-
-<div class="modal show" id="pick">
-  <div class="card">
-    <h2>Footy Fortress</h2>
-    <div>Pick your club, build your ground, then take on rival clubs on Match Day.</div>
-    <div class="clubs" id="clubs"></div>
+<!-- top bar -->
+<div id="top">
+  <div class="tl">
+    <div class="badge" id="clubBadge">
+      <span class="guernsey" id="g"></span>
+      <div><div id="clubName">Footy Fortress</div><div class="sub">🏆 <span id="tro">0</span> · <span id="lg"></span></div></div>
+    </div>
+    <div class="pill small" id="builders">👷 0/0</div>
+  </div>
+  <div class="tr">
+    <div class="res" data-r="pies"><div class="fill" style="background:linear-gradient(#ffd96a,#e9a92a)"></div><span class="v"></span><span class="cap"></span><i>🥧</i></div>
+    <div class="res" data-r="drink"><div class="fill" style="background:linear-gradient(#7fe3ff,#1aa3d6)"></div><span class="v"></span><span class="cap"></span><i>💧</i></div>
+    <div class="res medals" data-r="medals"><span class="v"></span><i>🏅</i></div>
   </div>
 </div>
 
-<div class="modal" id="result">
-  <div class="card"><h2 id="resTitle"></h2><div id="resBody"></div><br><button class="go" onclick="goHome()">Back to the club</button></div>
+<!-- home buttons -->
+<div id="homeBtns">
+  <button class="round attack" id="btnAttack"><b>⚔️</b><span>Match</span></button>
+  <button class="round" id="btnSquad"><b>🏉</b><span>Squad</span></button>
+  <button class="round shop" id="btnShop"><b>🛒</b><span>Shop</span></button>
+  <button class="mini" id="btnSettings">⚙️</button>
 </div>
 
-<script>
-// ---------- Data ----------
-// Original fictional clubs (not official AFL marks) in classic footy colour combos.
-const CLUBS = [
-  {name:"Yarra Ravens",   a:"#111", b:"#f2f2f2"},
-  {name:"Bayside Flames", a:"#c8102e", b:"#111"},
-  {name:"Swan River Rays",a:"#0b2a6f", b:"#f6c343"},
-  {name:"Harbour Hawks",  a:"#d71920", b:"#fff"},
-  {name:"Torrens Tigers", a:"#f6c343", b:"#111"},
-  {name:"Gabba Bolts",    a:"#7a0f3a", b:"#2a6fdb"},
-  {name:"Coastline Gulls",a:"#2a6fdb", b:"#fff"},
-  {name:"Outback Roos",   a:"#1d7a3a", b:"#f6c343"},
-];
-const B = {
-  clubhouse:{label:"Clubhouse",  size:3, hp:1500, cost:0,   res:"pies",  color:"#b5543a", roof:"#7a2e1e"},
-  pieshop:  {label:"Pie Shop",   size:2, hp:500,  cost:150, res:"drink", color:"#d9a441", roof:"#8b5a1a", makes:"pies"},
-  drinktap: {label:"Drink Tap",  size:2, hp:500,  cost:150, res:"pies",  color:"#3aa6c4", roof:"#1d5f7a", makes:"drink"},
-  oval:     {label:"Training Oval",size:3,hp:600, cost:250, res:"pies",  color:"#3f9a46", roof:"#e9e2d0"},
-  goalpost: {label:"Goal Tower", size:2, hp:700,  cost:300, res:"drink", color:"#9b8c78", roof:"#fff", range:5.5, dmg:22},
-  siren:    {label:"Siren Cannon",size:2, hp:800, cost:400, res:"pies",  color:"#555", roof:"#e8503a", range:4.5, dmg:40},
-  fence:    {label:"Boundary Fence",size:1,hp:300,cost:20,  res:"pies",  color:"#e9e2d0", roof:"#cfc6b0"},
-};
-const UNITS = {
-  rover:   {label:"Rover",       cost:25,  hp:90,  dmg:10, spd:2.4, range:1.0, emoji:"🏃"},
-  ruck:    {label:"Ruckman",     cost:60,  hp:320, dmg:16, spd:1.4, range:1.0, emoji:"🧍", big:true},
-  forward: {label:"Full-Forward",cost:45,  hp:70,  dmg:14, spd:1.8, range:4.0, emoji:"🎯", kicker:true},
-};
-const N = 22; // grid size
+<div id="selPanel"></div>
+<div id="placePanel"><button class="btn red" id="placeNo">✖</button><span id="placeName"></span><button class="btn green" id="placeYes">✔</button></div>
 
-// ---------- State ----------
-let S = load() || {club:null, pies:600, drink:500, squad:{rover:0,ruck:0,forward:0}, buildings:[]};
-let mode = "home";     // home | build | attack
-let buildType = null, deployType = null;
-let enemy = null;      // attack state
-const cv = document.getElementById("c"), ctx = cv.getContext("2d");
-let W, H, TW, TH, OX, OY;
+<!-- battle -->
+<div id="battleTop">
+  <div class="panel bl"><div id="bVs"></div><div class="sub"><span id="bLoot"></span></div></div>
+  <div class="panel br"><div id="bStars">☆☆☆</div><div class="sub"><span id="bPct">0%</span> · <span id="bTime">3:00</span></div></div>
+</div>
+<div id="battleHint">Tap the grass to send players in<br><small>Red zone = too close to buildings</small></div>
+<div id="battleBottom">
+  <div class="row"><button class="btn red" id="bEnd">End Match</button><button class="btn gold" id="bAbility"></button></div>
+  <div id="cards"></div>
+</div>
 
-function save(){ try{ localStorage.setItem("footyFortress", JSON.stringify(S)); }catch(e){} }
-function load(){ try{ return JSON.parse(localStorage.getItem("footyFortress")); }catch(e){ return null; } }
+<div class="modal" id="modal"><div class="card"><button class="x" id="modalX">✖</button><div id="modalBody"></div></div></div>
+<div id="toast"></div>
 
-function starterBase(){
-  return [
-    {t:"clubhouse",x:10,y:10},{t:"pieshop",x:6,y:7},{t:"drinktap",x:14,y:7},
-    {t:"oval",x:6,y:13},{t:"goalpost",x:14,y:13},
-    ...fenceRing(5,6,17,16)
-  ].map(b=>({...b, hp:B[b.t].hp, store:0}));
-}
-function fenceRing(x0,y0,x1,y1){
-  const f=[]; for(let x=x0;x<=x1;x++){f.push({t:"fence",x,y:y0});f.push({t:"fence",x,y:y1});}
-  for(let y=y0+1;y<y1;y++){f.push({t:"fence",x:x0,y});f.push({t:"fence",x:x1,y});}
-  return f.filter((_,i)=>i%5!==2); // leave gaps like a real boundary gate
-}
-
-// ---------- Layout ----------
-function resize(){
-  W=cv.width=innerWidth*devicePixelRatio; H=cv.height=innerHeight*devicePixelRatio;
-  // Fill the screen; on tall phones zoom in and let the outer corners crop.
-  TW=Math.min(W/(N+2)*(H>W?2.0:1.15), (H*0.7)/(N/2+1)); TH=TW/2;
-  OX=W/2; OY=(H-N*TH)/2 + TH*.5;
-}
-addEventListener("resize",resize);
-const iso=(x,y)=>[OX+(x-y)*TW/2, OY+(x+y)*TH/2];
-function unIso(px,py){ const a=(px-OX)/(TW/2), b=(py-OY)/(TH/2); return [(a+b)/2,(b-a)/2]; }
-
-// ---------- Drawing ----------
-const OUT="#2b1d10"; // warm dark outline used on everything
-function rng(seed){return()=>{seed=seed+0x6D2B79F5|0;let t=Math.imul(seed^seed>>>15,1|seed);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
-const P=(x,y,z=0)=>{const [a,b]=iso(x,y);return [a,b-z*TH];};
-const LW=()=>Math.max(1.5,TW*.035);
-function poly(pts,fill,stroke=OUT,lw){ctx.beginPath();pts.forEach(([a,b],i)=>i?ctx.lineTo(a,b):ctx.moveTo(a,b));ctx.closePath();if(fill){ctx.fillStyle=fill;ctx.fill();}if(stroke){ctx.strokeStyle=stroke;ctx.lineWidth=lw||LW();ctx.lineJoin="round";ctx.stroke();}}
-function diamond(x,y,w,h,fill,stroke){poly([P(x,y),P(x+w,y),P(x+w,y+h),P(x,y+h)],fill,stroke||null,1);}
-function rgb(hex){let h=hex.slice(1);if(h.length===3)h=h.split("").map(c=>c+c).join("");const n=parseInt(h,16);return [n>>16&255,n>>8&255,n&255];}
-function shade(hex,f){const m=v=>Math.max(0,Math.min(255,f>1?v+(255-v)*(f-1):v*f))|0;return "rgb("+rgb(hex).map(m).join(",")+")";}
-function grad(p0,p1,c0,c1){const g=ctx.createLinearGradient(p0[0],p0[1],p1[0],p1[1]);g.addColorStop(0,c0);g.addColorStop(1,c1);return g;}
-function rr(x,y,w,h,r,col){ctx.beginPath();ctx.roundRect(x,y,w,h,r);ctx.fillStyle=col;ctx.fill();ctx.stroke();}
-
-// Block with footprint x..x+w, y..y+d, from height z to z+h (heights in tile-height units). Light comes from the left.
-function prism(x,y,w,d,z,h,col,topCol){
-  const L=[P(x,y+d,z),P(x+w,y+d,z),P(x+w,y+d,z+h),P(x,y+d,z+h)];
-  const R=[P(x+w,y+d,z),P(x+w,y,z),P(x+w,y,z+h),P(x+w,y+d,z+h)];
-  const T=[P(x,y,z+h),P(x+w,y,z+h),P(x+w,y+d,z+h),P(x,y+d,z+h)];
-  poly(L,grad(L[3],L[0],shade(col,.95),shade(col,.75)));
-  poly(R,grad(R[3],R[0],shade(col,.7),shade(col,.52)));
-  poly(T,grad(T[0],T[2],shade(topCol||col,1.25),shade(topCol||col,1.02)));
-}
-// Rectangles painted onto the front-left face (plane y=yp) or front-right face (plane x=xp)
-function onL(yp,x0,x1,z0,z1,col,stroke=OUT){poly([P(x0,yp,z0),P(x1,yp,z0),P(x1,yp,z1),P(x0,yp,z1)],col,stroke,Math.max(1,TW*.022));}
-function onR(xp,y0,y1,z0,z1,col,stroke=OUT){poly([P(xp,y0,z0),P(xp,y1,z0),P(xp,y1,z1),P(xp,y0,z1)],col,stroke,Math.max(1,TW*.022));}
-function windowL(yp,x0,x1,z0,z1){onL(yp,x0-.05,x1+.05,z0-.05,z1+.05,"#fff8e6");onL(yp,x0,x1,z0,z1,grad(P(x0,yp,z1),P(x1,yp,z0),"#bfe9ff","#3d8fd1"));}
-function windowR(xp,y0,y1,z0,z1){onR(xp,y0+.05,y1-.05,z0-.05,z1+.05,"#e8dcc2");onR(xp,y0,y1,z0,z1,grad(P(xp,y0,z1),P(xp,y1,z0),"#8cc8ee","#2a6aa0"));}
-// Gable roof with its ridge running along x
-function roof(x,y,w,d,z,h,col){
-  const m=y+d/2;
-  poly([P(x,y,z),P(x+w,y,z),P(x+w,m,z+h),P(x,m,z+h)],shade(col,1.15));
-  const F=[P(x,y+d,z),P(x+w,y+d,z),P(x+w,m,z+h),P(x,m,z+h)];
-  poly(F,grad(F[3],F[0],shade(col,1.12),shade(col,.78)));
-  ctx.strokeStyle=shade(col,.55);ctx.lineWidth=Math.max(1,TW*.018);
-  for(let i=1;i<4;i++){const t=i/4,a=P(x,y+d-t*d/2,z+t*h),b=P(x+w,y+d-t*d/2,z+t*h);ctx.beginPath();ctx.moveTo(...a);ctx.lineTo(...b);ctx.stroke();}
-  poly([P(x+w,y+d,z),P(x+w,y,z),P(x+w,m,z+h)],shade(col,.62));
-  poly([P(x,m,z+h),P(x+w,m,z+h)],null,shade(col,1.4),Math.max(2,TW*.04));
-}
-function cyl(x,y,r,z,h,col,topCol){
-  const [cx,cb]=P(x,y,z),[,ct]=P(x,y,z+h),rx=r*TW*.72,ry=rx/2;
-  ctx.beginPath();ctx.moveTo(cx-rx,ct);ctx.lineTo(cx-rx,cb);ctx.ellipse(cx,cb,rx,ry,0,Math.PI,0,true);ctx.lineTo(cx+rx,ct);ctx.closePath();
-  const g=ctx.createLinearGradient(cx-rx,0,cx+rx,0);g.addColorStop(0,shade(col,.95));g.addColorStop(.3,shade(col,1.25));g.addColorStop(1,shade(col,.55));
-  ctx.fillStyle=g;ctx.fill();ctx.strokeStyle=OUT;ctx.lineWidth=LW();ctx.stroke();
-  ctx.beginPath();ctx.ellipse(cx,ct,rx,ry,0,0,7);ctx.fillStyle=shade(topCol||col,1.2);ctx.fill();ctx.stroke();
-}
-function band(x,y,r,z0,z1,col){const [cx,b0]=P(x,y,z0),[,b1]=P(x,y,z1),rx=r*TW*.72,ry=rx/2;ctx.beginPath();ctx.ellipse(cx,b0,rx,ry,0,Math.PI,0,true);ctx.lineTo(cx+rx,b1);ctx.ellipse(cx,b1,rx,ry,0,0,Math.PI,false);ctx.closePath();ctx.fillStyle=col;ctx.fill();ctx.strokeStyle=OUT;ctx.lineWidth=Math.max(1,TW*.02);ctx.stroke();}
-function shadow(x,y,w,d){ctx.save();ctx.globalAlpha=.22;poly([P(x+.1,y+.3),P(x+w+.45,y+.3),P(x+w+.45,y+d+.45),P(x+.1,y+d+.45)],"#14300a",null);ctx.restore();}
-function pad(x,y,s){poly([P(x+.06,y+.06),P(x+s-.06,y+.06),P(x+s-.06,y+s-.06),P(x+.06,y+s-.06)],"#d8b57a","#a3814c",Math.max(1,TW*.025));
-  poly([P(x+.18,y+.18),P(x+s-.18,y+.18),P(x+s-.18,y+s-.18),P(x+.18,y+s-.18)],"#e2c48e",null);}
-function rubble(x,y,s){poly([P(x+.1,y+.1),P(x+s-.1,y+.1),P(x+s-.1,y+s-.1),P(x+.1,y+s-.1)],"#6d5d48","#4a3f33",1);
-  const r=rng(x*131+y*7);for(let i=0;i<s*s*2+1;i++){const a=x+.2+r()*(s-.5),c=y+.2+r()*(s-.5);prism(a,c,.22+r()*.15,.22+r()*.15,0,.15+r()*.25,r()<.5?"#9a8f80":"#b07a4a");}}
-
-function drawBuilding(b,club,list){
-  const d=B[b.t],s=d.size,x=b.x,y=b.y;
-  if(b.hp<=0) return rubble(x,y,s);
-  if(b.t!=="fence"&&b.t!=="oval"){pad(x,y,s);shadow(x+.3,y+.3,s-.6,s-.6);}
-  let top=2.5;
-  switch(b.t){
-    case "clubhouse":{
-      prism(x+.3,y+.3,2.4,2.4,0,.4,"#a3968a");
-      prism(x+.45,y+.45,2.1,2.1,.4,1.85,"#f3e4c2");
-      onL(y+2.55,x+.45,x+2.55,.4,.62,club.b,null);
-      for(const u of [.7,1.95]) windowL(y+2.55,x+u,x+u+.35,1.15,1.75);
-      onL(y+2.55,x+1.27,x+1.73,.4,1.3,"#6b3d1c");
-      for(const v of [.7,1.95]) windowR(x+2.55,y+v+.35,y+v,1.15,1.75);
-      roof(x+.25,y+.25,2.5,2.5,2.25,1.35,club.a);
-      const [bx,by]=P(x+2.75,y+1.5,2.75);ctx.lineWidth=2;ctx.strokeStyle=OUT;
-      ctx.beginPath();ctx.arc(bx,by,TW*.24,0,7);ctx.fillStyle=club.b;ctx.fill();ctx.stroke();
-      ctx.beginPath();ctx.arc(bx,by,TW*.13,0,7);ctx.fillStyle=club.a;ctx.fill();
-      flag(...P(x+1.5,y+1.5,3.6),club);
-      top=5.2;break;}
-    case "pieshop":{
-      prism(x+.3,y+.3,1.4,1.4,0,1.15,"#f2d6a0");
-      onL(y+1.7,x+.45,x+.85,0,.8,"#7a4a22");
-      windowR(x+1.7,y+1.45,y+.85,.4,.85);
-      for(let i=0;i<5;i++){const a=x+.3+i*.28;poly([P(a,y+1.7,1.05),P(a+.28,y+1.7,1.05),P(a+.28,y+2.02,.72),P(a,y+2.02,.72)],i%2?"#fff":"#e8503a",OUT,Math.max(1,TW*.02));}
-      prism(x+.22,y+.22,1.56,1.56,1.15,.18,"#8b5a1a","#a96f2a");
-      cyl(x+1,y+1,.55,1.33,.28,"#c98a3a","#eebb62");
-      const [px,py]=P(x+1,y+1,1.61);ctx.strokeStyle="#a0621f";ctx.lineWidth=Math.max(1.5,TW*.03);ctx.lineCap="round";
-      for(let i=-1;i<=1;i++){ctx.beginPath();ctx.moveTo(px+i*TW*.13-TW*.08,py-TH*.12);ctx.lineTo(px+i*TW*.13+TW*.08,py+TH*.12);ctx.stroke();}
-      if(b.store>0) bar(...P(x+1,y+1,3.3),b.store/200,"#f6c343");
-      top=2.6;break;}
-    case "drinktap":{
-      prism(x+.3,y+.3,1.4,1.4,0,.35,"#8d99a6");
-      cyl(x+1,y+1,.56,.35,1.75,"#2fb8e0","#dff6fc");
-      band(x+1,y+1,.56,.9,1.4,club.a);
-      const [lx,ly]=P(x+1,y+1,1.15);txt("⚡",lx-TW*.1,ly+TH*.15,TH*.55);
-      cyl(x+1,y+1,.22,2.1,.32,"#ffffff","#e6e6e6");
-      prism(x+.62,y+1.45,.18,.38,.55,.14,"#c7ccd2");
-      if(b.store>0) bar(...P(x+1,y+1,3.6),b.store/200,"#36c9e8");
-      top=3;break;}
-    case "oval":{
-      const [ox,oy]=P(x+1.5,y+1.5),rx=TW*1.18,ry=TH*.98;
-      ctx.save();ctx.globalAlpha=.25;ctx.beginPath();ctx.ellipse(ox+4,oy+5,rx*1.06,ry*1.06,0,0,7);ctx.fillStyle="#14300a";ctx.fill();ctx.restore();
-      ctx.save();ctx.beginPath();ctx.ellipse(ox,oy,rx,ry,0,0,7);ctx.fillStyle="#48a83f";ctx.fill();ctx.clip();
-      ctx.fillStyle="#5cc050";for(let i=-6;i<6;i+=2)ctx.fillRect(ox+i*rx/6,oy-ry,rx/6,ry*2);ctx.restore();
-      ctx.lineWidth=Math.max(3,TW*.08);ctx.strokeStyle="#e9dcc0";ctx.beginPath();ctx.ellipse(ox,oy,rx*1.03,ry*1.03,0,0,7);ctx.stroke();
-      ctx.lineWidth=Math.max(1.5,TW*.035);ctx.strokeStyle=OUT;ctx.beginPath();ctx.ellipse(ox,oy,rx*1.07,ry*1.07,0,0,7);ctx.stroke();
-      ctx.strokeStyle="#fff";ctx.lineWidth=Math.max(1.5,TW*.03);ctx.beginPath();ctx.ellipse(ox,oy,rx*.9,ry*.9,0,0,7);ctx.stroke();
-      ctx.beginPath();ctx.rect(ox-TW*.22,oy-TH*.35,TW*.44,TH*.7);ctx.stroke();
-      ctx.beginPath();ctx.ellipse(ox,oy,TW*.1,TH*.12,0,0,7);ctx.stroke();
-      posts(ox-rx*.82,oy,TH*.95,null,.55);posts(ox+rx*.82,oy,TH*.95,null,.55);
-      top=1.8;break;}
-    case "goalpost":{
-      prism(x+.38,y+.38,1.24,1.24,0,1.55,"#bfae92");
-      for(const z of [.52,1.04]){onL(y+1.62,x+.38,x+1.62,z,z,null,shade("#bfae92",.6));onR(x+1.62,y+1.62,y+.38,z,z,null,shade("#bfae92",.5));}
-      for(const [u,z] of [[.8,.26],[1.2,.78],[.7,1.3]]) onL(y+1.62,x+u,x+u,z-.26,z+.26,null,shade("#bfae92",.6));
-      prism(x+.22,y+.22,1.56,1.56,1.55,.28,"#9b6a3a","#c8915a");
-      posts(...P(x+1,y+1,1.83),TH*2.6,club,1);
-      top=5.4;break;}
-    case "siren":{
-      prism(x+.32,y+.32,1.36,1.36,0,.65,"#6b7079");
-      onL(y+1.68,x+.32,x+1.68,.42,.52,"#f6c343",null);
-      cyl(x+1,y+1,.5,.65,.3,"#4a4f57");
-      const a=b.ang??-2.6,[hx,hy]=P(x+1,y+1,1.2),L=TW*.85,r0=TW*.1,r1=TW*.34,dx=Math.cos(a),dy=Math.sin(a)*.75,nx=-dy,ny=dx;
-      const mx=hx+dx*L,my=hy+dy*L;
-      poly([[hx-dx*TW*.2+nx*r0,hy-dy*TW*.2+ny*r0],[mx+nx*r1,my+ny*r1],[mx-nx*r1,my-ny*r1],[hx-dx*TW*.2-nx*r0,hy-dy*TW*.2-ny*r0]],grad([hx,hy-r1],[hx,hy+r1],"#ff7a5c","#b52a18"));
-      ctx.save();ctx.translate(mx,my);ctx.rotate(Math.atan2(dy,dx));ctx.beginPath();ctx.ellipse(0,0,TW*.08,r1,0,0,7);ctx.fillStyle="#3a0e08";ctx.fill();ctx.strokeStyle=OUT;ctx.lineWidth=LW();ctx.stroke();ctx.restore();
-      ctx.beginPath();ctx.arc(hx,hy,TW*.16,0,7);ctx.fillStyle="#555b63";ctx.fill();ctx.stroke();
-      top=2.6;break;}
-    case "fence":{
-      const has=(i,j)=>list.some(o=>o.t==="fence"&&o.hp>0&&o.x===i&&o.y===j);
-      if(has(x+1,y)) for(const z of [.28,.6]) prism(x+.5,y+.46,1,.08,z,.12,"#f7f1e2");
-      if(has(x,y+1)) for(const z of [.28,.6]) prism(x+.46,y+.5,.08,1,z,.12,"#f7f1e2");
-      prism(x+.37,y+.37,.26,.26,0,.9,"#f7f1e2");
-      prism(x+.34,y+.34,.32,.32,.9,.12,club.a);
-      top=1.5;break;}
-  }
-  if(b.hp<d.hp) bar(...P(x+s/2,y+s/2,top),b.hp/d.hp,b.hp/d.hp>.5?"#5fd16b":"#e8503a");
-}
-// Aussie rules goal: two tall goal posts, two shorter behind posts, padded in club colours
-function posts(px,py,h,club,sc=1){
-  const g=TW*.17*sc,w=Math.max(2.5,TW*.07*sc);ctx.lineCap="round";
-  [[-2,.6],[-1,1],[1,1],[2,.6]].forEach(([o,k])=>{const X=px+o*g;
-    ctx.strokeStyle=OUT;ctx.lineWidth=w+3;ctx.beginPath();ctx.moveTo(X,py);ctx.lineTo(X,py-h*k);ctx.stroke();
-    ctx.strokeStyle="#fff";ctx.lineWidth=w;ctx.beginPath();ctx.moveTo(X,py);ctx.lineTo(X,py-h*k);ctx.stroke();
-    if(club){ctx.strokeStyle=OUT;ctx.lineWidth=1.5;rr(X-w*.95,py-h*.3,w*1.9,h*.28,3,club.a);ctx.fillStyle=club.b;ctx.fillRect(X-w*.95+1,py-h*.2,w*1.9-2,h*.07);}
-  });
-}
-function flag(px,py,club){
-  const h=TH*2.3;ctx.lineCap="round";
-  ctx.strokeStyle=OUT;ctx.lineWidth=Math.max(3,TW*.07);ctx.beginPath();ctx.moveTo(px,py);ctx.lineTo(px,py-h);ctx.stroke();
-  ctx.strokeStyle="#e0e0e0";ctx.lineWidth=Math.max(1.5,TW*.035);ctx.beginPath();ctx.moveTo(px,py);ctx.lineTo(px,py-h);ctx.stroke();
-  const w=TW*.95,fh=TH*1.05,t=performance.now()/220,y0=py-h+2,wv=i=>Math.sin(t+i*3)*TH*.12*i;
-  ctx.save();ctx.beginPath();ctx.moveTo(px,y0);
-  for(let i=0;i<=1.001;i+=.1)ctx.lineTo(px+w*i,y0+wv(i));for(let i=1;i>=0;i-=.1)ctx.lineTo(px+w*i,y0+fh+wv(i));ctx.closePath();
-  ctx.fillStyle=club.a;ctx.fill();ctx.save();ctx.clip();ctx.fillStyle=club.b;ctx.fillRect(px+w*.36,y0-TH,w*.28,fh+2*TH);ctx.restore();
-  ctx.strokeStyle=OUT;ctx.lineWidth=2;ctx.stroke();ctx.restore();
-  ctx.beginPath();ctx.arc(px,py-h,TW*.06,0,7);ctx.fillStyle="#f6c343";ctx.fill();ctx.strokeStyle=OUT;ctx.lineWidth=1.5;ctx.stroke();
-}
-function txt(s,x,y,sz,col="#fff"){ctx.font=`${sz}px "Lilita One", "Trebuchet MS", sans-serif`;ctx.textAlign="center";ctx.textBaseline="middle";ctx.lineJoin="round";ctx.lineWidth=Math.max(3,sz*.22);ctx.strokeStyle="#000";ctx.strokeText(s,x,y);ctx.fillStyle=col;ctx.fillText(s,x,y);}
-function bar(x,y,f,col){if(f<=.01)return;const w=TW*1.1,h=Math.max(5,TH*.26);ctx.lineWidth=2;ctx.strokeStyle="#000";rr(x-w/2,y,w,h,h/2,"#2a2a2a");ctx.beginPath();ctx.roundRect(x-w/2+1.5,y+1.5,Math.max(h-3,(w-3)*Math.min(1,f)),h-3,(h-3)/2);ctx.fillStyle=col;ctx.fill();
-  ctx.fillStyle="#ffffff55";ctx.fillRect(x-w/2+h/2,y+2,(w-h)*Math.min(1,f),(h-4)/3);}
-
-function drawUnit(u){
-  const [x,y]=P(u.x,u.y),k=TW*(u.big?.42:.33),c=u.club,t=performance.now()/110+u.id*1.7;
-  const sw=u.moving?Math.sin(t)*k*.22:0,bob=u.moving?Math.abs(Math.sin(t))*k*.12:0,atk=u.cd>.75?k*.25:0;
-  ctx.save();ctx.translate(x,y);
-  ctx.fillStyle="#0004";ctx.beginPath();ctx.ellipse(0,0,k*.8,k*.35,0,0,7);ctx.fill();
-  if(u.face<0)ctx.scale(-1,1);ctx.translate(0,-bob);
-  ctx.lineWidth=Math.max(1.5,k*.13);ctx.strokeStyle=OUT;ctx.lineJoin="round";
-  for(const ph of [1,-1]){const o=sw*ph,dx=ph*.2*k;rr(dx-k*.13+o,-k*1.0,k*.26,k*.78,k*.08,c.b);rr(dx-k*.16+o*1.1+k*.04,-k*.27,k*.36,k*.22,k*.1,"#1e1e1e");}
-  rr(-k*.62+atk*.3,-k*1.95,k*.24,k*.7,k*.12,"#efc39b");
-  rr(-k*.45,-k*1.3,k*.9,k*.42,k*.12,u.big?c.b:"#f2f2f2");
-  rr(-k*.5,-k*2.12,k*1.0,k*.92,k*.25,c.a);
-  ctx.save();ctx.beginPath();ctx.roundRect(-k*.5,-k*2.12,k*1.0,k*.92,k*.25);ctx.clip();ctx.fillStyle=c.b;ctx.fillRect(-k*.12,-k*2.2,k*.24,k);ctx.restore();
-  ctx.beginPath();ctx.roundRect(-k*.5,-k*2.12,k*1.0,k*.92,k*.25);ctx.stroke();
-  ctx.save();ctx.translate(k*.42,-k*1.95);ctx.rotate(-atk/k*1.6);rr(-k*.02,0,k*.24,k*.68,k*.12,"#efc39b");ctx.restore();
-  ctx.beginPath();ctx.arc(k*.05,-k*2.55,k*.48,0,7);ctx.fillStyle="#efc39b";ctx.fill();ctx.stroke();
-  ctx.beginPath();ctx.arc(k*.05,-k*2.62,k*.49,Math.PI*1.02,Math.PI*1.98);ctx.lineTo(k*.4,-k*2.7);ctx.lineTo(-k*.35,-k*2.6);ctx.closePath();ctx.fillStyle=u.big?"#e0b040":"#4a2e16";ctx.fill();ctx.stroke();
-  if(u.big){ctx.fillStyle=c.b;ctx.fillRect(-k*.43,-k*2.75,k*.96,k*.14);}
-  ctx.fillStyle="#1a1a1a";ctx.beginPath();ctx.arc(k*.25,-k*2.5,k*.07,0,7);ctx.arc(k*.42,-k*2.5,k*.07,0,7);ctx.fill();
-  if(u.kicker) footy(k*.75,-k*1.35,k*.32,-.5);
-  ctx.restore();
-  if(u.hp<u.max) bar(x,y-k*3.6,u.hp/u.max,"#5fd16b");
-}
-function footy(x,y,r,rot){ctx.save();ctx.translate(x,y);ctx.rotate(rot);ctx.beginPath();ctx.ellipse(0,0,r,r*.62,0,0,7);ctx.fillStyle="#b5532a";ctx.fill();ctx.strokeStyle=OUT;ctx.lineWidth=Math.max(1.5,r*.18);ctx.stroke();
-  ctx.strokeStyle="#fff";ctx.lineWidth=Math.max(1,r*.1);ctx.beginPath();ctx.moveTo(-r*.35,0);ctx.lineTo(r*.35,0);for(let i=-2;i<=2;i++){ctx.moveTo(i*r*.14,-r*.12);ctx.lineTo(i*r*.14,r*.12);}ctx.stroke();ctx.restore();}
-
-// Scenery: trees, bushes and rocks around the ground, plus grass tufts
-let deco=null,tufts=null;
-function makeDeco(){
-  const r=rng(42);deco=[];tufts=[];
-  for(let i=-8;i<N+8;i++)for(let j=-8;j<N+8;j++){
-    if(i>=0&&j>=0&&i<N&&j<N)continue;
-    const edge=Math.min(Math.abs(i<0?i:i-N+1),Math.abs(j<0?j:j-N+1));
-    if(r()<(i<-1||j<-1||i>N||j>N?.55:.25)) deco.push({x:i+.2+r()*.6,y:j+.2+r()*.6,k:r()<.72?"tree":r()<.6?"bush":"rock",s:.75+r()*.5,h:r()});
-  }
-  for(let n=0;n<160;n++) tufts.push([r()*N,r()*N,r()]);
-}
-function drawDeco(t){
-  const [x,y]=P(t.x,t.y),k=TW*.5*t.s;
-  if(x<-k*2||x>W+k*2||y<-k*3||y>H+k)return;
-  ctx.fillStyle="#0003";ctx.beginPath();ctx.ellipse(x+k*.25,y,k*.75,k*.32,0,0,7);ctx.fill();
-  ctx.strokeStyle=OUT;
-  if(t.k==="rock"){ctx.lineWidth=LW();poly([[x-k*.5,y],[x-k*.4,y-k*.4],[x,y-k*.6],[x+k*.45,y-k*.35],[x+k*.5,y]],grad([x,y-k*.6],[x,y],"#c9c4bb","#7d776d"));return;}
-  const blobs=t.k==="tree"?[[-.38,-1.25,.48],[.38,-1.2,.48],[0,-1.7,.58],[0,-1.15,.5]]:[[-.3,-.35,.38],[.3,-.35,.38],[0,-.6,.42]];
-  if(t.k==="tree"){ctx.lineWidth=LW();rr(x-k*.12,y-k*1.0,k*.24,k*1.0,k*.08,"#7a4a22");}
-  const base=t.h<.5?"#2f7f2a":"#3a8a2c",light=t.h<.5?"#5fb246":"#6dbd4c";
-  ctx.lineWidth=LW()*2;ctx.fillStyle=base;
-  for(const [a,b,r] of blobs){ctx.beginPath();ctx.arc(x+a*k,y+b*k,r*k,0,7);ctx.stroke();}
-  for(const [a,b,r] of blobs){ctx.beginPath();ctx.arc(x+a*k,y+b*k,r*k,0,7);ctx.fill();}
-  ctx.fillStyle=light;for(const [a,b,r] of blobs){ctx.beginPath();ctx.arc(x+a*k-r*k*.25,y+b*k-r*k*.3,r*k*.55,0,7);ctx.fill();}
-}
-
-let particles=[],projectiles=[];
-function render(){
-  if(!deco)makeDeco();
-  ctx.fillStyle="#4c9631";ctx.fillRect(0,0,W,H);
-  poly([P(-.35,-.35),P(N+.35,-.35),P(N+.35,N+.35),P(-.35,N+.35)],"#5ea83c",null);
-  poly([P(0,0),P(N,0),P(N,N),P(0,N)],"#6cb646","#4f9a34",2);
-  for(let i=0;i<N;i+=2)diamond(i,0,1,N,"#74bd4d");
-  ctx.strokeStyle="#4f9a3499";ctx.lineWidth=Math.max(1,TW*.025);ctx.lineCap="round";
-  for(const [a,b,v] of tufts){const [tx,ty]=P(a,b),s=TW*.08;ctx.beginPath();ctx.moveTo(tx-s,ty-s);ctx.lineTo(tx-s*.3,ty);ctx.lineTo(tx,ty-s*1.3);ctx.lineTo(tx+s*.3,ty);ctx.lineTo(tx+s,ty-s);ctx.stroke();}
-  if(mode==="build"){ctx.strokeStyle="#ffffff30";ctx.lineWidth=1;for(let i=0;i<=N;i++){ctx.beginPath();ctx.moveTo(...P(i,0));ctx.lineTo(...P(i,N));ctx.moveTo(...P(0,i));ctx.lineTo(...P(N,i));ctx.stroke();}}
-  if(mode==="build"&&buildType&&hover){const s=B[buildType].size;diamond(hover[0],hover[1],s,s,canPlace(buildType,hover[0],hover[1])?"#ffffff70":"#e8503a80","#fff");}
-  if(mode==="attack"){ctx.save();ctx.globalAlpha=.18;poly([P(2,2),P(N-2,2),P(N-2,N-2),P(2,N-2)],null,"#fff",3);ctx.restore();}
-  const club=mode==="attack"?enemy.club:CLUBS[S.club];
-  const list=(mode==="attack"?enemy.buildings:S.buildings);
-  const ents=deco.map(t=>({k:t.x+t.y,draw:()=>drawDeco(t)}));
-  list.forEach(b=>ents.push({k:b.x+b.y+B[b.t].size,draw:()=>drawBuilding(b,club,list)}));
-  if(mode==="attack")enemy.units.forEach(u=>{if(u.hp>0)ents.push({k:u.x+u.y,draw:()=>drawUnit(u)});});
-  ents.sort((a,b)=>a.k-b.k).forEach(e=>e.draw());
-  projectiles.forEach(p=>{const [x,y]=P(p.x,p.y),z=TH*(1.2+Math.sin(p.t*Math.PI)*1.8);
-    if(p.kind==="siren"){ctx.beginPath();ctx.arc(x,y-z,TW*.14,0,7);ctx.fillStyle="#ff5a3c";ctx.fill();ctx.strokeStyle=OUT;ctx.lineWidth=2;ctx.stroke();}
-    else footy(x,y-z,TW*.15,p.t*9);});
-  particles.forEach(p=>{ctx.globalAlpha=Math.max(0,p.life);txt(p.s,p.px,p.py,TH*.9,p.s[0]==="+"?"#f6c343":"#fff");ctx.globalAlpha=1;});
-  if(mode==="attack"){const ty=90*devicePixelRatio+TH;txt(`vs ${enemy.club.name}`,W/2,ty,TH*1.2);txt(`Destroyed ${Math.round(destroyedPct())}%  ·  ${Math.ceil(enemy.time)}s`,W/2,ty+TH*1.5,TH*.85);}
-}
-
-// ---------- Logic ----------
-function occupied(list,x,y,ignore){ return list.some(b=>b!==ignore && b.hp>0 && x>=b.x && x<b.x+B[b.t].size && y>=b.y && y<b.y+B[b.t].size); }
-function canPlace(t,x,y){ const s=B[t].size; if(x<0||y<0||x+s>N||y+s>N) return false; for(let i=0;i<s;i++)for(let j=0;j<s;j++) if(occupied(S.buildings,x+i,y+j)) return false; return true; }
-
-let last=performance.now(), econT=0;
-function tick(now){
-  const dt=Math.min(.05,(now-last)/1000); last=now;
-  econT+=dt;
-  if(econT>1){ econT=0; S.buildings.forEach(b=>{ if(B[b.t].makes) b.store=Math.min(200,b.store+6); }); }
-  if(mode==="attack") battle(dt);
-  projectiles=projectiles.filter(p=>{p.t+=dt*2.2;p.x=p.sx+(p.tx-p.sx)*p.t;p.y=p.sy+(p.ty-p.sy)*p.t;if(p.t>=1){p.hit();return false;}return true;});
-  particles=particles.filter(p=>{p.life-=dt;p.py-=dt*40;return p.life>0;});
-  render(); hud(); requestAnimationFrame(tick);
-}
-
-function battle(dt){
-  const E=enemy; E.time-=dt;
-  const alive=E.buildings.filter(b=>b.hp>0);
-  E.units.forEach(u=>{
-    if(u.hp<=0) return;
-    u.cd-=dt;
-    let tgt=u.tgt&&u.tgt.hp>0?u.tgt:null;
-    if(!tgt){ let best=1e9; alive.forEach(b=>{ if(b.t==="fence")return; const d=dist(u,b); if(d<best){best=d;tgt=b;} }); if(!tgt) alive.forEach(b=>{const d=dist(u,b);if(d<best){best=d;tgt=b;}}); u.tgt=tgt; }
-    if(!tgt) return;
-    const d=dist(u,tgt);
-    if(d>u.range+B[tgt.t].size/2){
-      const [cx,cy]=centre(tgt), dx=cx-u.x, dy=cy-u.y, L=Math.hypot(dx,dy);
-      const nx=u.x+dx/L*u.spd*dt, ny=u.y+dy/L*u.spd*dt;
-      const blocker=E.buildings.find(b=>b.t==="fence"&&b.hp>0&&nx>=b.x&&nx<b.x+1&&ny>=b.y&&ny<b.y+1);
-      u.moving=true; u.face=(dx-dy)>=0?1:-1;
-      if(blocker&&blocker!==tgt){ u.tgt=blocker; } else { u.x=nx; u.y=ny; }
-    } else { u.moving=false; if(u.cd<=0){
-      u.cd=1;
-      if(u.kicker){ const [tx,ty]=centre(tgt); projectiles.push({sx:u.x,sy:u.y,tx,ty,x:u.x,y:u.y,t:0,hit:()=>hurt(tgt,u.dmg)}); }
-      else hurt(tgt,u.dmg);
-    }}
-  });
-  // defences
-  alive.forEach(b=>{ const d=B[b.t]; if(!d.range) return; b.cd=(b.cd||0)-dt; if(b.cd>0) return;
-    let tgt=null,best=d.range; E.units.forEach(u=>{ if(u.hp<=0)return; const dd=dist(u,b); if(dd<best){best=dd;tgt=u;} });
-    if(tgt){ b.cd=1.1; const [sx,sy]=centre(b); const p0=P(sx,sy),p1=P(tgt.x,tgt.y); b.ang=Math.atan2(p1[1]-p0[1],p1[0]-p0[0]); projectiles.push({kind:b.t,sx,sy,tx:tgt.x,ty:tgt.y,x:sx,y:sy,t:0,hit:()=>{tgt.hp-=d.dmg; if(tgt.hp<=0) pop("💥",tgt.x,tgt.y);}}); }
-  });
-  const unitsLeft=E.units.some(u=>u.hp>0)||Object.values(S.squad).some(n=>n>0);
-  if(E.time<=0 || !unitsLeft || destroyedPct()>=100) endBattle();
-}
-function hurt(b,dmg){ if(b.hp<=0)return; b.hp-=dmg; if(b.hp<=0){ pop(b.t==="fence"?"🪵":"💥",...centre(b)); if(B[b.t].makes||b.t==="clubhouse"){ const loot=b.t==="clubhouse"?150:80; enemy.loot[B[b.t].makes||"pies"]+=loot; pop(`+${loot}`,...centre(b)); } } }
-function pop(s,x,y){ const [px,py]=iso(x,y); particles.push({s,px,py:py-TH*2,life:1}); }
-const centre=b=>[b.x+B[b.t].size/2,b.y+B[b.t].size/2];
-const dist=(u,b)=>{const [cx,cy]=centre(b);return Math.hypot(cx-u.x,cy-u.y);};
-function destroyedPct(){ const nb=enemy.buildings.filter(b=>b.t!=="fence"); return 100*nb.filter(b=>b.hp<=0).length/nb.length; }
-
-function endBattle(){
-  const pct=Math.round(destroyedPct()), stars=(pct>=50)+(enemy.buildings.find(b=>b.t==="clubhouse").hp<=0)+(pct>=100);
-  S.pies+=enemy.loot.pies; S.drink+=enemy.loot.drink;
-  enemy.units=[]; mode="over"; save();
-  document.getElementById("resTitle").textContent = stars? `${"★".repeat(stars)}${"☆".repeat(3-stars)} Win!` : "Siren! You lost";
-  document.getElementById("resBody").innerHTML = `${pct}% of ${enemy.club.name}'s ground flattened.<br>Loot: 🥧 ${enemy.loot.pies} &nbsp; 💧 ${enemy.loot.drink}`;
-  document.getElementById("result").classList.add("show");
-}
-function goHome(){ document.getElementById("result").classList.remove("show"); mode="home"; enemy=null; renderBar(); }
-
-function startAttack(){
-  if(!Object.values(S.squad).some(n=>n>0)) return toast("Train some players at the Training Oval first!");
-  const others=CLUBS.filter((_,i)=>i!==S.club), club=others[Math.random()*others.length|0];
-  const bl=[{t:"clubhouse",x:10,y:10},{t:"pieshop",x:6,y:6},{t:"drinktap",x:15,y:6},{t:"pieshop",x:6,y:15},{t:"goalpost",x:15,y:15},{t:"goalpost",x:7,y:10},{t:"siren",x:14,y:10},...fenceRing(5,5,17,17)];
-  enemy={club,time:90,loot:{pies:0,drink:0},units:[],buildings:bl.map(b=>({...b,hp:B[b.t].hp}))};
-  mode="attack"; deployType=Object.keys(S.squad).find(k=>S.squad[k]>0); renderBar();
-}
-
-let uid=0;
-function deploy(x,y){
-  if(!deployType||S.squad[deployType]<=0) return;
-  if(!(x<2||y<2||x>N-2||y>N-2)) return toast("Deploy players on the outer boundary");
-  const d=UNITS[deployType]; S.squad[deployType]--;
-  enemy.units.push({...d,id:uid++,x,y,max:d.hp,cd:0,club:CLUBS[S.club]});
-  if(S.squad[deployType]<=0) deployType=Object.keys(S.squad).find(k=>S.squad[k]>0)||null;
-  renderBar();
-}
-
-// ---------- Input ----------
-let hover=null;
-function cellAt(e){ const r=cv.getBoundingClientRect(); const [x,y]=unIso((e.clientX-r.left)*devicePixelRatio,(e.clientY-r.top)*devicePixelRatio); return [x,y]; }
-cv.addEventListener("pointermove",e=>{ const [x,y]=cellAt(e); hover=[Math.floor(x),Math.floor(y)]; });
-cv.addEventListener("pointerdown",e=>{
-  const [fx,fy]=cellAt(e), x=Math.floor(fx), y=Math.floor(fy); hover=[x,y];
-  if(mode==="attack") return deploy(fx,fy);
-  if(mode==="build"&&buildType){
-    const d=B[buildType];
-    if(!canPlace(buildType,x,y)) return toast("Can't build there");
-    if(S[d.res]<d.cost) return toast(`Not enough ${d.res==="pies"?"pies 🥧":"sports drink 💧"}`);
-    S[d.res]-=d.cost; S.buildings.push({t:buildType,x,y,hp:d.hp,store:0}); save(); toast(`${d.label} built!`);
-    if(buildType!=="fence"){ buildType=null; mode="home"; renderBar(); }
-    return;
-  }
-  // tap to collect resources
-  const b=S.buildings.find(b=>x>=b.x&&x<b.x+B[b.t].size&&y>=b.y&&y<b.y+B[b.t].size);
-  if(b&&B[b.t].makes&&b.store>=1){ const n=Math.floor(b.store); S[B[b.t].makes]+=n; b.store=0; pop(`+${n}`,...centre(b)); save(); }
-  else if(b&&b.t==="oval") { mode="train"; renderBar(); }
-});
-
-// ---------- UI ----------
-function hud(){
-  document.getElementById("pies").textContent=Math.floor(S.pies);
-  document.getElementById("drink").textContent=Math.floor(S.drink);
-  document.getElementById("squad").textContent=Object.values(S.squad).reduce((a,b)=>a+b,0);
-}
-function btn(html,fn,cls=""){ const b=document.createElement("button"); b.innerHTML=html; b.className=cls; b.onclick=fn; return b; }
-function renderBar(){
-  const bar=document.getElementById("bar"); bar.innerHTML="";
-  if(mode==="home"){
-    bar.append(btn("🔨 Build",()=>{mode="build";renderBar();}), btn("🏉 Train",()=>{mode="train";renderBar();}), btn("⚔️ Match Day",startAttack,"go"));
-  } else if(mode==="build"){
-    Object.entries(B).filter(([k])=>k!=="clubhouse").forEach(([k,d])=>bar.append(btn(`${d.label}<small>${d.res==="pies"?"🥧":"💧"} ${d.cost}</small>`,()=>{buildType=k;renderBar();toast("Tap the grass to place");},buildType===k?"sel":"")));
-    bar.append(btn("✖ Done",()=>{mode="home";buildType=null;renderBar();}));
-  } else if(mode==="train"){
-    if(!S.buildings.some(b=>b.t==="oval")){ toast("Build a Training Oval first"); mode="home"; return renderBar(); }
-    Object.entries(UNITS).forEach(([k,u])=>bar.append(btn(`${u.emoji} ${u.label} (${S.squad[k]})<small>💧 ${u.cost}</small>`,()=>{ if(S.drink<u.cost) return toast("Need more sports drink 💧"); S.drink-=u.cost; S.squad[k]++; save(); renderBar(); })));
-    bar.append(btn("✖ Done",()=>{mode="home";renderBar();}));
-  } else if(mode==="attack"){
-    Object.entries(UNITS).forEach(([k,u])=>bar.append(btn(`${u.emoji} ${u.label}<small>x${S.squad[k]}</small>`,()=>{deployType=k;renderBar();},deployType===k?"sel":"")));
-    bar.append(btn("🏳️ End",()=>{enemy.time=0;}));
-  }
-}
-let tt; function toast(s){ const t=document.getElementById("toast"); t.textContent=s; t.classList.add("show"); clearTimeout(tt); tt=setTimeout(()=>t.classList.remove("show"),1600); }
-
-function setClub(i){
-  S.club=i; if(!S.buildings.length) S.buildings=starterBase();
-  save(); document.getElementById("pick").classList.remove("show");
-  const c=CLUBS[i]; document.getElementById("clubName").textContent=c.name;
-  document.getElementById("g").style.background=`linear-gradient(90deg,${c.a} 0 35%,${c.b} 35% 65%,${c.a} 65%)`;
-  renderBar();
-}
-const clubsEl=document.getElementById("clubs");
-CLUBS.forEach((c,i)=>clubsEl.append(btn(`<span class="guernsey" style="background:linear-gradient(90deg,${c.a} 0 35%,${c.b} 35% 65%,${c.a} 65%)"></span>${c.name}`,()=>setClub(i))));
-
-resize();
-if(S.club!==null && S.club!==undefined){ setClub(S.club); }
-// ?club=N skips the picker
-const q=new URLSearchParams(location.search);
-if(q.has("club")) setClub(+q.get("club"));
-requestAnimationFrame(tick);
-</script>
+<script src="js/data.js"></script>
+<script src="js/render.js"></script>
+<script src="js/game.js"></script>
+<script src="js/battle.js"></script>
+<script src="js/ui.js"></script>
+<script>boot();</script>
 </body>
 </html>

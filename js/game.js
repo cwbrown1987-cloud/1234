@@ -16,7 +16,7 @@ function newGame(club){
     obstacles:[], army:{}, queue:[], trainAt:Date.now(), spells:{}, squeue:[], spellAt:Date.now(),
     unitLv:{}, research:null, heroes:{captain:{lv:1,busy:null},coach:{lv:1,busy:null}},
     season:null, album:{}, tokens:0, xp:0, lvl:1, prizePacks:0, daily:null, raids:[], nextRaid:Date.now()+3*864e5+60000, shield:Date.now()+3*864e5, // 3-day new player shield, like Clash
-    sound:true, last:Date.now()};
+    sound:true, last:Date.now(), tut:"choose"};
   s.buildings.forEach(b=>b.id=s.nextId++);
   const r=rng(club*99+7);
   s.obsV=2; s.obsAt=Date.now()+OBSTACLE_EVERY;
@@ -330,6 +330,7 @@ function boot(){
   if(S){ const away=Math.min(24*3600,(Date.now()-S.last)/1000); produce(away); ensureDaily(); processTimers(); if(away>60&&!S.raids.some(r=>!r.seen)) toast(`Welcome back! You were away ${fmtTime(away)}.`); }
   else showClubPicker();
   if(S&&typeof S.tut==="number") setTimeout(showTutStep,400);
+  else if(S&&S.tut==="choose") setTimeout(showTutorialChoice,400); // closed the app before picking: ask again
   if(typeof netStart==="function") setTimeout(netStart,800);
   refreshUI(); requestAnimationFrame(frame);
   addEventListener("visibilitychange",()=>{ if(document.hidden&&mode==="home") save(); });

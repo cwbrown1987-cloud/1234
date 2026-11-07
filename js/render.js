@@ -300,7 +300,8 @@ function drawFence(b,club,list,lv){
 }
 function drawTrap(b){ const [x,y]=P(b.x+.5,b.y+.5); ctx.fillStyle="#425657"; ctx.strokeStyle=OUT; ctx.lineWidth=1.5; ctx.beginPath(); ctx.ellipse(x,y,TW*.21,TH*.23,0,0,7); ctx.fill(); ctx.stroke();
   ctx.beginPath(); ctx.arc(x,y-TH*.15,TW*.06,0,7); ctx.fillStyle="#d6ad59"; ctx.fill(); ctx.stroke(); }
-function rubble(x,y,s){ const sprite=artSprites.get("rubble"); if(sprite && paintArt(sprite,...P(x+s/2,y+s/2),TW*s*.86/sprite.w,.75)) return; poly([P(x+.1,y+.1),P(x+s-.1,y+.1),P(x+s-.1,y+s-.1),P(x+.1,y+s-.1)],"#6d5d48","#4a3f33",1);
+function rubble(x,y,s){ const sprite=artSprites.get("rubble");
+  if(sprite){ const [px,py]=P(x+s/2,y+s/2); ctx.save(); ctx.translate(px,py); ctx.scale(1,.6); paintArt(sprite,0,0,TW*s*.82/sprite.w,.7); ctx.restore(); return; } poly([P(x+.1,y+.1),P(x+s-.1,y+.1),P(x+s-.1,y+s-.1),P(x+.1,y+s-.1)],"#6d5d48","#4a3f33",1);
   const r=rng(x*131+y*7); for(let i=0;i<s*s*1.5+1;i++){ const a=x+.2+r()*(s-.5),c=y+.2+r()*(s-.5); prism(a,c,.22+r()*.15,.22+r()*.15,0,.15+r()*.25,r()<.5?"#9a8f80":"#b07a4a"); } }
 function scaffold(b,s){
   const x=b.x,y=b.y,h=b.busy.kind==="build"?1.4:2.2;

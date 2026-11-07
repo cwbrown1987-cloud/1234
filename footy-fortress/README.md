@@ -2,6 +2,12 @@
 
 A base-building strategy game with all 18 AFL clubs. Open `index.html` in a browser (made for phones). No install, progress saves on the device.
 
+## Footy rules
+- **Scoring:** every building you knock down is a goal (6), one smashed past half is a behind (1). The home side gets a behind for every building still standing and every player it knocks out (a goal for big players and heroes). Highest score at the siren wins.
+- **Stars:** ★ win, ★★ win + Clubhouse down, ★★★ whole ground flattened.
+- **Season:** 17 rounds, 4 points a win, percentage splits ties, top 8 play finals (QF → SF → PF → Grand Final). Win it for a premiership.
+- **Names:** gems are Brownlow votes 🏅, goblins are Crumbers, your raid log is Home Games.
+
 ## New in Round 1
 - **Get raided:** rival clubs attack your ground every so often (even while you're away). Check the Defence Log, watch replays, hit Revenge. Big losses give you a shield.
 - **Player cards:** 72 cards (captains are Legends). Win packs from matches and tasks, level up duplicates, and pick a Team Sheet that boosts your squad.

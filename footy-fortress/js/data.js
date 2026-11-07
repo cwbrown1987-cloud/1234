@@ -99,7 +99,7 @@ const UNITS = {
   rover:   {name:"Rover",        space:1,  hp:80,  dps:12, spd:2.2, range:0.8, pref:"any",      cost:25,   time:4,  card:"mid",  desc:"Quick, cheap, goes for anything."},
   forward: {name:"Full-Forward", space:1,  hp:40,  dps:10, spd:2.0, range:3.5, pref:"any",      cost:50,   time:5,  card:"fwd",  ranged:true, desc:"Kicks from range. Fragile."},
   ruck:    {name:"Ruckman",      space:5,  hp:420, dps:12, spd:1.3, range:0.9, pref:"defence",  cost:250,  time:15, card:"ruck", desc:"A wall of a man. Goes straight for defences."},
-  tagger:  {name:"Tagger",       space:1,  hp:35,  dps:15, spd:3.2, range:0.7, pref:"resource", cost:40,   time:6,  card:"mid",  desc:"Hunts pies and drinks. Double damage on them."},
+  tagger:  {name:"Crumber",       space:1,  hp:35,  dps:15, spd:3.2, range:0.7, pref:"resource", cost:40,   time:6,  card:"mid",  desc:"Crumbs the loose stuff: runs at pies and drinks, double damage on them."},
   shepherd:{name:"Shepherd",     space:2,  hp:25,  dps:40, spd:2.8, range:0.6, pref:"fence",    cost:100,  time:10, card:"def",  desc:"Bumps through fences. Huge fence damage, then he's done."},
   seagulls:{name:"Seagulls",     space:2,  hp:55,  dps:16, spd:3.0, range:0.9, pref:"any",      cost:120,  time:8,  card:"fwd",  air:true, desc:"A flock that flies over fences and pecks at anything. Hot chips not included."},
   trainer: {name:"Trainer",      space:14, hp:500, dps:0,  spd:1.8, range:4.0, pref:"heal",     cost:1500, time:40, card:"def",  heal:35, desc:"Runs water and heals your players."},
@@ -134,7 +134,7 @@ CLUBS.forEach((c,ci)=>{
   CARDS.push({id:ci+"-3", club:ci, name:c.short+" Rookie", pos:["mid","fwd","def","ruck"][ci%4], rarity:"common"});
 });
 const POS_NAME = {mid:"Midfielder", fwd:"Forward", ruck:"Ruckman", def:"Defender", coach:"Coach"};
-const POS_EFFECT = {mid:"Rovers & Taggers hit harder", fwd:"Forwards & Seagulls hit harder", ruck:"Ruckmen & Blimps get tougher", def:"Your buildings get tougher on defence"};
+const POS_EFFECT = {mid:"Rovers & Crumbers hit harder", fwd:"Forwards & Seagulls hit harder", ruck:"Ruckmen & Blimps get tougher", def:"Your buildings get tougher on defence"};
 const PACKS = {
   bronze:{name:"Bronze Pack", n:3, min:"common", cost:30,  col:"#c98a3a"},
   silver:{name:"Silver Pack", n:5, min:"common", cost:80,  col:"#c8d0d8", guarantee:"rare"},

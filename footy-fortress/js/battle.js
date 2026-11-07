@@ -55,7 +55,7 @@ function makeBattle(o){
 function startBattle(o){
   if(!Object.values(S.army).some(n=>n>0)) return toast("Train some players first!");
   const heroes={}; for(const h of Object.keys(HEROES)) if(heroReady(h)) heroes[h]=true;
-  BT=makeBattle({mode:"attack", kind:o.kind, round:o.round, d:o.d, club:o.club, atkClub:S.club, buildings:o.buildings||genBase(o.d,o.seed),
+  BT=makeBattle({mode:"attack", kind:o.kind, round:o.round, fixture:o.fixture, d:o.d, club:o.club, atkClub:S.club, buildings:o.buildings||genBase(o.d,o.seed),
     army:S.army, spells:S.spells, heroes, lvOf:u=>S.unitLv[u], heroStat:h=>heroStats(h), bonus:cardBonus, lootMul:(eventNow()&&eventNow().loot||1)*(o.lootMul||1), revenge:o.revenge});
   BT.sel = firstSel();
   mode="battle"; selected=null; placing=null; cam.x=0; cam.y=0; setZoom(.8); sfx("whistle"); refreshUI(); tut("battle");
@@ -130,7 +130,8 @@ function hurt(b,dmg){
   }
 }
 const healUnit = (u,amt) => { u.hp=Math.min(u.max,u.hp+amt); };
-function damageUnit(u,dmg){ if(u.hp<=0) return; if(u.shield>0) dmg*=.5; u.hp-=dmg; if(u.hp<=0) BT.fx.push({k:"poof",x:u.x,y:u.y,t:0,air:u.air}); }
+function damageUnit(u,dmg){ if(u.hp<=0) return; if(u.shield>0) dmg*=.5; u.hp-=dmg;
+  if(u.hp<=0){ BT.fx.push({k:"poof",x:u.x,y:u.y,t:0,air:u.air}); if(u.hero||(UNITS[u.kind]&&UNITS[u.kind].space>=5)) BT.koBig=(BT.koBig||0)+1; else BT.koSmall=(BT.koSmall||0)+1; } }
 
 function updateUnit(u,dt){
   if(u.hp<=0) return;
@@ -243,7 +244,16 @@ function autoSel(){ const s=BT.sel; const has = s&&(s.k==="unit"?BT.left[s.v]>0:
 // ---------- loop ----------
 let shake=0;
 function pct(){ const c=BT.buildings.filter(counts); return 100*c.filter(b=>b.hp<=0).length/c.length; }
-function starsNow(){ const p=pct(), ch=BT.buildings.find(b=>b.t==="clubhouse"); return (p>=50?1:0)+(ch&&ch.hp<=0?1:0)+(p>=100?1:0); }
+// Footy scoring. Away team: a goal for every building knocked down, a behind for every one smashed past half.
+// Home team: a behind for every building still standing, a behind for each player knocked out (goal for big players and heroes).
+function scoreNow(){
+  let ag=0, ab=0, hb=0;
+  for(const b of BT.buildings){ if(!counts(b)) continue; if(b.hp<=0) ag++; else if(b.hp<=b.max*.5) ab++; else hb++; }
+  const hg=BT.koBig||0; hb+=BT.koSmall||0;
+  return {a:{g:ag,b:ab,p:ag*6+ab}, h:{g:hg,b:hb,p:hg*6+hb}};
+}
+// ★ = win, ★★ = win + Clubhouse down, ★★★ = whole ground flattened
+function starsNow(){ const sc=scoreNow(); if(sc.a.p<=sc.h.p) return 0; const ch=BT.buildings.find(b=>b.t==="clubhouse"); return 1+(ch&&ch.hp<=0?1:0)+(pct()>=100?1:0); }
 function battleStep(dt){
   shake=Math.max(0,shake-dt); BT.mask=Math.max(0,BT.mask-dt);
   if(BT.dirty) rebuildGrid();
@@ -276,7 +286,8 @@ function endBattle(){
   let tro = stars ? Math.round((8+stars*6)*(BT.d>=th()?1.2:.8)) : -10;
   S.trophies=Math.max(0,S.trophies+tro);
   let medals=0, pack=null;
-  if(BT.kind==="season"){ const old=S.season[BT.round]; if(stars>old){ medals=(stars-old)*10; S.medals+=medals; S.season[BT.round]=stars; } }
+  const sc=scoreNow(); let season=null;
+  if(BT.kind==="season"){ season=seasonResult({g:sc.a.g,b:sc.a.b},{g:sc.h.g,b:sc.h.b}); if(season.res==="W"){ medals=10; S.medals+=medals; } }
   if(stars>0){ track("win",1); pack=stars>=3?"gold":stars===2?"silver":"bronze"; if(BT.kind==="match"&&stars<3&&Math.random()<.5) pack=null; if(pack) S.packs[pack]=(S.packs[pack]||0)+1; }
   track("destroy",BT.destroyed);
   if(BT.revenge){ const r=S.raids.find(x=>x.id===BT.revenge); if(r) r.revenged=true; }
@@ -285,7 +296,7 @@ function endBattle(){
   S.shield=0; // attacking breaks your shield
   save(); sfx(stars?"cheer":"siren");
   setTimeout(()=>tut("battleEnd"),50);
-  showResult({stars,p,got,tro,medals,pack,club:CLUBS[BT.club].name, full:(got.pies<Math.floor(BT.loot.pies*mul)||got.drink<Math.floor(BT.loot.drink*mul))});
+  showResult({stars,p,got,tro,medals,pack,sc,season,fixture:BT.fixture,home:CLUBS[BT.club],away:CLUBS[BT.atkClub],club:CLUBS[BT.club].name, full:(got.pies<Math.floor(BT.loot.pies*mul)||got.drink<Math.floor(BT.loot.drink*mul))});
 }
 function leaveBattle(){ BT=null; mode="home"; cam.x=0; cam.y=0; setZoom(1); refreshUI(); }
 

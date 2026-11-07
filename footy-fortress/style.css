@@ -184,3 +184,24 @@ button{font:inherit;color:#fff;text-shadow:0 2px 0 #000;cursor:pointer;border:no
 .diffs{margin:0 0 12px;padding-left:20px;font-size:14px;line-height:1.4}
 .diffs li{margin-bottom:6px}
 .card h2{padding:0 34px}
+
+#bScore{font-size:15px;line-height:1.25;text-align:right}
+#bScore div{opacity:.75}#bScore .lead{opacity:1;color:var(--gold)}
+#bStars{font-size:14px;color:var(--gold)}
+.board{display:flex;flex-direction:column;gap:4px;margin:10px auto;max-width:300px}
+.board div{display:flex;align-items:center;gap:8px;background:#2b2620;color:#fff;text-shadow:0 2px 0 #000;border:3px solid #000;border-radius:10px;padding:4px 10px;font-size:18px}
+.board div span{flex:1;text-align:left}.board div b{font-weight:400;font-variant-numeric:tabular-nums}
+.board .won{background:linear-gradient(#3fa83a,#2b7a28)}
+.result .stars{font-size:36px}
+.note{background:#ffe07a;border:3px solid #000;border-radius:10px;padding:6px;margin:6px 0}
+.seasonbar{display:flex;flex-wrap:wrap;gap:6px 12px;align-items:center;justify-content:space-between;font-size:14px;margin-bottom:8px}
+.fx.next{background:#fff;border-color:#000}
+.fx .wl{width:28px;height:28px;border-radius:8px;display:flex;align-items:center;justify-content:center;color:#fff;text-shadow:0 1px 0 #000;border:2px solid #000}
+.wl.W{background:#3fa83a}.wl.L{background:#c8321e}.wl.D{background:#888}
+.ladwrap{overflow-x:auto}
+.ladder{width:100%;border-collapse:collapse;font-size:14px;font-variant-numeric:tabular-nums}
+.ladder th{font-weight:400;color:#6b5434;text-align:left;padding:2px 4px}
+.ladder td{padding:3px 4px;border-bottom:1px solid #0001}
+.ladder tr.me td{background:#ffe07a}
+.ladder tr.cut td{border-bottom:3px solid #3a2a18}
+.badgeimg.xs{width:22px;height:22px}

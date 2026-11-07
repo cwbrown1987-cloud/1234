@@ -32,6 +32,7 @@ function fixup(s){
   }
   s.unitLv=s.unitLv||{}; for(const k of Object.keys(UNITS)) s.unitLv[k]=s.unitLv[k]||1;
   s.heroes=s.heroes||{}; for(const h of Object.keys(HEROES)) s.heroes[h]=s.heroes[h]||{lv:1,busy:null};
+  if(!s.season||Array.isArray(s.season)) s.season=newSeason(1); s.premierships=s.premierships||0;
   s.cards=s.cards||{}; s.team=s.team||[]; s.packs=s.packs||{}; s.raids=s.raids||[];
   s.nextRaid=s.nextRaid||Date.now()+8*60000; s.shield=s.shield||0; if(s.sound===undefined) s.sound=true;
   return s;
@@ -108,7 +109,7 @@ function startUpgrade(b){
   track("upgrade",1); sfx("build"); save(); refreshUI();
 }
 const speedCost = endMs => Math.max(1, Math.ceil((endMs-Date.now())/60000));
-function speedUp(b){ const c=speedCost(b.busy.end); if(!pay("medals",c)) return toast("Not enough medals 🏅"); b.busy.end=Date.now(); processTimers(); refreshUI(); }
+function speedUp(b){ const c=speedCost(b.busy.end); if(!pay("medals",c)) return toast("Not enough Brownlow votes 🏅"); b.busy.end=Date.now(); processTimers(); refreshUI(); }
 function removeObstacle(o){
   if(!pay("pies",100)) return toast("Clearing costs 100 🥧");
   S.obstacles=S.obstacles.filter(x=>x!==o); const m=1+(Math.random()*3|0); S.medals+=m;

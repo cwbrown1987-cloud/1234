@@ -1,21 +1,23 @@
 // ---------- Tutorials: a quick "Clash players" cheat sheet, and a guided walkthrough for new players ----------
 
 const CLASH_MAP = [
-  ["Resources", [["Gold","Pies 🥧"],["Elixir","Sports Drink 💧"],["Gems","Medals 🏅"]]],
+  ["Resources", [["Gold","Pies 🥧"],["Elixir","Sports Drink 💧"],["Gems","Brownlow votes 🏅"]]],
   ["Buildings", [["Town Hall","Clubhouse"],["Gold Mine","Pie Shop"],["Elixir Collector","Drink Tap"],["Gold Storage","Pie Warmer"],["Elixir Storage","Esky"],
     ["Barracks","Training Oval"],["Army Camp","Interchange Bench"],["Spell Factory","Physio Room"],["Laboratory","Coaches Box"],["Builder's Hut","Groundskeeper Shed"],["Hero altars","Captain's Locker & Coach's Office"]]],
   ["Defences", [["Cannon","Siren Cannon"],["Archer Tower","Goal Tower"],["Mortar","Kick-Out Catapult"],["Air Defense","Floodlight Tower"],["Bomb","Sprinkler Trap"],["Walls","Fences"]]],
-  ["Troops", [["Barbarian","Rover"],["Archer","Full-Forward"],["Giant","Ruckman"],["Goblin","Tagger"],["Wall Breaker","Shepherd"],["Minion","Seagulls"],["Balloon","Blimp"],["Healer","Trainer"]]],
+  ["Troops", [["Barbarian","Rover"],["Archer","Full-Forward"],["Giant","Ruckman"],["Goblin","Crumber"],["Wall Breaker","Shepherd"],["Minion","Seagulls"],["Balloon","Blimp"],["Healer","Trainer"]]],
   ["Spells", [["Healing","Half-time Oranges"],["Rage","Crowd Roar"],["Lightning","Umpire's Free Kick"],["Freeze","Rain Delay"],["(new)","Late Sub: drops 6 Rovers"]]],
-  ["Heroes & modes", [["Barbarian King","Your club's real captain"],["Archer Queen","Head Coach (Clubhouse 5)"],["Goblin campaign","Season Fixture + Grand Final"]]],
+  ["Heroes & modes", [["Barbarian King","Your club's real captain"],["Archer Queen","Head Coach (Clubhouse 5)"],["Goblin campaign","The Season: 17 rounds, ladder, finals"],["Stars","★ win, ★★ + Clubhouse, ★★★ flatten it"]]],
 ];
 const CLASH_DIFFS = [
   "<b>Your hero is your club's star player</b> (e.g. Daicos, Gawn, Bontempelli) with a position-based ability.",
   "<b>Player cards are new.</b> Win packs, level duplicates, and put up to 5 on your Team Sheet to boost players by position.",
   "<b>Raids come from AI clubs</b> every 10–20 minutes, even when you're away. Check the 🛡️ Log for replays, and hit Revenge for 1.5× loot.",
   "<b>Much faster.</b> Timers are seconds to 2 hours, not days. The Clubhouse tops out at level 8.",
-  "<b>Daily tasks</b> pay medals, and each weekday has an event (double loot on Grand Final Weekend).",
-  "<b>Medals 🏅</b> come from tasks, clearing trees, Season stars and revenge, never real money.",
+  "<b>Matches are scored like footy.</b> Knock down a building = goal. They get a behind for each building still standing and each player they knock out (goal for big ones). Outscore them to win.",
+  "<b>The Season is a real ladder.</b> 4 points a win, percentage splits ties, top 8 play finals, win the Grand Final for a premiership.",
+  "<b>Daily tasks</b> pay Brownlow votes, and each weekday has an event (double loot on Grand Final Weekend).",
+  "<b>Brownlow votes 🏅</b> (gems) come from tasks, clearing trees, Season stars and revenge, never real money.",
   "<b>Not in yet:</b> clans, chat, real-player attacks and wars. Coming next.",
 ];
 function showClashGuide(fromChoice){
@@ -51,17 +53,17 @@ const TUT = [
   {say:"Now your squad. Tap Squad.", el:"#btnSquad", wait:"squad"},
   {say:"Tap Rover 3 times to train some players. They cost 💧 and take a few seconds each.", el:'[data-u="rover"]', wait:"train", count:3},
   {say:"Trained players wait on your Interchange Bench. Close this window, then tap Match.", el:"#btnAttack", wait:"match"},
-  {say:"The Season is 17 rounds against every other club, then a Grand Final. Tap Play on Round 1.", el:'[data-r="0"]', wait:"battle"},
+  {say:"The Season is 17 rounds against every other club. Win for 4 premiership points, finish top 8 for finals. Tap Play for Round 1.", el:'[data-r="0"]', wait:"battle"},
   {say:"This is their ground. Tap the grass outside the red zone to send a player in. Hold your finger down to send a stream.", world:deploySpot, wait:"deploy", top:true},
-  {say:"Players run at the nearest building on their own. Knock down 50% for ★, the Clubhouse for ★, and everything for ★★★. Send in the rest!", next:true, top:true},
+  {say:"It's scored like footy. Every building you knock down is a goal. They score a behind for each building still standing and each player they knock out. Outscore them by the siren! Send in the rest.", next:true, top:true},
   {say:"", wait:"battleEnd", hidden:true},
-  {say:"Wins earn trophies 🏆, loot and player card packs. Tap Return Home.", el:"#goHome", wait:"home"},
+  {say:"Wins earn premiership points, trophies 🏆, loot and card packs. Tap Return Home.", el:"#goHome", wait:"home"},
   {say:"Here's a Silver Pack on me. Tap Cards.", el:"#btnCards", wait:"cards", prep:()=>{ S.packs.silver=(S.packs.silver||0)+1; uiDirty=true; }},
   {say:"Tap the Packs tab.", el:'[data-tab="Packs"]', wait:"tab-Packs"},
   {say:"Tap your Silver Pack to open it.", el:'[data-pack="silver"]', wait:"pack"},
   {say:"Real AFL players! Tap Nice! to see your collection.", el:"#pk", wait:"cards"},
   {say:"Tap a card to put it on your Team Sheet. Each card boosts your players in that position.", el:".cgrid [data-card]", wait:"team"},
-  {say:"Close this. Two more things: 📋 Tasks give you medals every day, and the 🛡️ Log shows when other clubs raid your ground. You can watch the replay and get revenge.", el:"#side", next:true},
+  {say:"Close this. Two more things: 📋 Tasks give you Brownlow votes 🏅 every day, and the 🛡️ Log shows when other clubs raid your ground. You can watch the replay and get revenge.", el:"#side", next:true},
   {say:"That's the lot! Upgrade your Clubhouse to unlock more buildings, players and your Head Coach. Here's 50 🏅 to get going. Good luck!", next:true, finish:true},
 ];
 let tutCount=0;

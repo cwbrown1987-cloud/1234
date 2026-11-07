@@ -50,7 +50,7 @@ function runRaid(){
   // play the whole match out instantly
   const saved=BT, sm=shake; simulating=true; BT=raidBattle(raid,"raid");
   let steps=0; while(steps++<4000 && !battleStep(1/20)){}
-  const stars=starsNow(), p=Math.round(pct());
+  const stars=starsNow(), p=Math.round(pct()), sc=scoreNow();
   // what was taken from each building
   const lost={pies:0,drink:0};
   for(const b of BT.buildings){ if(!b.loot) continue; const f=1-Math.max(0,b.hp)/b.max; const tp=Math.floor(b.loot.pies*f), td=Math.floor(b.loot.drink*f);
@@ -62,7 +62,7 @@ function runRaid(){
   S.trophies=Math.max(0,S.trophies+tro);
   if(p>=90) S.shield=Date.now()+60*60000; else if(p>=40) S.shield=Date.now()+30*60000;
   if(!stars) track("defend",1);
-  Object.assign(raid,{stars,pct:p,lost,tro,seen:false,revenged:false});
+  Object.assign(raid,{stars,pct:p,sc,lost,tro,seen:false,revenged:false});
   S.raids.unshift(raid); S.raids=S.raids.slice(0,8);
   uiDirty=true; save();
   toast(stars?`⚠️ ${CLUBS[club].name} raided your ground! ${"★".repeat(stars)}`:`🛡️ You held off ${CLUBS[club].name}!`);

@@ -83,9 +83,10 @@ function updateHUD(force){
     const replay=BT.mode==="replay";
     $("bBadge").src=badgeURL(CLUBS[replay?BT.atkClub:BT.club],96);
     $("bVs").textContent=replay?`${CLUBS[BT.atkClub].name} attack`:"vs "+CLUBS[BT.club].name;
-    $("bLoot").textContent=replay?"Replay":(BT.kind==="season"?roundName(BT.round)+" · ":BT.kind==="revenge"?"Revenge! · ":"")+`🥧 ${fmt(Math.max(0,BT.lootTotal.pies-BT.loot.pies)*(BT.lootMul||1))}  💧 ${fmt(Math.max(0,BT.lootTotal.drink-BT.loot.drink)*(BT.lootMul||1))}`;
-    const s=starsNow(); $("bStars").innerHTML="★".repeat(s)+`<span class="dim">${"★".repeat(3-s)}</span>`;
-    $("bPct").textContent=Math.floor(pct())+"%";
+    $("bLoot").textContent=replay?"Replay":(BT.kind==="season"?BT.fixture+" · ":BT.kind==="revenge"?"Revenge! · ":"")+`🥧 ${fmt(Math.max(0,BT.lootTotal.pies-BT.loot.pies)*(BT.lootMul||1))}  💧 ${fmt(Math.max(0,BT.lootTotal.drink-BT.loot.drink)*(BT.lootMul||1))}`;
+    const s=starsNow(), sc=scoreNow(), A=CLUBS[BT.atkClub], Hm=CLUBS[BT.club];
+    $("bScore").innerHTML=`<div class="${sc.a.p>sc.h.p?"lead":""}">${A.short} <b>${fmtScore(sc.a)}</b></div><div class="${sc.h.p>=sc.a.p?"lead":""}">${Hm.short} <b>${fmtScore(sc.h)}</b></div>`;
+    $("bStars").innerHTML="★".repeat(s)+`<span class="dim">${"★".repeat(3-s)}</span>`;
     const t=Math.max(0,Math.ceil(BT.time)); $("bTime").textContent=Math.floor(t/60)+":"+String(t%60).padStart(2,"0");
     $("battleHint").style.display=BT.started||replay||tutActive()?"none":"block";
     const ab=$("abilities"); const want=replay?[]:Object.keys(BT.heroU).filter(h=>BT.heroU[h].hp>0&&!BT.abilityUsed[h]);
@@ -160,13 +161,13 @@ function shopDeals(g){
   for(const [k,p] of Object.entries(PACKS)){
     const it=document.createElement("div"); it.className="item";
     it.innerHTML=`<div class="pack" style="--pc:${p.col}">🃏<b>${p.n}</b></div><div class="nm">${p.name}</div><div class="meta">${p.n} player cards${p.guarantee?` · 1 ${RARITY[p.guarantee].name}+`:""}</div><div class="cost ${S.medals>=p.cost?"":"bad"}">${p.cost} 🏅</div>`;
-    it.onclick=()=>{ if(!pay("medals",p.cost)) return toast("Not enough medals 🏅"); S.packs[k]=(S.packs[k]||0)+1; save(); openPackFlow(k); };
+    it.onclick=()=>{ if(!pay("medals",p.cost)) return toast("Not enough Brownlow votes 🏅"); S.packs[k]=(S.packs[k]||0)+1; save(); openPackFlow(k); };
     g.append(it);
   }
   for(const r of ["pies","drink"]){
     const it=document.createElement("div"); it.className="item"; const room=Math.max(0,capOf(r)-S[r]), amt=Math.floor(room*.25), cost=Math.max(5,Math.ceil(amt/400));
     it.innerHTML=`<div class="pack" style="--pc:${r==="pies"?"#e9a92a":"#1aa3d6"}">${resIcon(r)}</div><div class="nm">Top up ${r==="pies"?"pies":"drink"}</div><div class="meta">+${fmt(amt)} (a quarter of your free space)</div><div class="cost ${S.medals>=cost?"":"bad"}">${cost} 🏅</div>`;
-    it.onclick=()=>{ if(amt<1) return toast("Storage is already full"); if(!pay("medals",cost)) return toast("Not enough medals 🏅"); addRes(r,amt); sfx("collect"); save(); openShop("Deals"); };
+    it.onclick=()=>{ if(amt<1) return toast("Storage is already full"); if(!pay("medals",cost)) return toast("Not enough Brownlow votes 🏅"); addRes(r,amt); sfx("collect"); save(); openShop("Deals"); };
     g.append(it);
   }
 }
@@ -229,7 +230,7 @@ function openSquad(tab){
     document.querySelectorAll("[data-s]").forEach(el=>el.onclick=()=>{ if(!unlockedSpells().includes(el.dataset.s)) return toast("Upgrade your Physio Room"); brewSpell(el.dataset.s); render(); });
     document.querySelectorAll("[data-r]").forEach(el=>el.onclick=()=>{ startResearch(el.dataset.r); render(); });
     document.querySelectorAll("[data-hu]").forEach(el=>el.onclick=()=>{ upgradeHero(el.dataset.hu); render(); });
-    document.querySelectorAll("[data-hs]").forEach(el=>el.onclick=()=>{ const st=S.heroes[el.dataset.hs]; if(pay("medals",speedCost(st.busy.end))){ st.busy.end=Date.now(); processTimers(); } else toast("Not enough medals 🏅"); render(); });
+    document.querySelectorAll("[data-hs]").forEach(el=>el.onclick=()=>{ const st=S.heroes[el.dataset.hs]; if(pay("medals",speedCost(st.busy.end))){ st.busy.end=Date.now(); processTimers(); } else toast("Not enough Brownlow votes 🏅"); render(); });
   };
   render();
 }
@@ -285,11 +286,11 @@ function openTasks(){
   document.querySelectorAll("[data-claim]").forEach(b=>b.onclick=()=>{ claimTask(+b.dataset.claim); openTasks(); });
 }
 function openLog(){
-  let h=`<h2>Defence Log</h2>`;
-  if(!S.raids.length) h+=`<p class="center">Nobody has attacked your ground yet. They will…</p>`;
+  let h=`<h2>Home Games</h2><p class="center tiny">Clubs that came to your ground while you were away.</p>`;
+  if(!S.raids.length) h+=`<p class="center">No visitors yet. They will come…</p>`;
   for(const r of S.raids){ const c=CLUBS[r.club], ago=fmtTime((Date.now()-r.at)/1000);
     h+=`<div class="raid ${r.stars?"lost":"won"}">${badgeImg(c)}<div class="grow"><div><b>${c.name}</b> ${r.seen?"":'<span class="tag">NEW</span>'}</div>
-      <div class="tiny">${ago} ago · ${r.pct}% destroyed · <span class="stars">${"★".repeat(r.stars)}<span class="dim">${"★".repeat(3-r.stars)}</span></span></div>
+      <div class="tiny">${ago} ago · ${r.sc?`${c.short} ${fmtScore(r.sc.a)} v ${myClub().short} ${fmtScore(r.sc.h)}`:r.pct+"% destroyed"} · <span class="stars">${"★".repeat(r.stars)}<span class="dim">${"★".repeat(3-r.stars)}</span></span></div>
       <div class="tiny">${r.stars?`Lost 🥧 ${fmt(r.lost.pies)} 💧 ${fmt(r.lost.drink)}`:"Defence win!"} · ${r.tro>0?"+":""}${r.tro} 🏆</div></div>
       <div class="col"><button class="btn blue" data-replay="${r.id}">▶ Replay</button>${r.stars&&!r.revenged?`<button class="btn red" data-rev="${r.id}">Revenge</button>`:""}</div></div>`; }
   modal(h);
@@ -302,22 +303,21 @@ function showReplayEnd(){
   $("goHome").onclick=()=>{ closeModal(); leaveBattle(); };
   const rv=$("rv2"); if(rv) rv.onclick=()=>{ closeModal(); leaveBattle(); revenge(r); };
 }
-function seasonClub(r){ const others=CLUBS.map((_,i)=>i).filter(i=>i!==S.club); return r<17?others[r]:others[(S.club*7)%17]; }
-const roundName = r => r<17?`Round ${r+1}`:"Grand Final";
-const roundDiff = r => r<17?Math.min(MAX_TH,1+Math.floor(r*MAX_TH/17)):MAX_TH;
 function openMatch(){
   let h=`<h2>Match Day</h2><div class="center">🏆 ${S.trophies} · ${league(S.trophies)}${S.shield>Date.now()?` · <span class="tiny">attacking ends your shield</span>`:""}</div>`;
   const cost=50*th();
   h+=`<div class="center" style="margin:10px 0"><button class="btn gold big" id="findMatch">🔎 Find a Match<small>${cost} 🥧 · random club, trophies, loot & packs</small></button></div>`;
-  h+=`<h3>Season Fixture</h3><div class="fixture">`;
-  for(let r=0;r<18;r++){ const c=CLUBS[seasonClub(r)], st=S.season[r], open=r===0||S.season[r-1]>0;
-    h+=`<div class="fx ${open?"":"locked"}"><span class="rd">${r<17?"R"+(r+1):"🏆 GF"}</span>${badgeImg(c,"sm")}<span class="nm">${c.name}<br><small>Clubhouse ${roundDiff(r)}</small></span><span class="st">${"★".repeat(st)}<span class="dim">${"★".repeat(3-st)}</span></span>${open?`<button class="btn green" data-r="${r}">Play</button>`:"🔒"}</div>`; }
-  h+="</div>";
+  ensureSeason(); const s=S.season, f=nextFixture(), pos=ladderPos(S.club), L=s.ladder[S.club];
+  h+=`<h3>Season ${s.year}${S.premierships?` · 🏆×${S.premierships}`:""}</h3><div class="seasonbar"><span>${s.finals?"Finals":`Round ${Math.min(s.round+1,ROUNDS)} of ${ROUNDS}`}</span><span>${L.w+L.l+L.d?`${ordinal(pos)} on the ladder · ${L.w}W ${L.l}L${L.d?" "+L.d+"D":""}`:"First bounce coming up"}</span><button class="btn blue" id="ladder">Ladder</button></div>`;
+  if(f){ const c=CLUBS[f.club]; h+=`<div class="fx next">${badgeImg(c)}<span class="nm"><small>${f.name}${f.final?" 🔥":""}</small><br>vs ${c.name}<br><small>Clubhouse ${f.d}${s.round||s.finals?` · ${ordinal(ladderPos(f.club))} on the ladder`:""}</small></span><button class="btn green big" data-r="${s.round}">Play</button></div>`; }
+  else h+=`<div class="fx next"><span class="nm">${s.premiers?"🏆 <b>Premiers!</b> What a season.":`Season over. You finished ${ordinal(s.place||pos)}.`}</span><button class="btn gold" id="newSeason">Start Season ${s.year+1}</button></div>`;
+  if(s.results.length) h+=`<div class="fixture">${[...s.results].reverse().slice(0,6).map(r=>`<div class="fx"><span class="wl ${r.res}">${r.res}</span>${badgeImg(CLUBS[r.club],"sm")}<span class="nm"><small>${r.name}</small><br>${fmtScore(r.my)} – ${fmtScore(r.their)}</span></div>`).join("")}</div>`;
   modal(h); tut("match");
   $("findMatch").onclick=()=>{ if(!Object.values(S.army).some(n=>n>0)) return toast("Train some players first!"); if(!pay("pies",cost)) return toast("Not enough 🥧");
     let c; do{ c=Math.random()*18|0; }while(c===S.club); const d=Math.max(1,Math.min(MAX_TH,th()+(Math.random()*3|0)-1));
     closeModal(); startBattle({kind:"match",club:c,d,seed:Math.random()*1e9|0}); };
-  document.querySelectorAll("[data-r]").forEach(b=>b.onclick=()=>{ const r=+b.dataset.r; if(!Object.values(S.army).some(n=>n>0)) return toast("Train some players first!"); closeModal(); startBattle({kind:"season",round:r,club:seasonClub(r),d:roundDiff(r),seed:1000+r*77+S.club}); });
+  document.querySelectorAll("[data-r]").forEach(b=>b.onclick=()=>{ if(!Object.values(S.army).some(n=>n>0)) return toast("Train some players first!"); closeModal(); playSeasonMatch(); });
+  $("ladder").onclick=openLadder; const ns=$("newSeason"); if(ns) ns.onclick=startNextSeason;
 }
 function openInfo(b){
   const d=BLD[b.t], i=b.lv-1;
@@ -331,12 +331,16 @@ function openInfo(b){
   if(d.dmg) rows.push(["Damage",d.dmg[i]]);
   modal(`<h2>${d.name}</h2><p class="center">${d.desc}</p>${rows.map(([a,v])=>`<div class="stat"><span>${a}</span><b>${v}</b></div>`).join("")}<div class="stat"><span>Level</span><b>${b.lv} / ${levels(b.t)}</b></div>`);
 }
+function scoreboard(away,home,sc){ return `<div class="board"><div class="${sc.a.p>sc.h.p?"won":""}">${badgeImg(away,"sm")}<span>${away.short}</span><b>${fmtScore(sc.a)}</b></div><div class="${sc.h.p>=sc.a.p?"won":""}">${badgeImg(home,"sm")}<span>${home.short}</span><b>${fmtScore(sc.h)}</b></div></div>`; }
 function showResult(r){
-  const win=r.stars>0;
-  modal(`<div class="result"><h2>${win?"Victory!":"Siren! Defeat"}</h2><div class="stars">${"★".repeat(r.stars)}<span class="dim">${"★".repeat(3-r.stars)}</span></div>
-    <div>vs ${r.club} · ${r.p}% destroyed</div><br>
+  const win=r.stars>0, margin=Math.abs(r.sc.a.p-r.sc.h.p), draw=r.sc.a.p===r.sc.h.p;
+  modal(`<div class="result"><h2>${draw?"It's a draw!":win?"You win!":"Siren. You lost"}</h2>
+    <div class="tiny">${r.fixture?r.fixture+" · ":""}${draw?"Scores level":"by "+margin+" point"+(margin===1?"":"s")} · ${r.p}% knocked down</div>
+    ${scoreboard(r.away,r.home,r.sc)}
+    <div class="stars">${"★".repeat(r.stars)}<span class="dim">${"★".repeat(3-r.stars)}</span></div>
+    ${r.season&&r.season.note?`<p class="note">${r.season.note}</p>`:""}
     <div class="stat"><span>Pies</span><b>+${fmt(r.got.pies)} 🥧</b></div><div class="stat"><span>Drink</span><b>+${fmt(r.got.drink)} 💧</b></div>
-    <div class="stat"><span>Trophies</span><b>${r.tro>=0?"+":""}${r.tro} 🏆</b></div>${r.medals?`<div class="stat"><span>Season reward</span><b>+${r.medals} 🏅</b></div>`:""}
+    <div class="stat"><span>Trophies</span><b>${r.tro>=0?"+":""}${r.tro} 🏆</b></div>${r.medals?`<div class="stat"><span>Win bonus</span><b>+${r.medals} 🏅</b></div>`:""}
     ${r.pack?`<div class="stat"><span>Reward</span><b>${PACKS[r.pack].name} 🃏</b></div>`:""}
     ${r.full?`<p>Some loot didn't fit. Build more storage!</p>`:""}<br>
     ${r.pack?`<button class="btn gold" id="openNow">Open Pack</button> `:""}<button class="btn green" id="goHome">Return Home</button></div>`,{noClose:true});

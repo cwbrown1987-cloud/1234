@@ -1,6 +1,10 @@
 // Transparent sprite sheets. Art reads the game state through the existing draw calls.
 const artSprites = new Map();
-const namedHeroArt = {coll:"daicos",melb:"gawn",wb:"bontempelli"};
+const namedHeroArt = {
+  adel:"dawson", bris:"neale", carl:"cripps", coll:"daicos", ess:"martin", freo:"serong",
+  geel:"cameron", gcs:"rowell", gws:"green", haw:"sicily", melb:"gawn", nmfc:"sheezel",
+  port:"rozee", rich:"taranto", stk:"wanganeen-milera", syd:"heeney", wce:"reid", wb:"bontempelli"
+};
 const kitSprites = new Map();
 
 function loadArtSheet(sheet, columns, rows, names, priority = 0, rowStops = null) {
@@ -167,15 +171,32 @@ function drawPlayerArt(x,y,k,club,opts) {
   ctx.ellipse(x,y,k*.74,k*.26,0,0,Math.PI*2);
   ctx.fill();
   paintArt(sprite,x+lean,y-bob,k*(opts.hero?3.30:3.15)/sprite.h,1,opts.face);
-  if (opts.hero) txt("★",x,y-k*3.37,k*.52,GOLD);
+  if (opts.hero) txt(named==="daicos"?"35":"★",x,y-k*3.37,k*.52,GOLD);
   if (opts.rage) {
-    ctx.strokeStyle = "#ff557fb8";
-    ctx.lineWidth = Math.max(1,k*.13);
-    ctx.beginPath();
-    ctx.ellipse(x,y,k*.89,k*.36,0,0,Math.PI*2);
-    ctx.stroke();
+    if (named==="daicos") drawDaicosBurst(x,y,k,phase);
+    else {
+      ctx.strokeStyle = "#ff557fb8";
+      ctx.lineWidth = Math.max(1,k*.13);
+      ctx.beginPath();
+      ctx.ellipse(x,y,k*.89,k*.36,0,0,Math.PI*2);
+      ctx.stroke();
+    }
   }
   return true;
+}
+
+function drawDaicosBurst(x,y,k,phase) {
+  ctx.save();
+  ctx.shadowColor = "#ffd056";
+  ctx.shadowBlur = k*.34;
+  ctx.lineWidth = Math.max(1,k*.10);
+  for (let i=0; i<2; i++) {
+    ctx.strokeStyle = i ? "#fff9e7" : "#ffca53";
+    ctx.beginPath();
+    ctx.ellipse(x,y,k*(.98+i*.15),k*(.35+i*.06),0,phase*.44+i*Math.PI,phase*.44+i*Math.PI+4.4);
+    ctx.stroke();
+  }
+  ctx.restore();
 }
 
 function drawSceneryArt(t,x,y,k) {
@@ -212,9 +233,18 @@ function loadFootyArt() {
     "rover-attack","ruck-run","ruck-attack","tagger-run","tagger-attack","shepherd-run",
     "shepherd-attack","trainer-run","trainer-attack","coach-run","coach-attack","captain-attack"
   ]);
-  loadArtSheet(FOOTY_SHEETS.captains,3,3,[
-    "daicos","gawn","bontempelli","daicos-body","gawn-body","bontempelli-body","daicos-run","gawn-run","bontempelli-run"
-  ],0,[0,.304,.673,1]);
+  loadCaptainSheet("captains",["coll","melb","wb"],[0,.304,.673,1]);
+  loadCaptainSheet("captainsA",["adel","bris","carl"]);
+  loadCaptainSheet("captainsB",["ess","freo","geel"]);
+  loadCaptainSheet("captainsC",["gcs","gws","haw"]);
+  loadCaptainSheet("captainsD",["nmfc","port","rich"]);
+  loadCaptainSheet("captainsE",["stk","syd","wce"]);
+}
+
+function loadCaptainSheet(key,clubs,rowStops) {
+  const names = clubs.map(club => namedHeroArt[club]);
+  const poses = ["","-body","-run"].flatMap(pose => names.map(name => name+pose));
+  loadArtSheet(FOOTY_SHEETS[key],3,3,poses,0,rowStops);
 }
 
 function drawFenceArt(x,y,h,lv,joinX,joinY) {
@@ -300,7 +330,25 @@ function drawArtIcon(key, context, x, y, width, height, club) {
   const {image,x:sx,y:sy,w,h} = sprite;
   const scale = Math.min(width/w,height/h);
   context.drawImage(image,sx,sy,w,h,x-w*scale/2,y-h*scale,w*scale,h*scale);
+  if (key==="daicos") drawDaicosBadge(context,x+width*.29,y-height*.20,width*.26);
   return true;
+}
+
+function drawDaicosBadge(context,x,y,size) {
+  context.save();
+  context.fillStyle = "#1b1a1c";
+  context.strokeStyle = "#f6c343";
+  context.lineWidth = Math.max(1,size*.07);
+  context.beginPath();
+  context.roundRect(x-size/2,y-size*.32,size,size*.64,size*.15);
+  context.fill();
+  context.stroke();
+  context.fillStyle = "#ffe298";
+  context.font = `bold ${size*.52}px "Lilita One",sans-serif`;
+  context.textAlign = "center";
+  context.textBaseline = "middle";
+  context.fillText("35",x,y);
+  context.restore();
 }
 
 function refreshArtHUD() {

@@ -28,12 +28,12 @@ First visit shows how: one tap on Android, Share → Add to Home Screen on iPhon
 - `js/data.js`: clubs, colours, heroes, players (checked for the 2027 season), buildings, units, spells, cards. Edit names here.
 - `js/game.js` home base and saves, `js/battle.js` match engine, `js/season.js` ladder and finals, `js/raid.js` AI raids, `js/ui.js` menus and controls, `js/tutorial.js` tutorials, `js/install.js` install prompt and updates, `js/audio.js` sound.
 - `js/render.js` drawing helpers and fallback art; `js/art.js` + `art/sheets.js` the painted sprites (club colours applied at runtime).
-- `ART_BRIEF.md`: spec for adding portraits of the other 15 captains.
 - `logos/`: drop club logo PNGs here to replace the generated badges (file names in its README).
 - `deploy.sh`: publishes to Cloudflare Pages (needs a Pages:Edit API token).
 
 ## Art
-Painted sprite sheets in `art/sheets.js`. Captain portraits and poses for Nick Daicos, Max Gawn and Marcus Bontempelli reference
-[AFL Photos](https://www.afl.com.au/news/1275233/the-25-nick-daicos-marcus-bontempelli-and-the-afls-best-players-ranked-by-our-experts); other players use role art recoloured in each club's guernsey.
+Painted sprite sheets in `art/sheets.js` include individual portraits, ready stances and running poses for all 18 in-game captains. Each 3×3 captain sheet has one player per column and one pose per row. Other players use role art recoloured in each club's guernsey.
+
+The captain sprites are original generated illustrations based on [AFL Photos](https://www.afl.com.au/news/1275233), [club leaders](https://www.afl.com.au/news/1550873), and [official team portraits](https://www.afl.com.au/news/1462772). The source photos are reference only. Nick Daicos has a [No. 35](https://www.collingwoodfc.com.au/news/1252573/no-35) portrait badge and a gold effect when fired up.
 
 ![Home](mockups/home.png) ![Match Day](mockups/attack.png) ![Cards](mockups/cards.png) ![Home Games](mockups/defence-log.png)

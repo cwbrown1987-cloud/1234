@@ -300,7 +300,7 @@ function endBattle(){
   let medals=0, pack=null;
   const sc=scoreNow(); let season=null;
   if(BT.kind==="season"){ season=seasonResult({g:sc.a.g,b:sc.a.b},{g:sc.h.g,b:sc.h.b}); if(season.res==="W"&&Math.random()<.25){ medals=1; S.medals+=medals; } }
-  if(stars>0&&!friendly){ track("win",1); pack=stars>=3?"gold":stars===2?"silver":"bronze"; if(BT.kind==="match"&&stars<3&&Math.random()<.5) pack=null; if(pack) S.packs[pack]=(S.packs[pack]||0)+1; }
+  let tokens=0; if(stars>0&&!friendly){ track("win",1); tokens=WIN_TOKENS; earnTokens(tokens); addXP(stars*5); }
   track("destroy",BT.destroyed);
   if(BT.revenge){ const r=S.raids.find(x=>x.id===BT.revenge); if(r) r.revenged=true; }
   S.army=Object.fromEntries(Object.entries(BT.left).filter(([,n])=>n>0));
@@ -309,7 +309,7 @@ function endBattle(){
   if(BT.opp&&typeof netReportAttack==="function") netReportAttack(BT,{stars,p,sc,got,friendly});
   save(); sfx(stars?"cheer":"siren");
   setTimeout(()=>tut("battleEnd"),50);
-  showResult({stars,p,got,tro,medals,pack,sc,ranked:BT.ranked,starRes,season,fixture:BT.fixture,opp:BT.opp,friendly,home:CLUBS[BT.club],away:CLUBS[BT.atkClub],club:CLUBS[BT.club].name, full:(got.pies<Math.floor(BT.loot.pies*mul)||got.drink<Math.floor(BT.loot.drink*mul))});
+  showResult({stars,p,got,tro,medals,tokens,sc,ranked:BT.ranked,starRes,season,fixture:BT.fixture,opp:BT.opp,friendly,home:CLUBS[BT.club],away:CLUBS[BT.atkClub],club:CLUBS[BT.club].name, full:(got.pies<Math.floor(BT.loot.pies*mul)||got.drink<Math.floor(BT.loot.drink*mul))});
 }
 function leaveBattle(){ const wasAttack=BT&&BT.mode==="attack"; BT=null; mode="home"; cam.x=0; cam.y=0; setZoom(1);
   if(wasAttack&&S){ const a=fillSquad(S.lastArmy); let sp=0; for(const [k,n] of Object.entries(S.lastSpells||{})) while((S.spells[k]||0)<n&&spellCount()<spellSlots()){ S.spells[k]=(S.spells[k]||0)+1; sp++; } if(a||sp){ save(); toast("Squad refilled for the next match"); } }

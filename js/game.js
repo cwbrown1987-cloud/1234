@@ -15,7 +15,7 @@ function newGame(club){
     buildings:[B("clubhouse",c,c),B("shed",c+6,c-3)],
     obstacles:[], army:{}, queue:[], trainAt:Date.now(), spells:{}, squeue:[], spellAt:Date.now(),
     unitLv:{}, research:null, heroes:{captain:{lv:1,busy:null},coach:{lv:1,busy:null}},
-    season:null, cards:{}, team:[], packs:{}, daily:null, raids:[], nextRaid:Date.now()+3*864e5+60000, shield:Date.now()+3*864e5, // 3-day new player shield, like Clash
+    season:null, album:{}, tokens:0, xp:0, lvl:1, prizePacks:0, daily:null, raids:[], nextRaid:Date.now()+3*864e5+60000, shield:Date.now()+3*864e5, // 3-day new player shield, like Clash
     sound:true, last:Date.now()};
   s.buildings.forEach(b=>b.id=s.nextId++);
   const r=rng(club*99+7);
@@ -33,7 +33,14 @@ function fixup(s){
   s.heroes=s.heroes||{}; for(const h of Object.keys(HEROES)) s.heroes[h]=s.heroes[h]||{lv:1,busy:null};
   if(!s.season||Array.isArray(s.season)) s.season=newSeason(1); s.premierships=s.premierships||0;
   s.starBonus=s.starBonus||{stars:0,until:0};
-  s.cards=s.cards||{}; s.team=s.team||[]; s.packs=s.packs||{}; s.raids=s.raids||[];
+  s.raids=s.raids||[];
+  // card album (replaced the old team-sheet cards): old cards and packs turn into Footy Tokens
+  if(!s.album){ const oldCards=Object.values(s.cards||{}).reduce((a,b)=>a+b,0), oldPacks=Object.values(s.packs||{}).reduce((a,b)=>a+b,0);
+    s.album={}; s.tokens=(s.tokens||0)+3+oldPacks*2+Math.floor(oldCards/3); delete s.cards; delete s.team; delete s.packs; }
+  if(s.lvl===undefined){ // Experience Level from what's already built, like Clash
+    let xp=0; for(const b of s.buildings){ const d=BLD[b.t]; if(!d) continue; for(let l=0;l<b.lv;l++) xp+=Math.max(1,Math.floor(Math.sqrt(Math.max(1,d.time[l]||1)))); }
+    s.lvl=1; s.xp=0; s.prizePacks=s.prizePacks||0; let g=0; while(xp>=30+s.lvl*20&&g++<200){ xp-=30+s.lvl*20; s.lvl++; if(s.lvl%5===0) s.prizePacks++; } s.xp=xp; }
+  s.tokens=s.tokens||0;
   s.nextRaid=s.nextRaid||Date.now()+8*60000; s.shield=s.shield||0; if(s.sound===undefined) s.sound=true;
   return s;
 }
@@ -187,31 +194,6 @@ function upgradeHero(h){
 }
 
 // ---------- cards ----------
-const cardById = id => CARDS.find(c=>c.id===id);
-function cardLevel(id){ const n=S.cards[id]||0; if(!n) return 0; let lv=1, need=0; for(const c of CARD_COPIES){ need+=c; if(n>=need+1) lv++; else break; } return Math.min(lv,CARD_COPIES.length+1); }
-function cardProgress(id){ const n=S.cards[id]||0, lv=cardLevel(id); let used=1; for(let i=0;i<lv-1;i++) used+=CARD_COPIES[i]; const next=CARD_COPIES[lv-1]; return {have:n-used, need:next||0}; }
-const cardPower = id => { const c=cardById(id); return RARITY[c.rarity].bonus*(1+.5*(cardLevel(id)-1)); };
-function cardBonus(pos){ return S.team.filter(id=>cardById(id).pos===pos).reduce((a,id)=>a+cardPower(id),0); }
-function rollCard(minR, rnd=Math.random){
-  const order=["common","rare","epic","legend"], pool=order.slice(order.indexOf(minR));
-  const tot=pool.reduce((a,r)=>a+RARITY[r].w,0); let x=rnd()*tot, rar=pool[0];
-  for(const r of pool){ x-=RARITY[r].w; if(x<=0){ rar=r; break; } }
-  const cs=CARDS.filter(c=>c.rarity===rar); return cs[rnd()*cs.length|0];
-}
-function openPack(k){
-  if(!(S.packs[k]>0)) return null;
-  S.packs[k]--; const P=PACKS[k], out=[];
-  for(let i=0;i<P.n;i++) out.push(rollCard(i===P.n-1&&P.guarantee?P.guarantee:P.min));
-  out.forEach(c=>S.cards[c.id]=(S.cards[c.id]||0)+1);
-  track("pack",1); save(); return out;
-}
-function toggleTeam(id){
-  const i=S.team.indexOf(id);
-  if(i>=0) S.team.splice(i,1);
-  else { if(S.team.length>=teamSlots(th())) return toast(`Team sheet is full (${teamSlots(th())} slots)`); S.team.push(id); }
-  save();
-}
-
 // ---------- daily tasks ----------
 const today = () => new Date().toDateString();
 function ensureDaily(){
@@ -222,7 +204,7 @@ function ensureDaily(){
 }
 function track(k,n){ if(!S) return; ensureDaily(); for(const t of S.daily.tasks) if(t.k===k&&!t.claimed) t.n=Math.min(t.goal,t.n+n); uiDirty=true; }
 function claimTask(i){ const t=S.daily.tasks[i]; if(t.claimed||t.n<t.goal) return; t.claimed=true; S.medals+=3; floatText(C0,C0,"+3 🏅");
-  if(S.daily.tasks.every(x=>x.claimed)&&!S.daily.bonus){ S.daily.bonus=true; S.packs.silver=(S.packs.silver||0)+1; toast("All tasks done! +1 Silver Pack"); }
+  if(S.daily.tasks.every(x=>x.claimed)&&!S.daily.bonus){ S.daily.bonus=true; earnTokens(2); toast("All tasks done! +2 🎟️ Footy Tokens"); }
   sfx("collect"); save(); }
 const tasksReady = () => S.daily&&S.daily.tasks.filter(t=>t.n>=t.goal&&!t.claimed).length;
 
@@ -231,10 +213,11 @@ function processTimers(){
   const now=Date.now();
   for(const b of S.buildings) if(b.busy && b.busy.end<=now){
     if(b.busy.kind==="up"){ b.lv++; toast(`${BLD[b.t].name} upgraded to level ${b.lv}!`); } else toast(`${BLD[b.t].name} finished!`);
+    addXP(xpForSeconds(b.busy.total||1));
     b.busy=null; uiDirty=true; sfx("build"); save();
   }
-  if(S.research && S.research.end<=now){ S.unitLv[S.research.u]++; toast(`${UNITS[S.research.u].name} is now level ${S.unitLv[S.research.u]}!`); S.research=null; uiDirty=true; save(); }
-  for(const h of Object.keys(HEROES)){ const hs=S.heroes[h]; if(hs.busy && hs.busy.end<=now){ hs.lv++; hs.busy=null; toast(`${heroStats(h).name} is now level ${hs.lv}!`); uiDirty=true; save(); } }
+  if(S.research && S.research.end<=now){ addXP(xpForSeconds(S.research.total||1)); S.unitLv[S.research.u]++; toast(`${UNITS[S.research.u].name} is now level ${S.unitLv[S.research.u]}!`); S.research=null; uiDirty=true; save(); }
+  for(const h of Object.keys(HEROES)){ const hs=S.heroes[h]; if(hs.busy && hs.busy.end<=now){ addXP(xpForSeconds(hs.busy.total||1)); hs.lv++; hs.busy=null; toast(`${heroStats(h).name} is now level ${hs.lv}!`); uiDirty=true; save(); } }
   trainTick(now); spellTick(now);
   if(mode==="home") raidTick(now);
 }

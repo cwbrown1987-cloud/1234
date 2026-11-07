@@ -1,5 +1,5 @@
 // ---------- Game data ----------
-const VERSION = "2026.11.09.2";
+const VERSION = "2026.11.10";
 // Club names + colours. Logos: drop PNGs named <abbr>.png (e.g. coll.png) into the logos/ folder and they're used everywhere.
 // Player names checked against the 2026 trade period and retirements (lists for the 2027 season); edit freely.
 const CLUBS = [
@@ -123,30 +123,9 @@ const SPELLS = {
   sub:     {name:"Late Sub",          cost:2500, time:30, radius:0,   desc:"Drops 6 fresh Rovers onto the spot."},
 };
 
-// Player cards. Rarity from how the card is made: captain = legend, other named players = epic/rare, club rookies = common.
-const RARITY = {
-  common:{name:"Common", col:"#9aa3ad", bonus:.02, w:60},
-  rare:  {name:"Rare",   col:"#3fa3ff", bonus:.04, w:28},
-  epic:  {name:"Epic",   col:"#b45cff", bonus:.06, w:10},
-  legend:{name:"Legend", col:"#ffc531", bonus:.10, w:2},
-};
-const CARD_COPIES = [1,2,4,8,16,32]; // copies needed for each next level
-const CARDS = [];
-CLUBS.forEach((c,ci)=>{
-  CARDS.push({id:ci+"-0", club:ci, name:c.hero.name, pos:c.hero.pos, rarity:"legend"});
-  CARDS.push({id:ci+"-1", club:ci, name:c.players[0][0], pos:c.players[0][1], rarity:"epic"});
-  CARDS.push({id:ci+"-2", club:ci, name:c.players[1][0], pos:c.players[1][1], rarity:"rare"});
-  CARDS.push({id:ci+"-3", club:ci, name:c.short+" Rookie", pos:["mid","fwd","def","ruck"][ci%4], rarity:"common"});
-});
 const POS_NAME = {mid:"Midfielder", fwd:"Forward", ruck:"Ruckman", def:"Defender", coach:"Coach"};
-const POS_EFFECT = {mid:"Rovers & Crumbers hit harder", fwd:"Forwards & Seagulls hit harder", ruck:"Ruckmen & Blimps get tougher", def:"Your buildings get tougher on defence"};
-const PACKS = {
-  bronze:{name:"Bronze Pack", n:3, min:"common", cost:90,  col:"#c98a3a"},
-  silver:{name:"Silver Pack", n:5, min:"common", cost:220,  col:"#c8d0d8", guarantee:"rare"},
-  gold:  {name:"Gold Pack",   n:8, min:"rare",   cost:550, col:"#ffc531", guarantee:"epic"},
-};
-const teamSlots = th => Math.min(5, 1+Math.floor(th/2));
-
+// Card packs (the card album itself is in js/cards.js and js/cardset.js)
+const PACKS = {footy:{name:"Footy Pack", n:7}, prize:{name:"Prize Pack", n:8}};
 // Daily tasks and weekly events
 const TASKS = [
   {k:"win",     goal:2,    text:n=>`Win ${n} matches`},

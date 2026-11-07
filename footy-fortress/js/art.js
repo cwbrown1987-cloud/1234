@@ -257,8 +257,45 @@ function drawFlyerArt(x,y,kind,face) {
   return paintArt(sprite,x,y,TW*width/sprite.w,.53,face,tilt);
 }
 
-function drawArtIcon(key, context, x, y, width, height) {
+// Portraits come in one kit; repaint the guernsey (lower part, not skin) in the club's colours.
+// Darker cloth becomes the club's main colour, lighter cloth its second colour, keeping the shading.
+function portraitKit(key, club) {
   const sprite = artSprites.get(key);
+  if (!sprite || !club || key==="portrait-coach" || key==="portrait-trainer") return sprite;
+  const cacheKey = key + ":" + club.abbr;
+  if (kitSprites.has(cacheKey)) return kitSprites.get(cacheKey);
+  const {image,x,y,w,h} = sprite;
+  const canvas = document.createElement("canvas"); canvas.width = w; canvas.height = h;
+  const context = canvas.getContext("2d",{willReadFrequently:true});
+  context.drawImage(image,x,y,w,h,0,0,w,h);
+  const kit = context.getImageData(0,0,w,h), px = kit.data;
+  const primary = rgb(club.a), accent = rgb(club.b);
+  const lumA = (primary[0]*.3+primary[1]*.59+primary[2]*.11), lumB = (accent[0]*.3+accent[1]*.59+accent[2]*.11);
+  const [dark, light] = lumA <= lumB ? [primary, accent] : [accent, primary];
+  // Only the guernsey's own colours are swapped: dark/navy cloth -> main colour, yellow/white/red trim -> second colour.
+  const tone=(col,l,mean)=>{ const k=Math.max(.35,Math.min(1.35,.82+(l-mean)/150)); return col.map(c=>Math.max(0,Math.min(255,c*k+(l-mean)*.15))); };
+  for (let py=Math.floor(h*.56); py<h; py++) for (let qx=0; qx<w; qx++) {
+    const i=(py*w+qx)*4, r=px[i], g=px[i+1], b=px[i+2];
+    if (px[i+3] < 40) continue;
+    const max=Math.max(r,g,b), min=Math.min(r,g,b), l=r*.3+g*.59+b*.11, sat=max?(max-min)/max:0;
+    let hue=0; if(max!==min){ if(max===r) hue=60*(((g-b)/(max-min))%6); else if(max===g) hue=60*((b-r)/(max-min)+2); else hue=60*((r-g)/(max-min)+4); if(hue<0) hue+=360; }
+    let out=null;
+    if (l<80 && sat<.38) out=tone(dark,l,40);                                   // black cloth
+    else if (hue>=195 && hue<=260 && sat>.25) out=tone(dark,l,70);               // navy / blue cloth
+    else if (hue>=38 && hue<=68 && sat>.45) out=tone(light,l,185);               // yellow trim
+    else if (l>165 && sat<.16) out=tone(light,l,215);                            // white trim
+    else if ((hue<12||hue>340) && sat>.6 && b<r*.28 && l>55 && !(key==="portrait-forward" && qx>w*.22 && qx<w*.72 && py>h*.66)) out=tone(light,l,105); // red trim (not the Sherrin)
+    if (!out) continue;
+    px[i]=out[0]; px[i+1]=out[1]; px[i+2]=out[2];
+  }
+  context.putImageData(kit,0,0);
+  const tinted = {image:canvas,x:0,y:0,w,h};
+  kitSprites.set(cacheKey,tinted);
+  return tinted;
+}
+
+function drawArtIcon(key, context, x, y, width, height, club) {
+  const sprite = key.startsWith("portrait-") && club ? portraitKit(key,club) : artSprites.get(key);
   if (!sprite) return false;
   const {image,x:sx,y:sy,w,h} = sprite;
   const scale = Math.min(width/w,height/h);
@@ -275,7 +312,8 @@ function refreshArtHUD() {
     const node = document.querySelector(selector);
     const canvas = document.createElement("canvas");
     canvas.width = canvas.height = 64;
-    if (!drawArtIcon(key,canvas.getContext("2d"),32,63,63,62)) continue;
+    const club = typeof S!=="undefined" && S ? CLUBS[S.club] : null;
+    if (!drawArtIcon(key,canvas.getContext("2d"),32,63,63,62,club)) continue;
     const image = new Image();
     image.alt = "";
     image.className = "hud-icon";

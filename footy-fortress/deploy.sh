@@ -17,13 +17,13 @@ for root, _, names in os.walk('.'):
         data = open('.' + p, 'rb').read()
         if p.endswith(('.html', '.css', '.js')): files[p] = data.decode('utf-8')
         else: binary[p] = base64.b64encode(data).decode()
-types = {'html':'text/html; charset=utf-8','css':'text/css; charset=utf-8','js':'text/javascript; charset=utf-8','png':'image/png','jpg':'image/jpeg','svg':'image/svg+xml'}
+types = {'html':'text/html; charset=utf-8','css':'text/css; charset=utf-8','js':'text/javascript; charset=utf-8','png':'image/png','jpg':'image/jpeg','svg':'image/svg+xml','webmanifest':'application/manifest+json'}
 open(sys.argv[1], 'w').write(f"""const FILES={json.dumps(files)};
 const BIN={json.dumps(binary)};
 const TYPES={json.dumps(types)};
 export default {{ async fetch(req) {{
   let path = new URL(req.url).pathname; if (path === '/' || path === '') path = '/index.html';
-  const ext = path.split('.').pop(), headers = {{'content-type': TYPES[ext] || 'application/octet-stream', 'cache-control': ext === 'html' ? 'no-cache' : 'public, max-age=300'}};
+  const ext = path.split('.').pop(), headers = {{'content-type': TYPES[ext] || 'application/octet-stream', 'cache-control': (ext === 'html' || path === '/sw.js') ? 'no-cache' : 'public, max-age=300'}};
   if (path in FILES) return new Response(FILES[path], {{headers}});
   if (path in BIN) return new Response(Uint8Array.from(atob(BIN[path]), c => c.charCodeAt(0)), {{headers}});
   return new Response('Not found', {{status: 404}});

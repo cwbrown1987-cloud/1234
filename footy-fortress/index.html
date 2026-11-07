@@ -4,6 +4,13 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <meta name="theme-color" content="#4c9631">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="icon" type="image/png" href="icons/icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Footy Fortress">
 <title>Footy Fortress</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Lilita+One&display=swap" rel="stylesheet">
@@ -74,6 +81,8 @@
 <script src="js/audio.js"></script>
 <script src="js/ui.js"></script>
 <script src="js/tutorial.js"></script>
+<div id="installPrompt" class="hide"><div class="ipcard"><img src="icons/icon-192.png" alt=""><h2>Install Footy Fortress</h2><div id="installSteps"></div><div class="ipbtns"><button class="btn green big hide" id="installGo">Install</button><button class="btn" id="installLater">Not now</button></div></div></div>
+<script src="js/install.js"></script>
 <script>loadFootyArt(); boot();</script>
 </body>
 </html>

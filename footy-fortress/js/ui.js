@@ -14,7 +14,7 @@ function playerIcon(kind, club){
   const role=kind==="hero:captain"?"captain":kind==="hero:coach"?"coach":kind;
   const likeness=role==="captain" && namedHeroArt[club.abbr];
   const icon=c.getContext("2d");
-  if ((likeness && drawArtIcon(likeness,icon,48,96,96,92)) || drawArtIcon("portrait-"+role,icon,48,96,96,92) || (UNITS[role]?.air && drawArtIcon(role,icon,48,83,90,76))) return iconCache[key]=c.toDataURL();
+  if ((likeness && drawArtIcon(likeness,icon,48,96,96,92)) || drawArtIcon("portrait-"+role,icon,48,96,96,92,club) || (UNITS[role]?.air && drawArtIcon(role,icon,48,83,90,76))) return iconCache[key]=c.toDataURL();
   const save={ctx,TW,TH}; ctx=icon; TW=60; TH=30;
   if(kind==="seagulls"){ for(const [dx,dy] of [[0,0],[-14,10],[14,12],[-4,-14]]) gull(48+dx,52+dy,14,dx,1); }
   else if(kind==="blimp") blimp(48,50,{club,face:1,id:0});
@@ -42,7 +42,7 @@ function cardArt(card){
   if(card.rarity==="legend"){ g.save(); g.globalAlpha=.25; for(let i=0;i<12;i++){ g.fillStyle="#fff"; g.beginPath(); g.moveTo(90,110); g.arc(90,110,200,i*Math.PI/6,i*Math.PI/6+.18); g.fill(); } g.restore(); }
   const role=card.rarity==="legend"?"captain":({mid:"rover",fwd:"forward",ruck:"ruck",def:"shepherd"})[card.pos];
   const likeness=card.name===club.hero.name && namedHeroArt[club.abbr];
-  if (!(likeness && drawArtIcon(likeness,g,90,193,174,184)) && !drawArtIcon("portrait-"+role,g,90,193,174,184)) {
+  if (!(likeness && drawArtIcon(likeness,g,90,193,174,184)) && !drawArtIcon("portrait-"+role,g,90,193,174,184,club)) {
     const save={ctx,TW,TH}; ctx=g; TW=70; TH=35;
     drawPlayer(90,190,46,club,{kind:card.pos==="ruck"?"ruck":null,hero:card.rarity==="legend",ranged:card.pos==="fwd",id:card.club});
     ctx=save.ctx; TW=save.TW; TH=save.TH;
@@ -66,7 +66,7 @@ function refreshUI(){
   $("battleTop").style.display=bat?"flex":"none";
   $("battleBottom").style.display=bat&&!replay?"flex":"none";
   $("replayBar").style.display=replay?"flex":"none";
-  if(S){ const c=myClub(); $("clubName").textContent=c.name; $("g").src=badgeURL(c,96); }
+  if(S){ const c=myClub(); $("clubName").textContent=c.name; $("g").src=badgeURL(c,96); if(refreshUI.hudClub!==S.club&&typeof refreshArtHUD==="function"&&artSprites.size){ refreshUI.hudClub=S.club; refreshArtHUD(); } }
   const ev=S&&eventNow(); $("eventBanner").classList.toggle("hide",!home||!ev||!!placing||(typeof tutActive==="function"&&tutActive())); if(ev) $("eventBanner").innerHTML=`🎉 <b>${ev.name}</b> · ${ev.desc}`;
   $("placePanel").style.display=home&&placing&&!placing.moving?"flex":"none";
   if(placing&&!placing.moving){ const d=BLD[placing.t]; $("placeName").textContent=`${d.name} · ${fmt(buildCost(placing.t))} ${resIcon(d.res)}`; }
@@ -94,7 +94,7 @@ function updateHUD(force){
     const replay=BT.mode==="replay";
     $("bBadge").src=badgeURL(CLUBS[replay?BT.atkClub:BT.club],96);
     $("bVs").textContent=replay?`${CLUBS[BT.atkClub].name} attack`:"vs "+CLUBS[BT.club].name;
-    $("bLoot").textContent=replay?"Replay":(BT.kind==="season"?BT.fixture+" · ":BT.kind==="revenge"?"Revenge! · ":"")+`🥧 ${fmt(Math.max(0,BT.lootTotal.pies-BT.loot.pies)*(BT.lootMul||1))}  💧 ${fmt(Math.max(0,BT.lootTotal.drink-BT.loot.drink)*(BT.lootMul||1))}`;
+    $("bLoot").textContent=replay?"Replay":(BT.kind==="season"&&BT.fixture?BT.fixture+" · ":BT.kind==="revenge"?"Revenge! · ":"")+`🥧 ${fmt(Math.max(0,BT.lootTotal.pies-BT.loot.pies)*(BT.lootMul||1))}  💧 ${fmt(Math.max(0,BT.lootTotal.drink-BT.loot.drink)*(BT.lootMul||1))}`;
     const s=starsNow(), sc=scoreNow(), A=CLUBS[BT.atkClub], Hm=CLUBS[BT.club];
     $("bScore").innerHTML=`<div class="${sc.a.p>sc.h.p?"lead":""}">${A.short} <b>${fmtScore(sc.a)}</b></div><div class="${sc.h.p>=sc.a.p?"lead":""}">${Hm.short} <b>${fmtScore(sc.h)}</b></div>`;
     $("bStars").innerHTML="★".repeat(s)+`<span class="dim">${"★".repeat(3-s)}</span>`;
@@ -363,7 +363,11 @@ function openSettings(){
     <div class="stat"><span>Sound effects</span><button class="btn ${S.sound?"green":""}" id="snd">${S.sound?"On":"Off"}</button></div>
     <p class="tiny">Club logos: put PNG files named after each club (for example <code>coll.png</code> or <code>wb.png</code>) in the <code>logos</code> folder next to the game and they replace the badges.</p>
     <div class="stat"><span>Tutorials</span><span><button class="btn green" id="tutAgain">Walkthrough</button> <button class="btn gold" id="clashG">Clash guide</button></span></div>
+    <div class="stat"><span>Play it like an app</span><button class="btn blue" id="instBtn">Install</button></div>
+    <div class="stat"><span>Version ${VERSION}</span><button class="btn gold" id="updBtn">Check for updates</button></div>
     <p class="tiny">Progress saves on this device automatically.</p><button class="btn red" id="reset">Start over (new club)</button>`);
+  $("updBtn").onclick=()=>{ $("updBtn").textContent="Updating…"; forceUpdate(); };
+  $("instBtn").onclick=()=>{ closeModal(); if(isStandalone()) return toast("Already installed!"); showInstall(true); };
   $("tutAgain").onclick=()=>{ closeModal(); TUT.forEach(s=>delete s._prepped); startTutorial(); };
   $("clashG").onclick=()=>showClashGuide(false);
   $("snd").onclick=()=>{ S.sound=!S.sound; save(); audioCtx(); sfx("collect"); openSettings(); };

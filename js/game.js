@@ -66,7 +66,10 @@ function occupiedHome(x,y,s,ignore){
 function findSpot(s){ const c=N/2-s/2|0; for(let r=0;r<N;r++) for(let dx=-r;dx<=r;dx++) for(let dy=-r;dy<=r;dy++){ if(Math.max(Math.abs(dx),Math.abs(dy))!==r) continue; if(footprintFree(c+dx,c+dy,s)) return [c+dx,c+dy]; } return null; }
 
 // ---------- shop / build / upgrade ----------
-const buildCost = t => t==="shed" ? SHED_COST[Math.min(4,sheds())] : BLD[t].cost[0];
+// Your first Pie Shop and Drink Tap are free, so spending everything can never leave you with no income.
+const FREE_FIRST = ["pieshop","drinktap"];
+const buildCost = t => t==="shed" ? SHED_COST[Math.min(4,sheds())] : FREE_FIRST.includes(t)&&countOf(t)===0 ? 0 : BLD[t].cost[0];
+const missingIncome = () => S ? FREE_FIRST.filter(t=>countOf(t)===0) : [];
 function shopStatus(t){
   const lim=MAXC[t][th()-1], have=countOf(t);
   if(have>=lim){ const next=MAXC[t].findIndex(v=>v>have); return {ok:false, why: next<0?"Max built":`Clubhouse ${next+1}`, have, lim}; }

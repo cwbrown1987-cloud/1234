@@ -67,7 +67,10 @@ function refreshUI(){
   $("battleBottom").style.display=bat&&!replay?"flex":"none";
   $("replayBar").style.display=replay?"flex":"none";
   if(S){ const c=myClub(); $("clubName").textContent=c.name; $("g").src=badgeURL(c,96); if(refreshUI.hudClub!==S.club&&typeof refreshArtHUD==="function"&&artSprites.size){ refreshUI.hudClub=S.club; refreshArtHUD(); } }
-  $("eventBanner").classList.add("hide"); // weekly events are listed under Tasks instead of a banner
+  // weekly events live under Tasks; the banner spot only nags when you have no way to earn pies or drink
+  const miss=S&&home&&!placing&&!(typeof tutActive==="function"&&tutActive())?missingIncome():[];
+  $("eventBanner").classList.toggle("hide",!miss.length);
+  if(miss.length){ $("eventBanner").innerHTML=`⚠️ Build your first <b>${miss.map(t=>BLD[t].name).join(" and ")}</b>, it's free! Tap here`; $("eventBanner").onclick=()=>openShop("Resources"); }
   $("placePanel").style.display=home&&placing&&!placing.moving?"flex":"none";
   if(placing&&!placing.moving){ const d=BLD[placing.t]; $("placeName").textContent=`${d.name} · ${fmt(buildCost(placing.t))} ${resIcon(d.res)}`; }
   const sp=$("selPanel"); sp.innerHTML="";
@@ -165,7 +168,7 @@ function openShop(tab){
     const it=document.createElement("div"); it.className="item"+(st.ok?"":" off"); it.dataset.t=t;
     it.append(thumb(t,myClub()));
     it.insertAdjacentHTML("beforeend",`<button class="ibtn" aria-label="What is the ${d.name}?">i</button><div class="nm">${d.name}</div><div class="clash">(${CLASH_NAME[t]})</div><div class="meta">Built ${st.have}/${st.lim||MAXC[t][th()-1]}${d.time[0]?" · ⏱ "+fmtTime(d.time[0]):""}</div>`+
-      (st.ok?`<div class="cost ${st.afford?"":"bad"}">${fmt(st.cost)} ${resIcon(st.res)}</div>`:`<div class="cost bad">${st.why}</div>`));
+      (st.ok?(st.cost===0?`<div class="cost free">FREE</div>`:`<div class="cost ${st.afford?"":"bad"}">${fmt(st.cost)} ${resIcon(st.res)}</div>`):`<div class="cost bad">${st.why}</div>`));
     it.onclick=()=>{ if(!st.ok) return toast(st.why); closeModal(); startPlacing(t); };
     it.querySelector(".ibtn").onclick=e=>{ e.stopPropagation(); shopInfo(t); };
     g.append(it);

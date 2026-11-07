@@ -7,6 +7,15 @@ Unofficial fan game, not affiliated with the AFL or its clubs.
 ## Install it like an app
 First visit shows how: one tap on Android, Share → Add to Home Screen on iPhone. Settings has **Install** and **Check for updates** (saves, clears cached files and reloads the newest version). Works offline once installed.
 
+## Play online (free)
+Settings → **Sign in / Sign up** with email + password (plus a display name for the leaderboard). Your club saves to the cloud and follows you to any device. Online you get:
+- **Find a Match** against real players near your trophies, plus 24 labelled **bot** clubs so there's always someone to play. Tap **Next** to skip an opponent.
+- **Home Games**: real attacks on your ground arrive with exact replays and a Revenge button.
+- **Leaderboard** and **Cheer Squads** (clans) with chat and friendly matches — tap 🏟️ **Online**.
+- Lost password? Use the recovery code shown at sign-up.
+
+The server is `server/api.js`, bundled into the Pages worker by `deploy.sh`, with a Cloudflare D1 database (`footy-fortress-db`) bound as `DB`.
+
 ## How to play
 - **Pick your club.** Your hero is a star player from it; the Head Coach unlocks at Clubhouse 5.
 - **Build and upgrade** with groundskeepers. Pie Shops and Drink Taps make 🥧 and 💧; Pie Warmers and Eskies store them. Clubhouse goes to level 8, buildings to level 10.
@@ -29,7 +38,8 @@ First visit shows how: one tap on Android, Share → Add to Home Screen on iPhon
 - `js/game.js` home base and saves, `js/battle.js` match engine, `js/season.js` ladder and finals, `js/raid.js` AI raids, `js/ui.js` menus and controls, `js/tutorial.js` tutorials, `js/install.js` install prompt and updates, `js/audio.js` sound.
 - `js/render.js` drawing helpers and fallback art; `js/art.js` + `art/sheets.js` the painted sprites (club colours applied at runtime).
 - `logos/`: drop club logo PNGs here to replace the generated badges (file names in its README).
-- `deploy.sh`: publishes to Cloudflare Pages (needs a Pages:Edit API token).
+- `js/net.js`: accounts, cloud sync, online matches, inbox, leaderboard, squads. `server/api.js`: the online API.
+- `deploy.sh`: publishes to Cloudflare Pages (needs a Pages:Edit API token). `CF_BRANCH=name ./deploy.sh` makes a preview.
 
 ## Art
 Painted sprite sheets in `art/sheets.js` include individual portraits, ready stances and running poses for all 18 in-game captains. Each 3×3 captain sheet has one player per column and one pose per row. Other players use role art recoloured in each club's guernsey.

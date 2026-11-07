@@ -37,7 +37,7 @@ function fixup(s){
   s.nextRaid=s.nextRaid||Date.now()+8*60000; s.shield=s.shield||0; if(s.sound===undefined) s.sound=true;
   return s;
 }
-function save(){ if(!S) return; S.last=Date.now(); try{ localStorage.setItem(SAVE_KEY, JSON.stringify(S)); }catch(e){} }
+function save(){ if(!S) return; S.last=Date.now(); try{ localStorage.setItem(SAVE_KEY, JSON.stringify(S)); }catch(e){} if(typeof scheduleSync==="function") scheduleSync(); }
 function load(){ try{ const s=JSON.parse(localStorage.getItem(SAVE_KEY)); return s&&(s.v===2||s.v===3)?fixup(s):null; }catch(e){ return null; } }
 
 const myClub = () => CLUBS[S.club];
@@ -292,6 +292,7 @@ function boot(){
   if(S){ const away=Math.min(24*3600,(Date.now()-S.last)/1000); produce(away); ensureDaily(); processTimers(); if(away>60&&!S.raids.some(r=>!r.seen)) toast(`Welcome back! You were away ${fmtTime(away)}.`); }
   else showClubPicker();
   if(S&&typeof S.tut==="number") setTimeout(showTutStep,400);
+  if(typeof netStart==="function") setTimeout(netStart,800);
   refreshUI(); requestAnimationFrame(frame);
   addEventListener("visibilitychange",()=>{ if(document.hidden&&mode==="home") save(); });
 }

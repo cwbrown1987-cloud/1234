@@ -346,3 +346,11 @@ p.clash{color:#8a6d45;font-size:13px;margin:-4px 0 6px}
 .reveal .flip.spec{filter:drop-shadow(0 0 8px #ffd34d)}
 .newtag.dupe{background:#5d6073}
 .reveal{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}.reveal .flip{width:auto}
+
+.orebar{display:flex;gap:12px;justify-content:center;font-size:15px;margin:0 0 6px}
+.gear{display:flex;flex-direction:column;gap:6px;margin-bottom:10px}
+.gpiece{display:flex;gap:8px;align-items:center;background:#fff8;border:3px solid #0003;border-radius:12px;padding:6px 8px}
+.gpiece.on{border-color:#3fa83a;background:#e9f9e2}.gpiece.off{opacity:.55}
+.gpiece .gi{font-size:28px;width:36px;text-align:center}
+.gpiece .btn{font-size:12px;padding:4px 8px}
+.tag.epic{background:#8e44ad}

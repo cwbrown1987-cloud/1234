@@ -1,25 +1,26 @@
 // ---------- Game data ----------
+const VERSION = "2026.11.07.1";
 // Club names + colours. Logos: drop PNGs named <abbr>.png (e.g. coll.png) into the logos/ folder and they're used everywhere.
-// Player names are from recent AFL lists and may be out of date after trade periods; edit freely.
+// Player names checked against the 2026 trade period and retirements (lists for the 2027 season); edit freely.
 const CLUBS = [
-  {abbr:"adel", short:"ADE", name:"Adelaide Crows",      a:"#002b5c", b:"#e21937", c:"#ffd200", hero:{name:"Jordan Dawson",pos:"mid"},           players:[["Taylor Walker","fwd"],["Rory Laird","def"]]},
+  {abbr:"adel", short:"ADE", name:"Adelaide Crows",      a:"#002b5c", b:"#e21937", c:"#ffd200", hero:{name:"Jordan Dawson",pos:"mid"},           players:[["Izak Rankine","fwd"],["Rory Laird","def"]]},
   {abbr:"bris", short:"BRI", name:"Brisbane Lions",      a:"#7a0a3c", b:"#fdbe57", c:"#0055a3", hero:{name:"Lachie Neale",pos:"mid"},            players:[["Harris Andrews","def"],["Charlie Cameron","fwd"]]},
   {abbr:"carl", short:"CAR", name:"Carlton Blues",       a:"#0e1e2d", b:"#ffffff", c:"#9aa8b8", hero:{name:"Patrick Cripps",pos:"mid"},          players:[["Harry McKay","fwd"],["Sam Walsh","mid"]]},
-  {abbr:"coll", short:"COL", name:"Collingwood Magpies", a:"#111111", b:"#ffffff", c:"#888888", hero:{name:"Nick Daicos",pos:"mid"},             players:[["Darcy Moore","def"],["Scott Pendlebury","mid"]]},
-  {abbr:"ess",  short:"ESS", name:"Essendon Bombers",    a:"#111111", b:"#cc2031", c:"#e8e8e8", hero:{name:"Zach Merrett",pos:"mid"},            players:[["Kyle Langford","fwd"],["Nic Martin","mid"]]},
+  {abbr:"coll", short:"COL", name:"Collingwood Magpies", a:"#111111", b:"#ffffff", c:"#888888", hero:{name:"Nick Daicos",pos:"mid"},             players:[["Darcy Moore","def"],["Josh Daicos","mid"]]},
+  {abbr:"ess",  short:"ESS", name:"Essendon Bombers",    a:"#111111", b:"#cc2031", c:"#e8e8e8", hero:{name:"Nic Martin",pos:"mid"},              players:[["Kyle Langford","fwd"],["Keidean Coleman","def"]]},
   {abbr:"freo", short:"FRE", name:"Fremantle Dockers",   a:"#2a0d54", b:"#ffffff", c:"#9b8bc4", hero:{name:"Caleb Serong",pos:"mid"},            players:[["Luke Jackson","ruck"],["Andrew Brayshaw","mid"]]},
   {abbr:"geel", short:"GEE", name:"Geelong Cats",        a:"#001f3d", b:"#ffffff", c:"#5f87b8", hero:{name:"Jeremy Cameron",pos:"fwd"},          players:[["Patrick Dangerfield","mid"],["Tom Stewart","def"]]},
   {abbr:"gcs",  short:"GCS", name:"Gold Coast Suns",     a:"#e02112", b:"#ffe600", c:"#0b4ea2", hero:{name:"Matt Rowell",pos:"mid"},             players:[["Noah Anderson","mid"],["Touk Miller","mid"]]},
-  {abbr:"gws",  short:"GWS", name:"GWS Giants",          a:"#f15c22", b:"#4a4f55", c:"#ffffff", hero:{name:"Tom Green",pos:"mid"},               players:[["Toby Greene","fwd"],["Sam Taylor","def"]]},
-  {abbr:"haw",  short:"HAW", name:"Hawthorn Hawks",      a:"#4d2004", b:"#fbbf15", c:"#ffffff", hero:{name:"James Sicily",pos:"def"},            players:[["Will Day","mid"],["Jai Newcombe","mid"]]},
+  {abbr:"gws",  short:"GWS", name:"GWS Giants",          a:"#f15c22", b:"#4a4f55", c:"#ffffff", hero:{name:"Tom Green",pos:"mid"},               players:[["Clayton Oliver","mid"],["Sam Taylor","def"]]},
+  {abbr:"haw",  short:"HAW", name:"Hawthorn Hawks",      a:"#4d2004", b:"#fbbf15", c:"#ffffff", hero:{name:"James Sicily",pos:"def"},            players:[["Zach Merrett","mid"],["Will Day","mid"]]},
   {abbr:"melb", short:"MEL", name:"Melbourne Demons",    a:"#0f1131", b:"#cc2031", c:"#ffffff", hero:{name:"Max Gawn",pos:"ruck"},               players:[["Kysaiah Pickett","fwd"],["Jake Bowey","def"]]},
   {abbr:"nmfc", short:"NM",  name:"North Melbourne",     a:"#013b9f", b:"#ffffff", c:"#7fa6e8", hero:{name:"Harry Sheezel",pos:"def"},           players:[["Luke Davies-Uniacke","mid"],["Tristan Xerri","ruck"]]},
-  {abbr:"port", short:"PTA", name:"Port Adelaide Power", a:"#111111", b:"#008aab", c:"#ffffff", hero:{name:"Zak Butters",pos:"mid"},             players:[["Connor Rozee","mid"],["Jason Horne-Francis","mid"]]},
+  {abbr:"port", short:"PTA", name:"Port Adelaide Power", a:"#111111", b:"#008aab", c:"#ffffff", hero:{name:"Connor Rozee",pos:"mid"},            players:[["Jason Horne-Francis","mid"],["Mitch Georgiades","fwd"]]},
   {abbr:"rich", short:"RIC", name:"Richmond Tigers",     a:"#111111", b:"#fed102", c:"#ffffff", hero:{name:"Tim Taranto",pos:"mid"},             players:[["Jacob Hopper","mid"],["Noah Balta","def"]]},
   {abbr:"stk",  short:"STK", name:"St Kilda Saints",     a:"#ed0f05", b:"#111111", c:"#ffffff", hero:{name:"Nasiah Wanganeen-Milera",pos:"def"}, players:[["Jack Sinclair","mid"],["Max King","fwd"]]},
   {abbr:"syd",  short:"SYD", name:"Sydney Swans",        a:"#ed171f", b:"#ffffff", c:"#999999", hero:{name:"Isaac Heeney",pos:"fwd"},            players:[["Errol Gulden","mid"],["Chad Warner","mid"]]},
   {abbr:"wce",  short:"WCE", name:"West Coast Eagles",   a:"#002b79", b:"#f2a900", c:"#ffffff", hero:{name:"Harley Reid",pos:"mid"},             players:[["Jake Waterman","fwd"],["Liam Duggan","def"]]},
-  {abbr:"wb",   short:"WB",  name:"Western Bulldogs",    a:"#014896", b:"#e31937", c:"#ffffff", hero:{name:"Marcus Bontempelli",pos:"mid"},      players:[["Tom Liberatore","mid"],["Ed Richards","def"]]},
+  {abbr:"wb",   short:"WB",  name:"Western Bulldogs",    a:"#014896", b:"#e31937", c:"#ffffff", hero:{name:"Marcus Bontempelli",pos:"mid"},      players:[["Zak Butters","mid"],["Ed Richards","def"]]},
 ];
 
 const HERO_POS = {

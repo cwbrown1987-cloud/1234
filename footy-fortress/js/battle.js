@@ -326,7 +326,7 @@ function renderBattle(){
     ctx.save(); ctx.globalAlpha=Math.max(0,a);
     if(f.k==="beam"){ const [x0,y0]=P(f.x0,f.y0,3.6), [x1,y1]=P(f.x1,f.y1,2.4); const g=ctx.createLinearGradient(x0,y0,x1,y1); g.addColorStop(0,"#ffffffee"); g.addColorStop(1,"#fff7a000"); ctx.strokeStyle=g; ctx.lineWidth=TW*.35*(1-f.t); ctx.beginPath(); ctx.moveTo(x0,y0); ctx.lineTo(x1,y1); ctx.stroke(); ctx.restore(); continue; }
     const [x,y]=P(f.x,f.y,f.air?2.4:0);
-    if(f.k==="boom"){ const r=TW*(.4+f.t*1.2)*(f.s||1)*.6; ctx.fillStyle="#ffb547"; ctx.beginPath(); ctx.arc(x,y-TH,r,0,7); ctx.fill(); ctx.fillStyle="#fff3c4"; ctx.beginPath(); ctx.arc(x,y-TH,r*.5,0,7); ctx.fill(); ctx.fillStyle="#8a7f72"; for(let i=0;i<5;i++){ const an=i*1.3; ctx.beginPath(); ctx.arc(x+Math.cos(an)*r*1.1,y-TH-Math.sin(an)*r*.8-f.t*TH*2,r*.3,0,7); ctx.fill(); } }
+    if(f.k==="boom"){ const r=TW*(.4+f.t*1.2)*(f.s||1)*.6; drawImpactSparks(x,y-TH,r*2.1,f.t/.8); ctx.fillStyle="#ffb547"; ctx.beginPath(); ctx.arc(x,y-TH,r,0,7); ctx.fill(); ctx.fillStyle="#fff3c4"; ctx.beginPath(); ctx.arc(x,y-TH,r*.5,0,7); ctx.fill(); ctx.fillStyle="#8a7f72"; for(let i=0;i<5;i++){ const an=i*1.3; ctx.beginPath(); ctx.arc(x+Math.cos(an)*r*1.1,y-TH-Math.sin(an)*r*.8-f.t*TH*2,r*.3,0,7); ctx.fill(); } }
     if(f.k==="splash"){ ctx.strokeStyle="#4fc3f7"; ctx.lineWidth=4; ctx.beginPath(); ctx.ellipse(x,y,f.r*TW*.72*(.3+f.t),f.r*TH*.72*(.3+f.t),0,0,7); ctx.stroke(); ctx.fillStyle="#b3e5fc"; for(let i=0;i<8;i++){ const an=i/8*7; ctx.beginPath(); ctx.arc(x+Math.cos(an)*f.r*TW*.5*f.t*1.4,y+Math.sin(an)*f.r*TH*.5*f.t*1.4-TH*f.t*2,TW*.06,0,7); ctx.fill(); } }
     if(f.k==="heal"){ ctx.strokeStyle="#7CFC00"; ctx.lineWidth=2; ctx.beginPath(); ctx.ellipse(x,y,f.r*TW*.72*f.t,f.r*TH*.72*f.t,0,0,7); ctx.stroke(); }
     if(f.k==="poof"){ ctx.fillStyle="#ddd"; for(let i=0;i<4;i++){ ctx.beginPath(); ctx.arc(x+(i-1.5)*TW*.15,y-TH*(.5+f.t*2),TW*.15*(1-f.t),0,7); ctx.fill(); } }
@@ -348,7 +348,9 @@ function drawUnitB(u){
 function drawFlyer(u){
   const [gx,gy]=P(u.x,u.y), [x,y]=P(u.x,u.y,2.4+Math.sin(performance.now()/300+u.id)*.15);
   ctx.save(); ctx.globalAlpha=.25; ctx.fillStyle="#000"; ctx.beginPath(); ctx.ellipse(gx,gy,TW*.35,TH*.25,0,0,7); ctx.fill(); ctx.restore();
-  if(u.kind==="seagulls") seagullFlock(x,y,u);
-  else blimp(x,y,u);
+  if(!drawFlyerArt(x,y,u.kind,u.face)) {
+    if(u.kind==="seagulls") seagullFlock(x,y,u);
+    else blimp(x,y,u);
+  }
   if(u.hp<u.max) bar(x,y-TW*.7,u.hp/u.max,"#5fd16b",TW*.8);
 }

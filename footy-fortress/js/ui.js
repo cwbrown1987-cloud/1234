@@ -11,7 +11,11 @@ function playerIcon(kind, club){
   club=club||myClub(); const key=kind+club.abbr;
   if(iconCache[key]) return iconCache[key];
   const c=document.createElement("canvas"); c.width=c.height=96;
-  const save={ctx,TW,TH}; ctx=c.getContext("2d"); TW=60; TH=30;
+  const role=kind==="hero:captain"?"captain":kind==="hero:coach"?"coach":kind;
+  const likeness=role==="captain" && namedHeroArt[club.abbr];
+  const icon=c.getContext("2d");
+  if ((likeness && drawArtIcon(likeness,icon,48,96,96,92)) || drawArtIcon("portrait-"+role,icon,48,96,96,92,club) || (UNITS[role]?.air && drawArtIcon(role,icon,48,83,90,76))) return iconCache[key]=c.toDataURL();
+  const save={ctx,TW,TH}; ctx=icon; TW=60; TH=30;
   if(kind==="seagulls"){ for(const [dx,dy] of [[0,0],[-14,10],[14,12],[-4,-14]]) gull(48+dx,52+dy,14,dx,1); }
   else if(kind==="blimp") blimp(48,50,{club,face:1,id:0});
   else { const hk=kind.startsWith("hero:")?kind.slice(5):null, pos=hk?HEROES[hk].pos(club):null;
@@ -23,7 +27,9 @@ const SPELL_ICON={oranges:"🍊",roar:"📣",freekick:"🟨",rain:"🌧️",sub:
 function spellIcon(sp){
   if(iconCache[sp]) return iconCache[sp];
   const c=document.createElement("canvas"); c.width=c.height=96; const g=c.getContext("2d");
-  g.font="56px serif"; g.textAlign="center"; g.textBaseline="middle"; g.fillText(SPELL_ICON[sp],48,52);
+  if (!drawArtIcon("icon-"+sp,g,48,91,90,87)) {
+    g.font="56px serif"; g.textAlign="center"; g.textBaseline="middle"; g.fillText(SPELL_ICON[sp],48,52);
+  }
   return iconCache[sp]=c.toDataURL();
 }
 // Player card art
@@ -34,13 +40,18 @@ function cardArt(card){
   const bg=g.createLinearGradient(0,0,0,240); bg.addColorStop(0,shade(club.a,1.35)); bg.addColorStop(1,shade(club.a,.7)); g.fillStyle=bg; g.fillRect(0,0,180,240);
   g.fillStyle=club.b; g.globalAlpha=.25; g.fillRect(66,0,48,240); g.globalAlpha=1;
   if(card.rarity==="legend"){ g.save(); g.globalAlpha=.25; for(let i=0;i<12;i++){ g.fillStyle="#fff"; g.beginPath(); g.moveTo(90,110); g.arc(90,110,200,i*Math.PI/6,i*Math.PI/6+.18); g.fill(); } g.restore(); }
-  const save={ctx,TW,TH}; ctx=g; TW=70; TH=35;
-  drawPlayer(90,190,46,club,{kind:card.pos==="ruck"?"ruck":null,hero:card.rarity==="legend",ranged:card.pos==="fwd",id:card.club});
-  ctx=save.ctx; TW=save.TW; TH=save.TH;
+  const role=card.rarity==="legend"?"captain":({mid:"rover",fwd:"forward",ruck:"ruck",def:"shepherd"})[card.pos];
+  const likeness=card.name===club.hero.name && namedHeroArt[club.abbr];
+  if (!(likeness && drawArtIcon(likeness,g,90,193,174,184)) && !drawArtIcon("portrait-"+role,g,90,193,174,184,club)) {
+    const save={ctx,TW,TH}; ctx=g; TW=70; TH=35;
+    drawPlayer(90,190,46,club,{kind:card.pos==="ruck"?"ruck":null,hero:card.rarity==="legend",ranged:card.pos==="fwd",id:card.club});
+    ctx=save.ctx; TW=save.TW; TH=save.TH;
+  }
+
   drawBadge(g,30,32,20,club);
   g.fillStyle="#000a"; g.fillRect(0,192,180,48);
   g.font='20px "Lilita One",sans-serif'; g.textAlign="center"; g.fillStyle="#fff"; g.textBaseline="middle";
-  const nm=card.name.length>18?card.name.split(" ").pop():card.name; g.fillText(nm,90,207);
+  const nm=card.name.length>18?card.name.split(" ").pop():card.name; g.fillText(nm,90,207,162);
   g.font='13px "Lilita One",sans-serif'; g.fillStyle=R.col; g.fillText(`${R.name} · ${POS_NAME[card.pos]}`,90,227);
   g.lineWidth=8; g.strokeStyle=R.col; g.strokeRect(4,4,172,232); g.lineWidth=2; g.strokeStyle="#000"; g.strokeRect(1,1,178,238);
   return iconCache[key]=c.toDataURL();
@@ -55,7 +66,7 @@ function refreshUI(){
   $("battleTop").style.display=bat?"flex":"none";
   $("battleBottom").style.display=bat&&!replay?"flex":"none";
   $("replayBar").style.display=replay?"flex":"none";
-  if(S){ const c=myClub(); $("clubName").textContent=c.name; $("g").src=badgeURL(c,96); }
+  if(S){ const c=myClub(); $("clubName").textContent=c.name; $("g").src=badgeURL(c,96); if(refreshUI.hudClub!==S.club&&typeof refreshArtHUD==="function"&&artSprites.size){ refreshUI.hudClub=S.club; refreshArtHUD(); } }
   const ev=S&&eventNow(); $("eventBanner").classList.toggle("hide",!home||!ev||!!placing||(typeof tutActive==="function"&&tutActive())); if(ev) $("eventBanner").innerHTML=`🎉 <b>${ev.name}</b> · ${ev.desc}`;
   $("placePanel").style.display=home&&placing&&!placing.moving?"flex":"none";
   if(placing&&!placing.moving){ const d=BLD[placing.t]; $("placeName").textContent=`${d.name} · ${fmt(buildCost(placing.t))} ${resIcon(d.res)}`; }
@@ -83,7 +94,7 @@ function updateHUD(force){
     const replay=BT.mode==="replay";
     $("bBadge").src=badgeURL(CLUBS[replay?BT.atkClub:BT.club],96);
     $("bVs").textContent=replay?`${CLUBS[BT.atkClub].name} attack`:"vs "+CLUBS[BT.club].name;
-    $("bLoot").textContent=replay?"Replay":(BT.kind==="season"?BT.fixture+" · ":BT.kind==="revenge"?"Revenge! · ":"")+`🥧 ${fmt(Math.max(0,BT.lootTotal.pies-BT.loot.pies)*(BT.lootMul||1))}  💧 ${fmt(Math.max(0,BT.lootTotal.drink-BT.loot.drink)*(BT.lootMul||1))}`;
+    $("bLoot").textContent=replay?"Replay":(BT.kind==="season"&&BT.fixture?BT.fixture+" · ":BT.kind==="revenge"?"Revenge! · ":"")+`🥧 ${fmt(Math.max(0,BT.lootTotal.pies-BT.loot.pies)*(BT.lootMul||1))}  💧 ${fmt(Math.max(0,BT.lootTotal.drink-BT.loot.drink)*(BT.lootMul||1))}`;
     const s=starsNow(), sc=scoreNow(), A=CLUBS[BT.atkClub], Hm=CLUBS[BT.club];
     $("bScore").innerHTML=`<div class="${sc.a.p>sc.h.p?"lead":""}">${A.short} <b>${fmtScore(sc.a)}</b></div><div class="${sc.h.p>=sc.a.p?"lead":""}">${Hm.short} <b>${fmtScore(sc.h)}</b></div>`;
     $("bStars").innerHTML="★".repeat(s)+`<span class="dim">${"★".repeat(3-s)}</span>`;
@@ -352,7 +363,11 @@ function openSettings(){
     <div class="stat"><span>Sound effects</span><button class="btn ${S.sound?"green":""}" id="snd">${S.sound?"On":"Off"}</button></div>
     <p class="tiny">Club logos: put PNG files named after each club (for example <code>coll.png</code> or <code>wb.png</code>) in the <code>logos</code> folder next to the game and they replace the badges.</p>
     <div class="stat"><span>Tutorials</span><span><button class="btn green" id="tutAgain">Walkthrough</button> <button class="btn gold" id="clashG">Clash guide</button></span></div>
+    <div class="stat"><span>Play it like an app</span><button class="btn blue" id="instBtn">Install</button></div>
+    <div class="stat"><span>Version ${VERSION}</span><button class="btn gold" id="updBtn">Check for updates</button></div>
     <p class="tiny">Progress saves on this device automatically.</p><button class="btn red" id="reset">Start over (new club)</button>`);
+  $("updBtn").onclick=()=>{ $("updBtn").textContent="Updating…"; forceUpdate(); };
+  $("instBtn").onclick=()=>{ closeModal(); if(isStandalone()) return toast("Already installed!"); showInstall(true); };
   $("tutAgain").onclick=()=>{ closeModal(); TUT.forEach(s=>delete s._prepped); startTutorial(); };
   $("clashG").onclick=()=>showClashGuide(false);
   $("snd").onclick=()=>{ S.sound=!S.sound; save(); audioCtx(); sfx("collect"); openSettings(); };

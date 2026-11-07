@@ -64,7 +64,7 @@ function pad(x,y,s){ poly([P(x+.06,y+.06),P(x+s-.06,y+.06),P(x+s-.06,y+s-.06),P(
 function txt(s,x,y,sz,col="#fff"){ ctx.font=`${sz}px "Lilita One","Trebuchet MS",sans-serif`; ctx.textAlign="center"; ctx.textBaseline="middle"; ctx.lineJoin="round"; ctx.lineWidth=Math.max(3,sz*.22); ctx.strokeStyle="#000"; ctx.strokeText(s,x,y); ctx.fillStyle=col; ctx.fillText(s,x,y); }
 function bar(x,y,f,col,w){ w=w||TW*1.2; const h=Math.max(5,TH*.24); ctx.lineWidth=2; ctx.strokeStyle="#000"; rr(x-w/2,y,w,h,h/2,"#2a2a2a");
   ctx.beginPath(); ctx.roundRect(x-w/2+1.5,y+1.5,Math.max(h-3,(w-3)*Math.max(0,Math.min(1,f))),h-3,(h-3)/2); ctx.fillStyle=col; ctx.fill(); }
-function footy(x,y,r,rot){ ctx.save(); ctx.translate(x,y); ctx.rotate(rot); ctx.beginPath(); ctx.ellipse(0,0,r,r*.62,0,0,7); ctx.fillStyle="#b5532a"; ctx.fill(); ctx.strokeStyle=OUT; ctx.lineWidth=Math.max(1.2,r*.18); ctx.stroke();
+function footy(x,y,r,rot){ ctx.save(); ctx.translate(x,y); ctx.rotate(rot); const sprite=artSprites.get("footy"); if(sprite){ paintArt(sprite,0,0,r*2.2/sprite.w,.5); ctx.restore(); return; } ctx.beginPath(); ctx.ellipse(0,0,r,r*.62,0,0,7); ctx.fillStyle="#b5532a"; ctx.fill(); ctx.strokeStyle=OUT; ctx.lineWidth=Math.max(1.2,r*.18); ctx.stroke();
   ctx.strokeStyle="#fff"; ctx.lineWidth=Math.max(1,r*.1); ctx.beginPath(); ctx.moveTo(-r*.35,0); ctx.lineTo(r*.35,0); for(let i=-2;i<=2;i++){ ctx.moveTo(i*r*.14,-r*.12); ctx.lineTo(i*r*.14,r*.12); } ctx.stroke(); ctx.restore(); }
 // Aussie rules goals: 2 tall goal posts + 2 shorter behind posts
 function posts(px,py,h,club,sc=1){
@@ -96,10 +96,12 @@ function drawBuilding(b, club, list, opts={}){
   if(b.hp!==undefined && b.hp<=0) return rubble(x,y,s);
   if(d.trap){ if(opts.hideTraps && !b.sprung) return; drawTrap(b); return; }
   const isNew = b.busy && b.busy.kind==="build";
-  if(b.t!=="fence"){ pad(x,y,s); if(!isNew) shadow(x+.3,y+.3,s-.6,s-.6); }
-  let top=2.5;
-  if(isNew){ top=1.8; }
-  else switch(b.t){
+  if(b.t!=="fence"){
+    if(!isNew) shadow(x+.3,y+.3,s-.6,s-.6);
+    if(isNew || !artSprites.has(b.t)) pad(x,y,s);
+  }
+  let top=isNew?1.8:drawBuildingArt(b,club,opts);
+  if(!top) switch(b.t){
     case "clubhouse":{
       prism(x+.3,y+.3,s-.6,s-.6,0,.45,"#a3968a");
       const wh=1.9+lv*.12;
@@ -286,18 +288,19 @@ function drawBuilding(b, club, list, opts={}){
 }
 const FENCE_COL=["#f7f1e2","#c9a26b","#9aa0a8","#f6c343","#4a3f6b"];
 function drawFence(b,club,list,lv){
-  const x=b.x,y=b.y, col=FENCE_COL[lv-1];
+  const x=b.x,y=b.y, col=FENCE_COL[Math.min(lv,FENCE_COL.length)-1];
   const has=(i,j)=>list.some(o=>o.t==="fence"&&!(o.hp<=0)&&o.x===i&&o.y===j&&!(o.busy&&o.busy.kind==="build"));
   const h=.85+lv*.08, w=.24+lv*.02;
+  if(drawFenceArt(x,y,h,lv,has(x+1,y),has(x,y+1))) return;
   if(has(x+1,y)) for(const z of [.28,h*.7]) prism(x+.5,y+.46,1,.08,z,.12,col);
   if(has(x,y+1)) for(const z of [.28,h*.7]) prism(x+.46,y+.5,.08,1,z,.12,col);
   prism(x+.5-w/2,y+.5-w/2,w,w,0,h,col);
   prism(x+.5-w/2-.03,y+.5-w/2-.03,w+.06,w+.06,h,.12,lv>=4?"#fff3b0":club.a);
   if(lv===5){ const [sx,sy]=P(x+.5,y+.5,h+.12); poly([[sx-TW*.05,sy],[sx+TW*.05,sy],[sx,sy-TH*.45]],"#ddd"); }
 }
-function drawTrap(b){ const [x,y]=P(b.x+.5,b.y+.5); ctx.fillStyle="#555"; ctx.strokeStyle=OUT; ctx.lineWidth=1.5; ctx.beginPath(); ctx.ellipse(x,y,TW*.18,TH*.18,0,0,7); ctx.fill(); ctx.stroke();
-  ctx.beginPath(); ctx.arc(x,y-TH*.15,TW*.06,0,7); ctx.fillStyle="#9aa0a8"; ctx.fill(); ctx.stroke(); }
-function rubble(x,y,s){ poly([P(x+.1,y+.1),P(x+s-.1,y+.1),P(x+s-.1,y+s-.1),P(x+.1,y+s-.1)],"#6d5d48","#4a3f33",1);
+function drawTrap(b){ const [x,y]=P(b.x+.5,b.y+.5); ctx.fillStyle="#425657"; ctx.strokeStyle=OUT; ctx.lineWidth=1.5; ctx.beginPath(); ctx.ellipse(x,y,TW*.21,TH*.23,0,0,7); ctx.fill(); ctx.stroke();
+  ctx.beginPath(); ctx.arc(x,y-TH*.15,TW*.06,0,7); ctx.fillStyle="#d6ad59"; ctx.fill(); ctx.stroke(); }
+function rubble(x,y,s){ const sprite=artSprites.get("rubble"); if(sprite && paintArt(sprite,...P(x+s/2,y+s/2),TW*s*.86/sprite.w,.75)) return; poly([P(x+.1,y+.1),P(x+s-.1,y+.1),P(x+s-.1,y+s-.1),P(x+.1,y+s-.1)],"#6d5d48","#4a3f33",1);
   const r=rng(x*131+y*7); for(let i=0;i<s*s*1.5+1;i++){ const a=x+.2+r()*(s-.5),c=y+.2+r()*(s-.5); prism(a,c,.22+r()*.15,.22+r()*.15,0,.15+r()*.25,r()<.5?"#9a8f80":"#b07a4a"); } }
 function scaffold(b,s){
   const x=b.x,y=b.y,h=b.busy.kind==="build"?1.4:2.2;
@@ -317,6 +320,7 @@ function fmtTime(s){ s=Math.ceil(s); if(s<60) return s+"s"; if(s<3600) return Ma
 // ---------- players ----------
 // kinds: rover, forward, ruck, tagger, shepherd, trainer, hero
 function drawPlayer(px,py,k,c,o={}){
+  if(drawPlayerArt(px,py,k,c,o)) return;
   const t=performance.now()/110+(o.id||0)*1.7;
   const sw=o.moving?Math.sin(t)*k*.22:0, bob=o.moving?Math.abs(Math.sin(t))*k*.12:0, atk=o.atk?k*.25:0;
   ctx.save(); ctx.translate(px,py);
@@ -360,14 +364,16 @@ function makeDeco(){
   const r=rng(42); deco=[]; tufts=[];
   for(let i=-10;i<N+10;i++) for(let j=-10;j<N+10;j++){
     if(i>=-1&&j>=-1&&i<=N&&j<=N) continue;
-    if(r()<(i<-2||j<-2||i>N+1||j>N+1?.55:.3)) deco.push({x:i+.2+r()*.6,y:j+.2+r()*.6,k:r()<.72?"tree":r()<.6?"bush":"rock",s:.8+r()*.5,h:r()});
+    if(i>=-5&&j>=-5&&i<=N+1&&j<=N+1&&(i<0||j<0)) continue;
+    if(r()<(i<-2||j<-2||i>N+2||j>N+2?.28:.09)) deco.push({x:i+.2+r()*.6,y:j+.2+r()*.6,k:r()<.72?"tree":r()<.6?"bush":"rock",s:.8+r()*.5,h:r()});
   }
   for(let n=0;n<320;n++) tufts.push([r()*N,r()*N]);
   patches=[]; for(let n=0;n<26;n++) patches.push([r()*N,r()*N,1+r()*2.5,r()<.5]);
 }
 function drawDeco(t,ox=0,oy=0){
   const [x,y]=P(t.x+ox,t.y+oy), k=TW*.5*(t.s||1);
-  if(x<-k*2||x>W+k*2||y<-k*3||y>H+k) return;
+  if(x<-k*2||x>W+k*2||y<-k*4||y>H+k) return;
+  if(drawSceneryArt(t,x,y,k)) return;
   ctx.fillStyle="#0003"; ctx.beginPath(); ctx.ellipse(x+k*.25,y,k*.75,k*.32,0,0,7); ctx.fill();
   ctx.strokeStyle=OUT;
   if(t.k==="rock"){ ctx.lineWidth=LW(); poly([[x-k*.5,y],[x-k*.4,y-k*.4],[x,y-k*.6],[x+k*.45,y-k*.35],[x+k*.5,y]],grad([x,y-k*.6],[x,y],"#c9c4bb","#7d776d")); return; }
@@ -382,13 +388,39 @@ function drawDeco(t,ox=0,oy=0){
 
 function drawGround(){
   if(!deco) makeDeco();
-  ctx.fillStyle="#4c9631"; ctx.fillRect(0,0,W,H);
-  poly([P(-.5,-.5),P(N+.5,-.5),P(N+.5,N+.5),P(-.5,N+.5)],"#5ea83c",null);
-  poly([P(0,0),P(N,0),P(N,N),P(0,N)],"#6cb646","#4f9a34",2);
-  for(let i=0;i<N;i+=2) diamond(i,0,1,N,"#74bd4d");
-  for(const [a,b,r,dark] of patches){ const [px,py]=P(a,b); ctx.fillStyle=dark?"#5fa83b55":"#8fd06455"; ctx.beginPath(); ctx.ellipse(px,py,r*TW*.6,r*TH*.6,0,0,7); ctx.fill(); }
-  ctx.strokeStyle="#4f9a3499"; ctx.lineWidth=Math.max(1,TW*.025); ctx.lineCap="round";
-  for(const [a,b] of tufts){ const [tx,ty]=P(a,b), s=TW*.08; ctx.beginPath(); ctx.moveTo(tx-s,ty-s); ctx.lineTo(tx-s*.3,ty); ctx.lineTo(tx,ty-s*1.3); ctx.lineTo(tx+s*.3,ty); ctx.lineTo(tx+s,ty-s); ctx.stroke(); }
+  const [cx,cy]=P(N/2,N/2);
+  const radius=Math.max(W,H)*.88;
+  const light=ctx.createRadialGradient(cx-TW*3,cy-TH*6,0,cx,cy,radius);
+  light.addColorStop(0,"#a9ae52");
+  light.addColorStop(.56,"#728c36");
+  light.addColorStop(1,"#40591f");
+  ctx.fillStyle=light;
+  ctx.fillRect(0,0,W,H);
+
+  diamond(-1.3,-1.3,N+2.6,N+2.6,"#839347","#6f8036",Math.max(1,TW*.05));
+  diamond(0,0,N,N,"#91aa49");
+  for(let i=0;i<N;i+=4) diamond(i,0,2,N,"#a4bb515c");
+  for(const [a,b,r,dark] of patches){
+    const [x,y]=P(a,b), rad=r*TW*.60;
+    if(x<-rad||x>W+rad||y<-rad||y>H+rad) continue;
+    const patch=ctx.createRadialGradient(x,y,0,x,y,rad);
+    patch.addColorStop(0,dark?"#60772f56":"#d8c97242");
+    patch.addColorStop(1,"#91aa4900");
+    ctx.fillStyle=patch;
+    ctx.fillRect(x-rad,y-rad,rad*2,rad*2);
+  }
+  drawTurfGrain(cx,cy);
+  drawPitchMarkings();
+  ctx.strokeStyle="#4c71214d";
+  ctx.lineWidth=Math.max(1,TW*.018);
+  ctx.beginPath();
+  for(const [a,b] of tufts){
+    const [x,y]=P(a,b), s=TW*.065;
+    if(x<-s||x>W+s||y<-s||y>H+s) continue;
+    ctx.moveTo(x-s,y-s); ctx.lineTo(x,y); ctx.lineTo(x+s*.3,y-s*1.3);
+  }
+  ctx.stroke();
+  drawStadium();
 }
 
 // Draw a single building centred into a small canvas (shop thumbnails)
@@ -396,7 +428,10 @@ function thumb(t, club, lv=1){
   const c=document.createElement("canvas"); c.width=c.height=160;
   const saved={ctx,W,H,TW,TH,cx:cam.x,cy:cam.y};
   ctx=c.getContext("2d"); W=H=160; const s=BLD[t].size;
-  TW=Math.min(120/(s+.6), 60); TH=TW/2;
+  TW=Math.min(120/(s+.6), 60);
+  const sprite=artBuildings[t]&&artSprites.get(t);
+  if(sprite) TW=Math.min(TW,110/(sprite.h*buildingArtScale(t,sprite)*artBuildings[t][1]));
+  TH=TW/2;
   // centre building footprint
   const want=[80,s===1?105:122]; cam.x=0; cam.y=0; const [ax,ay]=iso(s/2,s/2); cam.x=want[0]-ax; cam.y=want[1]-ay - (s===1?0:0);
   const list=[{t,x:0,y:0,lv}]; if(t==="fence"){ list.push({t,x:1,y:0,lv}); list[0].x=-.5; }

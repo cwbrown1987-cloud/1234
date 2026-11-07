@@ -52,7 +52,7 @@ const th = () => S.buildings.find(b=>b.t==="clubhouse").lv;
 const built = b => !(b.busy && b.busy.kind==="build");
 const countOf = t => S.buildings.filter(b=>b.t===t).length;
 const sheds = () => S.buildings.filter(b=>b.t==="shed").length;
-const busyBuilders = () => S.buildings.filter(b=>b.busy&&b.busy.total>0).length + Object.values(S.heroes).filter(h=>h.busy).length;
+const busyBuilders = () => S.buildings.filter(b=>b.busy&&b.busy.total>0).length + Object.values(S.heroes).filter(h=>h.busy).length + S.obstacles.filter(o=>o.busy).length;
 const freeBuilder = () => busyBuilders() < sheds();
 function capOf(res){
   let c=0; for(const b of S.buildings){ if(!built(b)) continue;
@@ -121,9 +121,16 @@ function startUpgrade(b){
 // Speed-ups are pricey, like Clash gems: about 2 votes a minute, more for long jobs
 const speedCost = endMs => { const m=(endMs-Date.now())/60000; return Math.max(2, Math.ceil(2*m+Math.pow(Math.max(0,m),1.15)*.25)); };
 function speedUp(b){ const c=speedCost(b.busy.end); if(!pay("medals",c)) return toast("Not enough Brownlow votes 🏅"); b.busy.end=Date.now(); processTimers(); refreshUI(); }
+// Like Clash: clearing needs a free groundskeeper and takes a few seconds.
 function removeObstacle(o){
-  const d=obsInfo(o), s=o.s||1;
+  const d=obsInfo(o);
+  if(o.busy) return;
+  if(!freeBuilder()) return toast("All groundskeepers are busy");
   if(!pay(d.res,d.cost)) return toast(`Clearing costs ${fmt(d.cost)} ${resIcon(d.res)}`);
+  o.busy={end:Date.now()+d.time*1000,total:d.time}; sfx("tap"); selected=null; save(); refreshUI();
+}
+function obstacleCleared(o){
+  const d=obsInfo(o), s=o.s||1;
   S.obstacles=S.obstacles.filter(x=>x!==o); const [lo,hi]=d.votes, m=lo+Math.floor(Math.random()*(hi-lo+1)); S.medals+=m;
   if(typeof addXP==="function") addXP(s*2);
   floatText(o.x+s/2,o.y+s/2,m?`+${m} 🏅`:"Cleared!"); sfx("collect"); selected=null; save(); refreshUI();
@@ -246,6 +253,7 @@ const tasksReady = () => S.daily&&S.daily.tasks.filter(t=>t.n>=t.goal&&!t.claime
 function processTimers(){
   if(S&&S.tut==="done") growObstacles();
   const now=Date.now();
+  for(const o of [...S.obstacles]) if(o.busy&&o.busy.end<=now) obstacleCleared(o);
   for(const b of S.buildings) if(b.busy && b.busy.end<=now){
     if(b.busy.kind==="up"){ b.lv++; toast(`${BLD[b.t].name} upgraded to level ${b.lv}!`); } else toast(`${BLD[b.t].name} finished!`);
     addXP(xpForSeconds(b.busy.total||1));

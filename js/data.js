@@ -41,18 +41,18 @@ const HEROES = {
   rleg:{building:"herohall", hhLv:3, th:8, title:"Ruck Legend", name:c=>heroPlayer(c,"rleg"), pos:()=>"rleg"},
 };
 // Obstacles, like Clash: small and big trees, bushes, stumps and rocks. Trees cost 💧 to clear, rocks cost 🥧 (Clash: elixir / gold).
-// A new one grows every 8 hours (up to OBSTACLE_MAX). Clearing can drop a few Brownlow votes.
+// Clearing takes a groundskeeper for a few seconds. A new one grows every 8 hours (up to OBSTACLE_MAX). Clearing can drop a few Brownlow votes.
 const OBSTACLES = {
-  bush:   {name:"Wattle Bush",   s:1, res:"drink", cost:80,  w:5, votes:[0,1]},
-  stump:  {name:"Old Stump",     s:2, res:"drink", cost:150, w:2, votes:[0,2]},
-  tree:   {name:"Gum Tree",      s:2, res:"drink", cost:200, w:5, votes:[0,2]},
-  bigtree:{name:"River Red Gum", s:3, res:"drink", cost:450, w:2, votes:[1,4]},
-  rock:   {name:"Rock",          s:2, res:"pies",  cost:200, w:4, votes:[0,2]},
-  bigrock:{name:"Boulder",       s:3, res:"pies",  cost:450, w:2, votes:[1,4]},
+  bush:   {name:"Wattle Bush",   s:1, res:"drink", cost:80, time:10,  w:5, votes:[0,1]},
+  stump:  {name:"Old Stump",     s:2, res:"drink", cost:150, time:15, w:2, votes:[0,2]},
+  tree:   {name:"Gum Tree",      s:2, res:"drink", cost:200, time:15, w:5, votes:[0,2]},
+  bigtree:{name:"River Red Gum", s:3, res:"drink", cost:450, time:30, w:2, votes:[1,4]},
+  rock:   {name:"Rock",          s:2, res:"pies",  cost:200, time:20, w:4, votes:[0,2]},
+  bigrock:{name:"Boulder",       s:3, res:"pies",  cost:450, time:30, w:2, votes:[1,4]},
 };
 const OBSTACLE_MAX = 30, OBSTACLE_EVERY = 8*3600e3;
 // Older saves have little 1x1 trees/bushes/rocks: treat them as the small versions.
-const obsInfo = o => o.s ? OBSTACLES[o.k] : {...OBSTACLES[o.k==="rock"?"rock":o.k==="bush"?"bush":"tree"], name:o.k==="bush"?"Wattle Bush":o.k==="rock"?"Small Rock":"Young Gum", cost:100, votes:[0,1]};
+const obsInfo = o => o.s ? OBSTACLES[o.k] : {...OBSTACLES[o.k==="rock"?"rock":o.k==="bush"?"bush":"tree"], name:o.k==="bush"?"Wattle Bush":o.k==="rock"?"Small Rock":"Young Gum", cost:100, time:10, votes:[0,1]};
 const HERO_SLOTS = 4; // heroes you can take into one match (Clash's Hero Hall)
 // The extra heroes are real players from the 2026 season: most disposals, most goals, most hit-outs (not the captain).
 const heroPlayerCache = {};

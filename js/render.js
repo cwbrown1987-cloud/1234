@@ -411,6 +411,7 @@ function drawObstacle(o){
   const g=ctx.createRadialGradient(cx,cy,0,cx,cy,rx);
   g.addColorStop(0,"#1c3a0c55"); g.addColorStop(.75,"#1c3a0c22"); g.addColorStop(1,"#1c3a0c00");
   ctx.save(); ctx.translate(cx,cy); ctx.scale(1,ry/rx); ctx.translate(-cx,-cy); ctx.fillStyle=g; ctx.beginPath(); ctx.arc(cx,cy,rx,0,7); ctx.fill(); ctx.restore();
+  if(o.busy){ ctx.save(); ctx.globalAlpha=.75; } // being cleared: faded, with a progress bar on top
   const items = o.s ? OBS_LAYOUT[o.k] : [[o.k,.5,.55,o.k==="tree"?.85:o.k==="bush"?.8:.9]];
   for(const [k,dx,dy,sc] of items){
     const [x,y]=P(o.x+dx,o.y+dy), z=sc*(.94+v*.12), kk=TW*.5*z;
@@ -419,6 +420,8 @@ function drawObstacle(o){
     else if(k==="pebble") drawPebble(x,y,kk);
     else drawDeco({x:o.x+dx,y:o.y+dy,k,s:z,h:v});
   }
+  if(o.busy){ ctx.restore(); const left=Math.max(0,(o.busy.end-Date.now())/1000), [bx,by]=P(o.x+s/2,o.y+s/2,s+1.2);
+    bar(bx,by,1-left/(o.busy.total||1),"#5fd16b",TW*1.2); txt("🪓 "+fmtTime(left),bx,by-TH*.45,TH*.55); }
 }
 // Wattle bush: round leafy clumps with little yellow flowers
 function drawBush(x,y,k,seed){

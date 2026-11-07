@@ -96,6 +96,7 @@ function drawBuilding(b, club, list, opts={}){
   if(b.hp!==undefined && b.hp<=0) return rubble(x,y,s);
   if(d.trap){ if(opts.hideTraps && !b.sprung) return; drawTrap(b); return; }
   const isNew = b.busy && b.busy.kind==="build";
+  if(opts.selected) selectGlow(x,y,s);
   if(b.t!=="fence"){
     if(!isNew) shadow(x+.3,y+.3,s-.6,s-.6);
     if(isNew || !artSprites.has(b.t)) pad(x,y,s);
@@ -282,7 +283,6 @@ function drawBuilding(b, club, list, opts={}){
     case "fence": drawFence(b,club,list,lv); top=1.6; break;
   }
   if(b.busy) scaffold(b, s);
-  if(opts.selected) selectRing(x,y,s);
   if(b.hp!==undefined && b.hp<b.max) bar(...P(x+s/2,y+s/2,top),b.hp/b.max,b.hp/b.max>.5?"#5fd16b":"#e8503a");
   if(opts.collect && opts.collect>=1){ const [cx,cy]=P(x+s/2,y+s/2,top+1.2+Math.sin(performance.now()/300)*.2); bubble(cx,cy,BLD[b.t].makes==="pies"?"🥧":"💧"); }
 }
@@ -313,7 +313,15 @@ function scaffold(b,s){
   bar(cx,cy,1-left/tot,"#5fd16b",TW*1.6);
   txt(fmtTime(left),cx,cy-TH*.45,TH*.55);
 }
-function selectRing(x,y,s){ const t=(Math.sin(performance.now()/200)+1)/2; ctx.save(); ctx.globalAlpha=.5+t*.5; poly([P(x-.1,y-.1),P(x+s+.1,y-.1),P(x+s+.1,y+s+.1),P(x-.1,y+s+.1)],null,"#fff",Math.max(2,TW*.06)); ctx.restore(); }
+// Selected building/obstacle: a soft green glow on the ground underneath it (never drawn over the art)
+function selectGlow(x,y,s){
+  const t=(Math.sin(performance.now()/260)+1)/2, m=.18, pts=[P(x-m,y-m),P(x+s+m,y-m),P(x+s+m,y+s+m),P(x-m,y+s+m)];
+  ctx.save();
+  ctx.globalAlpha=.22+t*.12; poly(pts,"#7dff6a",null);
+  ctx.globalAlpha=.55+t*.3; ctx.shadowColor="#6dff5a"; ctx.shadowBlur=TW*.25; poly(pts,null,"#a8ff8f",Math.max(2,TW*.045));
+  ctx.restore();
+}
+function selectRing(x,y,s){ selectGlow(x,y,s); }
 function bubble(x,y,ic){ ctx.lineWidth=2; ctx.strokeStyle=OUT; ctx.beginPath(); ctx.arc(x,y,TW*.32,0,7); ctx.fillStyle="#fff"; ctx.fill(); ctx.stroke(); txt(ic,x,y+1,TW*.32); }
 function fmtTime(s){ s=Math.ceil(s); if(s<60) return s+"s"; if(s<3600) return Math.floor(s/60)+"m "+(s%60?s%60+"s":""); return Math.floor(s/3600)+"h "+Math.floor(s%3600/60)+"m"; }
 
@@ -365,7 +373,7 @@ function makeDeco(){
   for(let i=-10;i<N+10;i++) for(let j=-10;j<N+10;j++){
     if(i>=-2&&j>=-2&&i<=N+2&&j<=N+2) continue; // clear apron so border trees never hide the ground
     if(i>=-5&&j>=-5&&i<=N+1&&j<=N+1&&(i<0||j<0)) continue;
-    if(r()<(i<-2||j<-2||i>N+2||j>N+2?.28:.09)) deco.push({x:i+.2+r()*.6,y:j+.2+r()*.6,k:r()<.72?"tree":r()<.6?"bush":"rock",s:.8+r()*.5,h:r()});
+    if(r()<(i<-2||j<-2||i>N+2||j>N+2?.28:.09)) deco.push({x:i+.2+r()*.6,y:j+.2+r()*.6,k:r()<.72?"tree":r()<.6?"bush":"rock",s:.7+r()*.3,h:r()});
   }
   for(let n=0;n<320;n++) tufts.push([r()*N,r()*N]);
   patches=[]; for(let n=0;n<26;n++) patches.push([r()*N,r()*N,1+r()*2.5,r()<.5]);
@@ -373,6 +381,7 @@ function makeDeco(){
 function drawDeco(t,ox=0,oy=0){
   const [x,y]=P(t.x+ox,t.y+oy), k=TW*.5*(t.s||1);
   if(x<-k*2||x>W+k*2||y<-k*4||y>H+k) return;
+  if(t.inGround){ ctx.save(); ctx.globalAlpha=.28; ctx.fillStyle="#14300a"; ctx.beginPath(); ctx.ellipse(x,y+TH*.05,TW*(t.k==="rock"?.34:.42),TH*(t.k==="rock"?.3:.36),0,0,7); ctx.fill(); ctx.restore(); }
   if(drawSceneryArt(t,x,y,k)) return;
   ctx.fillStyle="#0003"; ctx.beginPath(); ctx.ellipse(x+k*.25,y,k*.75,k*.32,0,0,7); ctx.fill();
   ctx.strokeStyle=OUT;

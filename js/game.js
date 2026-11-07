@@ -6,22 +6,21 @@ let selected = null;
 let placing = null;       // {t,x,y, moving:b}
 let floaters = [];
 
+// New clubs start like a new Clash village: just the Clubhouse, one groundskeeper and a few obstacles.
+// Everything else gets built in the walkthrough (or by the player if they skip it).
 function newGame(club){
   const c=C0-2;
-  const B=(t,x,y)=>({id:0,t,x,y,lv:1,busy:null,store:t==="pieshop"||t==="drinktap"?100:0});
-  const s={v:3, club, pies:1500, drink:1500, medals:250, trophies:0, nextId:100,
-    buildings:[B("clubhouse",c,c),B("pieshop",c-5,c-4),B("drinktap",c+6,c-4),B("piewarmer",c-4,c+1),B("esky",c+5,c+1),
-      B("oval",c-5,c+6),B("bench",c+1,c+7),B("siren",c+6,c+5),B("shed",c-8,c),B("shed",c+10,c)],
-    obstacles:[], army:{rover:8,forward:4}, queue:[], trainAt:Date.now(), spells:{}, squeue:[], spellAt:Date.now(),
+  const B=(t,x,y)=>({id:0,t,x,y,lv:1,busy:null,store:0});
+  const s={v:3, club, pies:1000, drink:1000, medals:250, trophies:0, nextId:100,
+    buildings:[B("clubhouse",c,c),B("shed",c+6,c-3)],
+    obstacles:[], army:{}, queue:[], trainAt:Date.now(), spells:{}, squeue:[], spellAt:Date.now(),
     unitLv:{}, research:null, heroes:{captain:{lv:1,busy:null},coach:{lv:1,busy:null}},
-    season:Array(18).fill(0), cards:{}, team:[], packs:{silver:1}, daily:null, raids:[], nextRaid:Date.now()+8*60000, shield:0,
+    season:null, cards:{}, team:[], packs:{}, daily:null, raids:[], nextRaid:Date.now()+20*60000, shield:0,
     sound:true, last:Date.now()};
-  for(let i=c-1;i<=c+4;i++) for(const j of [c-1,c+4]) s.buildings.push(B("fence",i,j));
-  for(let j=c;j<=c+3;j++) for(const i of [c-1,c+4]) s.buildings.push(B("fence",i,j));
   s.buildings.forEach(b=>b.id=s.nextId++);
   const r=rng(club*99+7);
-  for(let n=0;n<18;n++){ const x=r()*N|0, y=r()*N|0, k=r()<.6?"tree":r()<.6?"bush":"rock"; s.obstacles.push({id:s.nextId++,x,y,k}); }
-  S=fixup(s); S.obstacles=S.obstacles.filter(o=>!occupiedHome(o.x-1,o.y-1,3,o));
+  for(let n=0;n<26;n++){ const x=1+(r()*(N-2)|0), y=1+(r()*(N-2)|0), k=r()<.55?"tree":r()<.6?"bush":"rock"; s.obstacles.push({id:s.nextId++,x,y,k}); }
+  S=fixup(s); S.obstacles=S.obstacles.filter(o=>!occupiedHome(o.x-1,o.y-1,3,o)&&Math.max(Math.abs(o.x-C0),Math.abs(o.y-C0))>4);
   save();
 }
 // Fill in anything missing (older saves) so every field exists.
@@ -258,7 +257,8 @@ function renderHome(){
   const club=myClub(), list=S.buildings, ents=[];
   const heroes={captain:heroReady("captain")?club:null, coach:heroReady("coach")?club:null, busy:{captain:!!S.heroes.captain.busy,coach:!!S.heroes.coach.busy}};
   for(const t of deco) ents.push({k:t.x+t.y,f:()=>drawDeco(t)});
-  for(const o of S.obstacles) ents.push({k:o.x+o.y+1,f:()=>{ drawDeco({x:o.x+.5,y:o.y+.6,k:o.k,s:o.k==="tree"?.55:.65,h:o.id%2?.2:.8}); if(selected===o) selectRing(o.x,o.y,1); }});
+  for(const o of S.obstacles) ents.push({k:o.x+o.y+1,f:()=>{ if(selected===o) selectGlow(o.x,o.y,1);
+    const v=(o.id*37%10)/10; drawDeco({x:o.x+.5,y:o.y+.55,k:o.k,s:(o.k==="tree"?.78:o.k==="bush"?.62:.85)*(.92+v*.16),h:v,inGround:true}); }});
   const movingB = placing&&placing.moving;
   for(const b of list){ if(b===movingB) continue; const d=BLD[b.t];
     ents.push({k:b.x+b.y+d.size,f:()=>drawBuilding(b,club,list,{selected:selected===b, fill:fillOf(b), heroes, collect:d.makes&&!b.busy&&b.store>=Math.max(1,d.cap[b.lv-1]*.1)?b.store:0})}); }

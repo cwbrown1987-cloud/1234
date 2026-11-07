@@ -163,16 +163,17 @@ function openShop(tab){
     const d=BLD[t], st=shopStatus(t);
     const it=document.createElement("div"); it.className="item"+(st.ok?"":" off"); it.dataset.t=t;
     it.append(thumb(t,myClub()));
-    it.insertAdjacentHTML("beforeend",`<div class="nm">${d.name}</div><div class="meta">Built ${st.have}/${st.lim||MAXC[t][th()-1]}${d.time[0]?" · ⏱ "+fmtTime(d.time[0]):""}</div>`+
+    it.insertAdjacentHTML("beforeend",`<button class="ibtn" aria-label="What is the ${d.name}?">i</button><div class="nm">${d.name}</div><div class="clash">(${CLASH_NAME[t]})</div><div class="meta">Built ${st.have}/${st.lim||MAXC[t][th()-1]}${d.time[0]?" · ⏱ "+fmtTime(d.time[0]):""}</div>`+
       (st.ok?`<div class="cost ${st.afford?"":"bad"}">${fmt(st.cost)} ${resIcon(st.res)}</div>`:`<div class="cost bad">${st.why}</div>`));
     it.onclick=()=>{ if(!st.ok) return toast(st.why); closeModal(); startPlacing(t); };
+    it.querySelector(".ibtn").onclick=e=>{ e.stopPropagation(); shopInfo(t); };
     g.append(it);
   }
 }
 function shopDeals(g){
   for(const [k,p] of Object.entries(PACKS)){
     const it=document.createElement("div"); it.className="item";
-    it.innerHTML=`<div class="pack" style="--pc:${p.col}">🃏<b>${p.n}</b></div><div class="nm">${p.name}</div><div class="meta">${p.n} player cards${p.guarantee?` · 1 ${RARITY[p.guarantee].name}+`:""}</div><div class="cost ${S.medals>=p.cost?"":"bad"}">${p.cost} 🏅</div>`;
+    it.innerHTML=`<img class="packimg" src="${packArt(k)}" alt=""><div class="nm">${p.name}</div><div class="meta">${p.n} player cards${p.guarantee?` · 1 ${RARITY[p.guarantee].name}+`:""}</div><div class="cost ${S.medals>=p.cost?"":"bad"}">${p.cost} 🏅</div>`;
     it.onclick=()=>{ if(!pay("medals",p.cost)) return toast("Not enough Brownlow votes 🏅"); S.packs[k]=(S.packs[k]||0)+1; save(); openPackFlow(k); };
     g.append(it);
   }
@@ -272,7 +273,7 @@ function openCards(tab){
   if(cardTab==="Packs"){
     h+=`<div class="grid">`;
     for(const [k,p] of Object.entries(PACKS)){ const n=S.packs[k]||0;
-      h+=`<div class="item ${n?"":"off"}" data-pack="${k}"><div class="pack" style="--pc:${p.col}">🃏<b>${p.n}</b></div><div class="nm">${p.name}</div><div class="meta">You have ${n}</div><div class="cost">${n?"Open":"Win matches or visit the shop"}</div></div>`; }
+      h+=`<div class="item ${n?"":"off"}" data-pack="${k}"><img class="packimg" src="${packArt(k)}" alt=""><div class="nm">${p.name}</div><div class="meta">You have ${n}</div><div class="cost">${n?"Open":"Win matches or visit the shop"}</div></div>`; }
     h+=`</div>`;
   }
   modal(h); bindTabs(openCards); tut("cards"); tut("tab-"+cardTab);
@@ -359,7 +360,7 @@ function showResult(r){
     ${r.season&&r.season.note?`<p class="note">${r.season.note}</p>`:""}
     <div class="stat"><span>Pies</span><b>+${fmt(r.got.pies)} 🥧</b></div><div class="stat"><span>Drink</span><b>+${fmt(r.got.drink)} 💧</b></div>
     <div class="stat"><span>Trophies</span><b>${r.tro>=0?"+":""}${r.tro} 🏆</b></div>${r.medals?`<div class="stat"><span>Win bonus</span><b>+${r.medals} 🏅</b></div>`:""}
-    ${r.pack?`<div class="stat"><span>Reward</span><b>${PACKS[r.pack].name} 🃏</b></div>`:""}
+    ${r.pack?`<div class="stat"><span>Reward</span><b><img class="packmini" src="${packArt(r.pack)}" alt=""> ${PACKS[r.pack].name}</b></div>`:""}
     ${r.full?`<p>Some loot didn't fit. Build more storage!</p>`:""}<br>
     ${r.pack?`<button class="btn gold" id="openNow">Open Pack</button> `:""}<button class="btn green" id="goHome">Return Home</button></div>`,{noClose:true});
   $("goHome").onclick=()=>{ closeModal(); leaveBattle(); tut("home"); };
@@ -395,6 +396,7 @@ $("btnCards").onclick=()=>openCards();
 $("btnTasks").onclick=openTasks;
 $("btnLog").onclick=openLog;
 $("btnSocial").onclick=()=>openSocial();
+$("cardsIco").src=cardsButtonIcon();
 $("bNext").onclick=()=>nextOpponent();
 $("placeYes").onclick=confirmPlace;
 $("placeNo").onclick=()=>{ placing=null; refreshUI(); };
@@ -454,4 +456,63 @@ function homeTap(gx,gy){
   if(h&&BLD[h.t]&&BLD[h.t].makes&&!h.busy&&h.store>=1&&selected!==h){ collect(h); }
   else if(h) sfx("tap",.3);
   selected = h===selected?null:h; refreshUI();
+}
+
+// ---------- card pack artwork: a foil footy-card pack in bronze, silver or gold ----------
+const PACK_FOIL = {bronze:["#f3c08a","#b86a2c","#6e3a14"], silver:["#ffffff","#b9c4cf","#5d6875"], gold:["#fff3b0","#f2b51f","#8a5a06"]};
+function packArt(kind, W=180, H=240){
+  const key="pack"+kind+W; if(iconCache[key]) return iconCache[key];
+  const c=document.createElement("canvas"); c.width=W; c.height=H; const g=c.getContext("2d"), P=PACKS[kind], [hi,mid,lo]=PACK_FOIL[kind];
+  const crimp=y=>{ for(let x=0;x<=W;x+=W/18) g.lineTo(x,y+((x/(W/18))%2?6:0)); };
+  // pouch with crimped (zig-zag) top and bottom seals
+  g.beginPath(); g.moveTo(0,10); crimp(4); g.lineTo(W,H-10); for(let x=W;x>=0;x-=W/18) g.lineTo(x,H-4-((x/(W/18))%2?6:0)); g.closePath();
+  const foil=g.createLinearGradient(0,0,W,H); foil.addColorStop(0,hi); foil.addColorStop(.35,mid); foil.addColorStop(.55,hi); foil.addColorStop(.75,mid); foil.addColorStop(1,lo);
+  g.fillStyle=foil; g.fill(); g.lineWidth=4; g.strokeStyle="#1b1206"; g.stroke();
+  g.save(); g.clip();
+  // seal bands
+  g.fillStyle="#0000002e"; g.fillRect(0,0,W,22); g.fillRect(0,H-22,W,22);
+  for(let x=4;x<W;x+=6){ g.fillStyle="#ffffff30"; g.fillRect(x,3,2,16); g.fillRect(x,H-19,2,16); }
+  // diagonal shine
+  g.globalAlpha=.35; g.fillStyle="#fff"; g.beginPath(); g.moveTo(W*.15,0); g.lineTo(W*.32,0); g.lineTo(W*.02,H); g.lineTo(-W*.15,H); g.fill();
+  g.globalAlpha=.18; g.beginPath(); g.moveTo(W*.55,0); g.lineTo(W*.62,0); g.lineTo(W*.32,H); g.lineTo(W*.25,H); g.fill(); g.globalAlpha=1;
+  // stadium-lights burst behind the footy
+  g.save(); g.translate(W/2,H*.47); g.globalAlpha=.28; g.fillStyle="#fff";
+  for(let i=0;i<14;i++){ g.rotate(Math.PI/7); g.beginPath(); g.moveTo(0,0); g.lineTo(W*.9,-10); g.lineTo(W*.9,10); g.fill(); } g.restore();
+  g.restore();
+  // big Sherrin in the middle
+  if(!drawArtIcon("footy",g,W/2,H*.62,W*.78,H*.36)){ const sv={ctx}; ctx=g; footy(W/2,H*.47,W*.28,-.5); ctx=sv.ctx; }
+  // title
+  const word=(t,y,sz,fill)=>{ g.font=`${sz}px "Lilita One","Trebuchet MS",sans-serif`; g.textAlign="center"; g.textBaseline="middle"; g.lineJoin="round"; g.lineWidth=sz*.28; g.strokeStyle="#1b1206"; g.strokeText(t,W/2,y); g.fillStyle=fill; g.fillText(t,W/2,y); };
+  word("FOOTY",H*.17,W*.2,"#fff");
+  word("FORTRESS",H*.27,W*.15,"#ffd34d");
+  // ribbon with pack name and card count
+  g.fillStyle="#1b1206"; g.beginPath(); g.roundRect(W*.08,H*.66,W*.84,H*.19,10); g.fill();
+  g.fillStyle=kind==="gold"?"#c8102e":kind==="silver"?"#0b2a6f":"#5a2a0c"; g.beginPath(); g.roundRect(W*.1,H*.67,W*.8,H*.17,8); g.fill();
+  word(P.name.toUpperCase(),H*.725,W*.105,"#fff");
+  g.font=`${W*.085}px "Lilita One","Trebuchet MS",sans-serif`; g.textAlign="center"; g.textBaseline="middle"; g.fillStyle="#ffe07a"; g.fillText(`${P.n} PLAYER CARDS`,W/2,H*.795);
+  if(kind==="gold"){ for(const [x,y] of [[.18,.42],[.84,.36],[.8,.6]]){ g.fillStyle="#fff"; g.beginPath(); for(let i=0;i<8;i++){ const r=i%2?3:10, a=i*Math.PI/4; g.lineTo(W*x+Math.cos(a)*r,H*y+Math.sin(a)*r); } g.fill(); } }
+  return iconCache[key]=c.toDataURL();
+}
+// side button: a little fan of player cards instead of the joker emoji
+function cardsButtonIcon(){
+  const c=document.createElement("canvas"); c.width=c.height=64; const g=c.getContext("2d");
+  const card=(rot,col,stripe)=>{ g.save(); g.translate(32,40); g.rotate(rot); g.fillStyle="#1b1206"; g.beginPath(); g.roundRect(-13,-24,26,36,4); g.fill(); g.fillStyle=col; g.beginPath(); g.roundRect(-11,-22,22,32,3); g.fill(); g.fillStyle=stripe; g.fillRect(-3,-22,6,32); g.restore(); };
+  card(-.35,"#c8102e","#111"); card(.35,"#0b2a6f","#fff"); card(0,"#f6c343","#111");
+  return c.toDataURL();
+}
+
+// Shop "i": what a building is and does, before you buy it
+function shopInfo(t){
+  const d=BLD[t], rows=[];
+  if(d.makes) rows.push(["Makes",`${d.rate[0]} ${resIcon(d.makes)} a minute (level 1)`]);
+  if(d.stores) rows.push(["Holds",`${fmt(d.cap[0])} ${resIcon(d.stores)} (level 1)`]);
+  if(d.dps) rows.push(["Damage",`${d.dps[0]} a second`],["Range",`${d.minr?d.minr+"–":""}${d.range} tiles`],["Hits",[d.ground&&"Ground",d.air&&"Air"].filter(Boolean).join(" & ")]);
+  if(d.space) rows.push(["Squad space",d.space[0]]);
+  if(d.unlock) rows.push(["Unlocks first",(UNITS[d.unlock[0]]||SPELLS[d.unlock[0]]).name]);
+  if(d.dmg) rows.push(["Damage",d.dmg[0]]);
+  rows.push(["Size",`${d.size}×${d.size} tiles`],["Max levels",levels(t)]);
+  modal(`<div class="center"><canvas id="infoThumb" width="160" height="160" class="thumbbig"></canvas></div><h2>${d.name}</h2><p class="center clash">In Clash of Clans: ${CLASH_NAME[t]}</p><p class="center">${d.desc}</p>
+    ${rows.map(([a,v])=>`<div class="stat"><span>${a}</span><b>${v}</b></div>`).join("")}<br><div class="center"><button class="btn" id="infoBack">Back to Shop</button></div>`);
+  const th=thumb(t,myClub()); $("infoThumb").getContext("2d").drawImage(th,0,0);
+  $("infoBack").onclick=()=>openShop();
 }

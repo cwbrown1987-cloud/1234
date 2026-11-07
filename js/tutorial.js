@@ -41,30 +41,58 @@ function showTutorialChoice(){
 
 // ---------- guided walkthrough ----------
 const bCentre = t => () => { const b=S.buildings.find(x=>x.t===t); if(!b) return null; const s=BLD[b.t].size; return [b.x+s/2,b.y+s/2,.4]; };
+// Each new building is finished for free during the walkthrough, like Clash's first builds.
+const finishNew = t => () => { const b=[...S.buildings].reverse().find(x=>x.t===t&&x.busy); if(b){ b.busy.end=Date.now(); processTimers(); } };
 const TUT = [
-  {say:"G'day! I'm your Head Coach. This is your home ground. Let's get you ready for match day.", next:true},
-  {say:"Your Pie Shop bakes pies 🥧. Tap it to collect them.", world:bCentre("pieshop"), wait:"collect-pies", prep:()=>{ const b=S.buildings.find(x=>x.t==="pieshop"); b.store=Math.max(b.store,120); }},
-  {say:"Nice! The Drink Tap brews sports drink 💧. Tap it too.", world:bCentre("drinktap"), wait:"collect-drink", prep:()=>{ const b=S.buildings.find(x=>x.t==="drinktap"); b.store=Math.max(b.store,120); }},
-  {say:"Pies pay for most buildings. Sports drink pays for players. Let's build a defence. Tap Shop.", el:"#btnShop", wait:"shop"},
+  {say:"G'day! I'm your Head Coach. This is your ground. It's a bit empty, so let's build it up together.", next:true},
+  // 1. a defence first, like Clash's cannon
+  {say:"Every ground needs a defence. Tap Shop.", el:"#btnShop", wait:"shop"},
   {say:"Tap the Defence tab.", el:'[data-tab="Defence"]', wait:"tab-Defence"},
-  {say:"Tap the Goal Tower. It kicks footies at attackers.", el:'[data-t="goalpost"]', wait:"placing"},
-  {say:"Drag it anywhere you like, then tap ✔ to build it.", el:"#placeYes", wait:"placed"},
-  {say:"Building takes time, and each Groundskeeper 👷 works on one job at a time. I'll finish this one for free!", next:true, prep:()=>{ const b=[...S.buildings].reverse().find(x=>x.t==="goalpost"&&x.busy); if(b){ b.busy.end=Date.now(); processTimers(); } }},
-  {say:"Now your squad. Tap Squad.", el:"#btnSquad", wait:"squad"},
-  {say:"Tap Rover 3 times to train some players. They cost 💧 and take a few seconds each.", el:'[data-u="rover"]', wait:"train", count:3},
-  {say:"Trained players wait on your Interchange Bench. Close this window, then tap Match.", el:"#btnAttack", wait:"match"},
+  {say:"Tap the Siren Cannon. It blasts attackers on the ground.", el:'[data-t="siren"]', wait:"placing"},
+  {say:"Drag it where you like, then tap ✔ to build it.", el:"#placeYes", wait:"placed"},
+  {say:"Building takes time and each Groundskeeper 👷 works on one job at a time. I'll finish this one for free!", next:true, prep:finishNew("siren")},
+  // 2. income: pies and drink
+  {say:"Now let's make some pies 🥧, which pay for most buildings. Tap Shop.", el:"#btnShop", wait:"shop"},
+  {say:"Tap the Resources tab.", el:'[data-tab="Resources"]', wait:"tab-Resources"},
+  {say:"Tap the Pie Shop.", el:'[data-t="pieshop"]', wait:"placing"},
+  {say:"Place it and tap ✔.", el:"#placeYes", wait:"placed"},
+  {say:"Done! Your Pie Shop has already baked a batch. Tap it to collect.", world:bCentre("pieshop"), wait:"collect-pies", prep:()=>{ finishNew("pieshop")(); const b=S.buildings.find(x=>x.t==="pieshop"); if(b) b.store=Math.max(b.store,120); }},
+  {say:"Sports drink 💧 pays for players. Tap Shop and build a Drink Tap.", el:"#btnShop", wait:"shop"},
+  {say:"Tap the Resources tab.", el:'[data-tab="Resources"]', wait:"tab-Resources"},
+  {say:"Tap the Drink Tap.", el:'[data-t="drinktap"]', wait:"placing"},
+  {say:"Place it and tap ✔.", el:"#placeYes", wait:"placed"},
+  {say:"Tap your Drink Tap to collect.", world:bCentre("drinktap"), wait:"collect-drink", prep:()=>{ finishNew("drinktap")(); const b=S.buildings.find(x=>x.t==="drinktap"); if(b) b.store=Math.max(b.store,120); }},
+  // 3. a second groundskeeper, bought with Brownlow votes (like Clash's second builder with gems)
+  {say:"One groundskeeper is slow going. Hire a second with your Brownlow votes 🏅. Tap Shop.", el:"#btnShop", wait:"shop"},
+  {say:"Tap the Resources tab.", el:'[data-tab="Resources"]', wait:"tab-Resources"},
+  {say:"Tap the Groundskeeper Shed.", el:'[data-t="shed"]', wait:"placing"},
+  {say:"Place it and tap ✔. Now two jobs can run at once.", el:"#placeYes", wait:"placed"},
+  // 4. a squad: training oval + bench
+  {say:"Time to build a squad. Tap Shop.", el:"#btnShop", wait:"shop"},
+  {say:"Tap the Squad tab.", el:'[data-tab="Squad"]', wait:"tab-Squad"},
+  {say:"Tap the Training Oval. It's where players train.", el:'[data-t="oval"]', wait:"placing"},
+  {say:"Place it and tap ✔.", el:"#placeYes", wait:"placed"},
+  {say:"Players need somewhere to wait for match day. Tap Shop for an Interchange Bench.", el:"#btnShop", wait:"shop", prep:finishNew("oval")},
+  {say:"Tap the Squad tab.", el:'[data-tab="Squad"]', wait:"tab-Squad"},
+  {say:"Tap the Interchange Bench.", el:'[data-t="bench"]', wait:"placing"},
+  {say:"Place it and tap ✔.", el:"#placeYes", wait:"placed"},
+  {say:"Now train some players. Tap Squad.", el:"#btnSquad", wait:"squad", prep:finishNew("bench")},
+  {say:"Tap Rover 3 times. Players cost 💧 and take a few seconds each.", el:'[data-u="rover"]', wait:"train", count:3},
+  // 5. first match
+  {say:"Close this window, then tap Match.", el:"#btnAttack", wait:"match", prep:()=>{ for(const u of S.queue.splice(0)) S.army[u]=(S.army[u]||0)+1; S.army.rover=Math.max(S.army.rover||0,8); uiDirty=true; }},
   {say:"The Season is 17 rounds against every other club. Win for 4 premiership points, finish top 8 for finals. Tap Play for Round 1.", el:'[data-r="0"]', wait:"battle"},
   {say:"This is their ground. Tap the grass outside the red zone to send a player in. Hold your finger down to send a stream.", world:deploySpot, wait:"deploy", top:true},
   {say:"It's scored like footy. Every building you knock down is a goal. They score a behind for each building still standing and each player they knock out. Outscore them by the siren! Send in the rest.", next:true, top:true},
   {say:"", wait:"battleEnd", hidden:true},
   {say:"Wins earn premiership points, trophies 🏆, loot and card packs. Tap Return Home.", el:"#goHome", wait:"home"},
+  // 6. cards
   {say:"Here's a Silver Pack on me. Tap Cards.", el:"#btnCards", wait:"cards", prep:()=>{ S.packs.silver=(S.packs.silver||0)+1; uiDirty=true; }},
   {say:"Tap the Packs tab.", el:'[data-tab="Packs"]', wait:"tab-Packs"},
   {say:"Tap your Silver Pack to open it.", el:'[data-pack="silver"]', wait:"pack"},
   {say:"Real AFL players! Tap Nice! to see your collection.", el:"#pk", wait:"cards"},
   {say:"Tap a card to put it on your Team Sheet. Each card boosts your players in that position.", el:".cgrid [data-card]", wait:"team"},
-  {say:"Close this. Two more things: 📋 Tasks give you Brownlow votes 🏅 every day, and the 🛡️ Log shows when other clubs raid your ground. You can watch the replay and get revenge.", el:"#side", next:true},
-  {say:"That's the lot! Upgrade your Clubhouse to unlock more buildings, players and your Head Coach. Here's 50 🏅 to get going. Good luck!", next:true, finish:true},
+  {say:"Close this. Next goals: build a Pie Warmer and Esky so you can hold more, then a fence and a Goal Tower. 📋 Tasks pay Brownlow votes every day, and 🛡️ Home shows when other clubs raid you.", el:"#side", next:true},
+  {say:"That's the lot! Upgrade your Clubhouse to unlock more buildings, players and your captain. Here's 50 🏅 to get going. Good luck!", next:true, finish:true},
 ];
 let tutCount=0;
 // A patch of grass just outside the map edge that's on screen, near the lower middle

@@ -36,10 +36,10 @@ function guidePic(ours){
 }
 function showClashGuide(fromChoice){
   const rows=CLASH_MAP.map(([h,list])=>`<h3>${h}</h3><div class="vguide">${list.map(([a,b])=>{ const pic=guidePic(b);
-    return `<div class="vrow"><a class="vclash" ${a.startsWith("(")||a==="Stars"?"":`href="${clashWiki(a)}" target="_blank" rel="noopener"`}>${a}${a.startsWith("(")||a==="Stars"?"":" ↗"}</a><span class="arrow">→</span>${pic?`<img src="${pic}" alt="">`:`<span class="noimg"></span>`}<span class="vours">${b}</span></div>`; }).join("")}</div>`).join("");
-  modal(`<h2>Footy Fortress for Clash players</h2><p class="center">Same game, footy style. Clash name on the left (tap ↗ to see it on the Clash wiki), ours on the right.</p>${rows}
+    return `<div class="vrow">${clashPic(a)}<a class="vclash" ${a.startsWith("(")||a==="Stars"?"":`href="${clashWiki(a)}" target="_blank" rel="noopener"`}>${a}${a.startsWith("(")||a==="Stars"?"":" ↗"}</a><span class="arrow">→</span>${pic?`<img src="${pic}" alt="">`:`<span class="noimg"></span>`}<span class="vours">${b}</span></div>`; }).join("")}</div>`).join("");
+  modal(`<h2>Footy Fortress for Clash players</h2><p class="center">Same game, footy style. Clash on the left, Footy Fortress on the right. Tap a Clash name to see it on the Clash wiki.</p>${rows}
     <h3>How it works (same as Clash today)</h3><ul class="diffs">${CLASH_DIFFS.map(d=>`<li>${d}</li>`).join("")}</ul>
-    <div class="center"><button class="btn green big" id="gotIt">${fromChoice?"Got it, let's build":"Got it"}</button></div>`);
+    ${SUPERCELL_NOTE}<div class="center"><button class="btn green big" id="gotIt">${fromChoice?"Got it, let's build":"Got it"}</button></div>`);
   $("gotIt").onclick=()=>{ closeModal(); if(fromChoice) startTutorial(); };
 }
 function showTutorialChoice(){

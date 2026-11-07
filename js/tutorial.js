@@ -1,9 +1,9 @@
 // ---------- Tutorials: a quick "Clash players" cheat sheet, and a guided walkthrough for new players ----------
 
 const CLASH_MAP = [
-  ["Resources", [["Gold","Pies 🥧"],["Elixir","Sports Drink 💧"],["Gems","Brownlow votes 🏅"]]],
+  ["Resources", [["Gold","Pies 🥧"],["Elixir","Sports Drink 💧"],["Gems","Brownlow votes 🏅"],["Shiny Ore","Strapping Tape 🩹"],["Glowy Ore","Liniment 🧴"],["Starry Ore","Premiership Silver 🏆"]]],
   ["Buildings", [["Town Hall","Clubhouse"],["Gold Mine","Pie Shop"],["Elixir Collector","Drink Tap"],["Gold Storage","Pie Warmer"],["Elixir Storage","Esky"],
-    ["Barracks","Training Oval"],["Army Camp","Interchange Bench"],["Spell Factory","Physio Room"],["Laboratory","Coaches Box"],["Builder's Hut","Groundskeeper Shed"],["Hero Hall","Captain's Locker"]]],
+    ["Barracks","Training Oval"],["Army Camp","Interchange Bench"],["Spell Factory","Physio Room"],["Laboratory","Coaches Box"],["Builder's Hut","Groundskeeper Shed"],["Blacksmith","Kit Room"],["Hero Hall","Captain's Locker"]]],
   ["Defences", [["Cannon","Siren Cannon"],["Archer Tower","Goal Tower"],["Mortar","Kick-Out Catapult"],["Air Defense","Floodlight Tower"],["Bomb","Sprinkler Trap"],["Walls","Fences"]]],
   ["Troops", [["Barbarian","Rover"],["Archer","Full-Forward"],["Giant","Ruckman"],["Goblin","Crumber"],["Wall Breaker","Shepherd"],["Minion","Seagulls"],["Balloon","Blimp"],["Healer","Trainer"]]],
   ["Spells", [["Healing","Half-time Oranges"],["Rage","Crowd Roar"],["Lightning","Umpire's Free Kick"],["Freeze","Rain Delay"],["(new)","Late Sub: drops 6 Rovers"]]],
@@ -17,6 +17,7 @@ const CLASH_DIFFS = [
   "<b>Revenge</b> always gets back at least what they took.",
   "<b>Brownlow votes 🏅</b> are your gems: rare, 500 to start, the 2nd groundskeeper costs 250, up to 6 groundskeepers.",
   "<b>Scoring is footy:</b> knock a building down for a goal, the home side gets behinds. ★ win, ★★ plus Clubhouse, ★★★ flattened.",
+  "<b>Hero gear:</b> build a Kit Room (Blacksmith) at Clubhouse 4. Each hero wears 2 pieces, upgraded with Strapping Tape, Liniment and Premiership Silver (the three ores) from the Star Bonus, wins and finals.",
   "<b>Footy extras:</b> your hero is your club's real captain, the Season is a real ladder with finals, and there's a card album of every AFL player to collect (cards don't change stats).",
   "<b>Online:</b> sign in (Settings) to attack real players and join a Cheer Squad (clan). Wars aren't in yet.",
 ];
@@ -29,6 +30,7 @@ function guidePic(ours){
   const sk=Object.keys(SPELLS).find(k=>SPELLS[k].name===name || (name.startsWith("Late Sub")&&k==="sub")); if(sk) return spellIcon(sk);
   const ico={"Pies 🥧":"icon-pies","Sports Drink 💧":"icon-drink","Brownlow votes 🏅":"icon-medals"}[ours];
   if(ico){ const c=document.createElement("canvas"); c.width=c.height=96; if(drawArtIcon(ico,c.getContext("2d"),48,92,88,88)) return c.toDataURL(); }
+  const emo=(ours.match(/(🩹|🧴|🏆)$/)||[])[1]; if(emo){ const c=document.createElement("canvas"); c.width=c.height=96; const g=c.getContext("2d"); g.font="64px serif"; g.textAlign="center"; g.textBaseline="middle"; g.fillText(emo,48,54); return c.toDataURL(); }
   if(/captain/i.test(ours)) return playerIcon("hero:captain");
   if(/Head Coach/.test(ours)) return playerIcon("hero:coach");
   if(/Season/.test(ours)) return badgeURL(myClub(),96);

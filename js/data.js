@@ -1,5 +1,5 @@
 // ---------- Game data ----------
-const VERSION = "2026.11.10";
+const VERSION = "2026.11.10.1";
 // Club names + colours. Logos: drop PNGs named <abbr>.png (e.g. coll.png) into the logos/ folder and they're used everywhere.
 // Player names checked against the 2026 trade period and retirements (lists for the 2027 season); edit freely.
 const CLUBS = [
@@ -64,6 +64,7 @@ const BLD = {
   coachbox:{name:"Coaches Box", size:3, res:"drink", hp:geo(500,1.1,7), cost:nice(geo(2500,2.2,7)), time:[60,300,1200,2400,3600,5400,7200],
     desc:"Research better skills for your players."},
   locker:{name:"Captain's Locker", size:3, res:"pies", hp:[400], cost:[3000], time:[30], desc:"Home of your captain, the star of your club."},
+  kitroom:{name:"Kit Room", size:3, res:"drink", hp:[500,560,620,680,750], cost:[10000,25000,60000,120000,250000], time:[300,1200,2400,3600,7200], desc:"Unlocks and upgrades hero gear (Clash's Blacksmith). Higher levels unlock more gear and higher gear levels."},
   office:{name:"Coach's Office", size:3, res:"pies", hp:[600], cost:[60000], time:[600], desc:"Home of your Head Coach, your second hero."},
   shed:{name:"Groundskeeper Shed", size:2, res:"medals", hp:[250], cost:[0], time:[0], desc:"Each groundskeeper can work on one building at a time."},
   goalpost:{name:"Goal Tower", size:3, res:"pies", hp:geo(380,1.12,10), cost:nice(geo(1000,2.0,10)), time:T(10),
@@ -81,21 +82,21 @@ const BLD = {
 // How many of each you can have, by clubhouse level 1..8
 const MAXC = {
   clubhouse:[1,1,1,1,1,1,1,1], pieshop:[1,2,3,4,5,6,6,7], drinktap:[1,2,3,4,5,6,6,7], piewarmer:[1,1,2,2,3,3,4,4], esky:[1,1,2,2,3,3,4,4],
-  oval:[1,1,2,2,3,3,4,4], bench:[1,1,2,2,3,3,4,4], physio:[0,0,1,1,1,1,1,1], coachbox:[0,0,1,1,1,1,1,1], locker:[0,1,1,1,1,1,1,1], office:[0,0,0,0,1,1,1,1],
+  oval:[1,1,2,2,3,3,4,4], bench:[1,1,2,2,3,3,4,4], physio:[0,0,1,1,1,1,1,1], coachbox:[0,0,1,1,1,1,1,1], locker:[0,1,1,1,1,1,1,1], office:[0,0,0,0,1,1,1,1], kitroom:[0,0,0,1,1,1,1,1],
   shed:[6,6,6,6,6,6,6,6], goalpost:[1,1,2,3,4,5,5,6], siren:[1,2,2,3,3,4,5,5], catapult:[0,0,1,1,2,2,3,3], floodlight:[0,0,0,1,2,2,3,3],
   sprinkler:[0,2,4,6,6,8,8,10], fence:[25,50,75,100,125,150,175,200],
 };
 // What each building is called in Clash of Clans (shown in the shop for players who know Clash)
 const CLASH_NAME = {clubhouse:"Town Hall", pieshop:"Gold Mine", drinktap:"Elixir Collector", piewarmer:"Gold Storage", esky:"Elixir Storage",
   oval:"Barracks", bench:"Army Camp", physio:"Spell Factory", coachbox:"Laboratory", locker:"Hero Hall", office:"Hero Hall",
-  shed:"Builder's Hut", goalpost:"Archer Tower", siren:"Cannon", catapult:"Mortar", floodlight:"Air Defense", sprinkler:"Bomb", fence:"Wall"};
+  shed:"Builder's Hut", kitroom:"Blacksmith", goalpost:"Archer Tower", siren:"Cannon", catapult:"Mortar", floodlight:"Air Defense", sprinkler:"Bomb", fence:"Wall"};
 const levels = t => BLD[t].hp.length;
 const maxLevel = (t, th) => t==="clubhouse" ? MAX_TH : t==="fence" ? Math.min(levels(t),th) : Math.min(levels(t), th+(th>=5?2:1));
 const SHED_COST = [0,250,500,1000,2000,2000]; // by sheds already owned: the 2nd costs 250 Brownlow votes, like Clash
 const SHOP_TABS = {
   "Resources":["pieshop","drinktap","piewarmer","esky","shed"],
   "Defence":["goalpost","siren","catapult","floodlight","sprinkler","fence"],
-  "Squad":["oval","bench","physio","coachbox","locker","office"],
+  "Squad":["oval","bench","physio","coachbox","locker","office","kitroom"],
   "Deals":[],
 };
 

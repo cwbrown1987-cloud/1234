@@ -52,8 +52,8 @@ function seasonResult(my,their){
       else { s.over=true; note=`You finished ${ordinal(pos)}. No finals this year.`; }
     }
   } else {
-    if(res==="W"){ if(s.finals.stage===3){ s.over=true; s.premiers=true; S.premierships++; S.medals+=40; S.prizePacks=(S.prizePacks||0)+1; note="PREMIERS! +40 🏅 and a Prize Pack"; }
-                   else { s.finals.stage++; note=`Through to the ${FINALS[s.finals.stage]}!`; } }
+    if(res==="W"){ if(s.finals.stage===3){ s.over=true; s.premiers=true; S.premierships++; S.medals+=40; if(typeof addOre==="function") addOre({silver:25}); S.prizePacks=(S.prizePacks||0)+1; note="PREMIERS! +40 🏅 and a Prize Pack"; }
+                   else { s.finals.stage++; if(typeof addOre==="function") addOre({silver:5}); note=`Through to the ${FINALS[s.finals.stage]}! +5 🏆 Premiership Silver`; } }
     else { s.over=true; note=res==="D"?"A drawn final… and you lost the replay. Season over.":`Knocked out in the ${FINALS[s.finals.stage]}.`; }
   }
   return {res, note};

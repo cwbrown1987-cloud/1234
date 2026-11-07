@@ -108,7 +108,7 @@ function spawnUnit(kind,x,y){
   const tough = !hero && UNITS[kind].card==="ruck" ? 1+b : 1, hit = !hero && UNITS[kind].card!=="ruck" ? 1+b : 1;
   const hp=Math.round(st.hp*m*tough);
   const u={id:++BT.uid,kind:hero?"hero":kind,heroKey:hero,x,y,hp,max:hp,dps:st.dps*m*hit,spd:st.spd,range:st.range,pref:st.pref||"any",ranged:!!st.ranged,air:!!st.air,splash:st.splash||0,
-    heal:(st.heal||0)*m, hero:!!hero, pos:st.pos, name:st.name, cd:.3, face:1, rage:0, shield:0, path:null, tgt:null, club:CLUBS[BT.atkClub]};
+    heal:(st.heal||0)*m, hero:!!hero, armor:hero&&st.gear?st.gear.armor:0, pos:st.pos, name:st.name, cd:.3, face:1, rage:0, shield:0, path:null, tgt:null, club:CLUBS[BT.atkClub]};
   BT.units.push(u); return u;
 }
 function pickTarget(u){
@@ -132,7 +132,7 @@ function hurt(b,dmg){
   }
 }
 const healUnit = (u,amt) => { u.hp=Math.min(u.max,u.hp+amt); };
-function damageUnit(u,dmg){ if(u.hp<=0) return; if(u.shield>0) dmg*=.5; u.hp-=dmg;
+function damageUnit(u,dmg){ if(u.hp<=0) return; if(u.shield>0) dmg*=.5; if(u.armor) dmg*=1-u.armor; u.hp-=dmg;
   if(u.hp<=0){ BT.fx.push({k:"poof",x:u.x,y:u.y,t:0,air:u.air}); if(u.hero||(UNITS[u.kind]&&UNITS[u.kind].space>=5)) BT.koBig=(BT.koBig||0)+1; else BT.koSmall=(BT.koSmall||0)+1; } }
 
 function updateUnit(u,dt){
@@ -215,14 +215,14 @@ function updateZones(dt){
 }
 function useAbility(h){
   const u=BT.heroU[h]; if(!u||u.hp<=0||BT.abilityUsed[h]) return;
-  BT.abilityUsed[h]=true; recordMove({k:"ability",v:h}); const st=BT.heroStat(h), lvm=1+.1*(st.lv-1);
+  BT.abilityUsed[h]=true; recordMove({k:"ability",v:h}); const st=BT.heroStat(h), g=st.gear||{}, lvm=(1+.1*(st.lv-1))*(1+(g.ability||0));
   floatText(u.x,u.y,st.ability+"!","#fff"); sfx("cheer");
-  if(u.pos==="mid"){ healUnit(u,u.max*.25); u.rage=8; }
+  if(u.pos==="mid"){ healUnit(u,u.max*.25*(1+(g.ability||0))); u.rage=8*(1+(g.ability||0)); }
   if(u.pos==="def"){ healUnit(u,u.max*.5); u.shield=8; }
   if(u.pos==="ruck"){ healUnit(u,u.max*.3); BT.fx.push({k:"splash",x:u.x,y:u.y,t:0,r:2.8}); shake=.3; for(const b of BT.buildings) if(b.hp>0&&!BLD[b.t].trap&&rectDist(u.x,u.y,b)<=2.8) hurt(b,260*lvm); }
   if(u.pos==="fwd"){ const ts=BT.buildings.filter(b=>b.hp>0&&counts(b)).sort((a,b)=>rectDist(u.x,u.y,a)-rectDist(u.x,u.y,b)).slice(0,3);
     ts.forEach((b,i)=>{ const [x,y]=cen(b); BT.proj.push({k:"bigfooty",x0:u.x,y0:u.y,x1:x,y1:y,t:-i*.25,dur:.7,arc:3,hit:()=>{ hurt(b,320*lvm); BT.fx.push({k:"boom",x,y,t:0,s:1.5}); }}); }); }
-  if(u.pos==="coach"){ BT.fx.push({k:"heal",x:u.x,y:u.y,t:0,r:5}); for(const o of BT.units) if(o.hp>0&&Math.hypot(o.x-u.x,o.y-u.y)<=5){ healUnit(o,o.max*.4); o.rage=Math.max(o.rage,5); } }
+  if(u.pos==="coach"){ BT.fx.push({k:"heal",x:u.x,y:u.y,t:0,r:5}); for(const o of BT.units) if(o.hp>0&&Math.hypot(o.x-u.x,o.y-u.y)<=5){ healUnit(o,o.max*Math.min(1,.4*(1+(g.heal||0)))); o.rage=Math.max(o.rage,5+(g.rage||0)); if(g.shield) o.shield=Math.max(o.shield,g.shield); } }
   uiDirty=true;
 }
 
@@ -300,7 +300,7 @@ function endBattle(){
   let medals=0, pack=null;
   const sc=scoreNow(); let season=null;
   if(BT.kind==="season"){ season=seasonResult({g:sc.a.g,b:sc.a.b},{g:sc.h.g,b:sc.h.b}); if(season.res==="W"&&Math.random()<.25){ medals=1; S.medals+=medals; } }
-  let tokens=0; if(stars>0&&!friendly){ track("win",1); tokens=WIN_TOKENS; earnTokens(tokens); addXP(stars*5); }
+  let tokens=0; if(stars>0&&!friendly){ track("win",1); tokens=WIN_TOKENS; earnTokens(tokens); addXP(stars*5); if(typeof addOre==="function") addOre({tape:15*stars*th(), lin:BT.ranked?stars:0}); }
   track("destroy",BT.destroyed);
   if(BT.revenge){ const r=S.raids.find(x=>x.id===BT.revenge); if(r) r.revenged=true; }
   S.army=Object.fromEntries(Object.entries(BT.left).filter(([,n])=>n>0));

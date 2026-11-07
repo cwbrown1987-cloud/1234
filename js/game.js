@@ -181,9 +181,10 @@ function startResearch(u){
 // ---------- heroes ----------
 const heroHome = h => S.buildings.some(b=>b.t===HEROES[h].building&&built(b));
 const heroReady = h => heroHome(h)&&!S.heroes[h].busy;
-function heroStats(h="captain", club=myClub(), lv=S.heroes[h].lv){
-  const H=HEROES[h], pos=H.pos(club), p=HERO_POS[pos], m=1+.1*(lv-1);
-  return {...p, hp:Math.round(p.hp*m), dps:Math.round(p.dps*m), name:H.name(club), pos, lv};
+function heroStats(h="captain", club, lv){
+  const own=club===undefined; club=club||myClub(); lv=lv||S.heroes[h].lv;
+  const H=HEROES[h], pos=H.pos(club), p=HERO_POS[pos], m=1+.1*(lv-1), g=own&&typeof gearFx==="function"?gearFx(h):{hp:0,dps:0,spd:0,ability:0,armor:0,heal:0,rage:0,shield:0};
+  return {...p, hp:Math.round(p.hp*m*(1+g.hp)), dps:Math.round(p.dps*m*(1+g.dps)), spd:p.spd*(1+g.spd), name:H.name(club), pos, lv, gear:g};
 }
 function upgradeHero(h){
   const hs=S.heroes[h]; if(hs.busy) return;
@@ -238,7 +239,8 @@ function addStars(n){
 function claimStarBonus(){
   const sb=S.starBonus; if(!sb||sb.stars<STAR_GOAL||Date.now()<sb.until) return null;
   const l=starBonusLoot(), got={pies:addRes("pies",l.pies), drink:addRes("drink",l.drink)};
-  sb.stars-=STAR_GOAL; sb.until=Date.now()+864e5; save(); sfx("cheer"); toast(`⭐ Star Bonus! +${fmt(got.pies)} 🥧 +${fmt(got.drink)} 💧`);
+  const ore={tape:120*th(), lin:3*th()}; if(typeof addOre==="function") addOre(ore);
+  sb.stars-=STAR_GOAL; sb.until=Date.now()+864e5; save(); sfx("cheer"); toast(`⭐ Star Bonus! +${fmt(got.pies)} 🥧 +${fmt(got.drink)} 💧 +${ore.tape} 🩹 +${ore.lin} 🧴`);
   return got;
 }
 // Magic Shield (like Clash): lose 30% or more of what could be stolen and you get 8 hours of peace

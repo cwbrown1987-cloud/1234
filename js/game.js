@@ -21,7 +21,7 @@ function newGame(club){
   s.buildings.forEach(b=>b.id=s.nextId++);
   const r=rng(club*99+7);
   for(let n=0;n<18;n++){ const x=r()*N|0, y=r()*N|0, k=r()<.6?"tree":r()<.6?"bush":"rock"; s.obstacles.push({id:s.nextId++,x,y,k}); }
-  S=fixup(s); S.obstacles=S.obstacles.filter(o=>!occupiedHome(o.x,o.y,1,o));
+  S=fixup(s); S.obstacles=S.obstacles.filter(o=>!occupiedHome(o.x-1,o.y-1,3,o));
   save();
 }
 // Fill in anything missing (older saves) so every field exists.
@@ -258,7 +258,7 @@ function renderHome(){
   const club=myClub(), list=S.buildings, ents=[];
   const heroes={captain:heroReady("captain")?club:null, coach:heroReady("coach")?club:null, busy:{captain:!!S.heroes.captain.busy,coach:!!S.heroes.coach.busy}};
   for(const t of deco) ents.push({k:t.x+t.y,f:()=>drawDeco(t)});
-  for(const o of S.obstacles) ents.push({k:o.x+o.y+1,f:()=>{ drawDeco({x:o.x+.5,y:o.y+.6,k:o.k,s:.8,h:o.id%2?.2:.8}); if(selected===o) selectRing(o.x,o.y,1); }});
+  for(const o of S.obstacles) ents.push({k:o.x+o.y+1,f:()=>{ drawDeco({x:o.x+.5,y:o.y+.6,k:o.k,s:o.k==="tree"?.55:.65,h:o.id%2?.2:.8}); if(selected===o) selectRing(o.x,o.y,1); }});
   const movingB = placing&&placing.moving;
   for(const b of list){ if(b===movingB) continue; const d=BLD[b.t];
     ents.push({k:b.x+b.y+d.size,f:()=>drawBuilding(b,club,list,{selected:selected===b, fill:fillOf(b), heroes, collect:d.makes&&!b.busy&&b.store>=Math.max(1,d.cap[b.lv-1]*.1)?b.store:0})}); }

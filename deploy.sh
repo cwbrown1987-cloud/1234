@@ -20,7 +20,7 @@ for root, _, names in os.walk('.'):
         data = open('.' + p, 'rb').read()
         if p.endswith(('.html', '.css', '.js')): files[p] = data.decode('utf-8')
         else: binary[p] = base64.b64encode(data).decode()
-types = {'html':'text/html; charset=utf-8','css':'text/css; charset=utf-8','js':'text/javascript; charset=utf-8','png':'image/png','jpg':'image/jpeg','svg':'image/svg+xml','webmanifest':'application/manifest+json'}
+types = {'html':'text/html; charset=utf-8','css':'text/css; charset=utf-8','js':'text/javascript; charset=utf-8','png':'image/png','jpg':'image/jpeg','svg':'image/svg+xml','webmanifest':'application/manifest+json','webp':'image/webp','json':'application/json'}
 api = open('server/api.js').read().replace('export async function handleApi', 'async function handleApi')
 open(sys.argv[1], 'w').write(api + f"""
 const FILES={json.dumps(files)};

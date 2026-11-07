@@ -1,3 +1,5 @@
+> **Note:** CODEX_HANDOFF.md replaces the instructions in this file. Use this file only for the numbered **198-card checklist** at the bottom.
+
 # Footy Fortress — Character + card art handoff (for GPT/Codex)
 
 ## Style reference

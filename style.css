@@ -293,3 +293,7 @@ button{text-shadow:0 2px 0 #14202a}
 .item .clash{font-size:11px;color:#8a6d45;margin-top:-2px}
 p.clash{color:#8a6d45;font-size:13px;margin:-4px 0 6px}
 .thumbbig{width:140px;height:140px}
+
+.pill{white-space:nowrap}
+#seasonCd{font-variant-numeric:tabular-nums;min-width:0}
+.row2{flex-wrap:nowrap}

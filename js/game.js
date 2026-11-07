@@ -107,12 +107,13 @@ function startUpgrade(b){
   if(u.time>0) b.busy={kind:"up",end:Date.now()+u.time*1000,total:u.time}; else b.lv++;
   track("upgrade",1); sfx("build"); save(); refreshUI();
 }
-const speedCost = endMs => Math.max(1, Math.ceil((endMs-Date.now())/60000));
+// Speed-ups are pricey, like Clash gems: about 2 votes a minute, more for long jobs
+const speedCost = endMs => { const m=(endMs-Date.now())/60000; return Math.max(2, Math.ceil(2*m+Math.pow(Math.max(0,m),1.15)*.25)); };
 function speedUp(b){ const c=speedCost(b.busy.end); if(!pay("medals",c)) return toast("Not enough Brownlow votes 🏅"); b.busy.end=Date.now(); processTimers(); refreshUI(); }
 function removeObstacle(o){
   if(!pay("pies",100)) return toast("Clearing costs 100 🥧");
-  S.obstacles=S.obstacles.filter(x=>x!==o); const m=1+(Math.random()*3|0); S.medals+=m;
-  floatText(o.x+.5,o.y+.5,`+${m} 🏅`); sfx("collect"); selected=null; save(); refreshUI();
+  S.obstacles=S.obstacles.filter(x=>x!==o); const m=Math.random()<.4?0:1+(Math.random()<.2?1:0); S.medals+=m;
+  if(m) floatText(o.x+.5,o.y+.5,`+${m} 🏅`); sfx("collect"); selected=null; save(); refreshUI();
 }
 function collect(b){
   const d=BLD[b.t]; const n=Math.floor(b.store); if(n<1) return;
@@ -225,7 +226,7 @@ function ensureDaily(){
   S.daily={day:today(),tasks,bonus:false};
 }
 function track(k,n){ if(!S) return; ensureDaily(); for(const t of S.daily.tasks) if(t.k===k&&!t.claimed) t.n=Math.min(t.goal,t.n+n); uiDirty=true; }
-function claimTask(i){ const t=S.daily.tasks[i]; if(t.claimed||t.n<t.goal) return; t.claimed=true; S.medals+=15; floatText(C0,C0,"+15 🏅");
+function claimTask(i){ const t=S.daily.tasks[i]; if(t.claimed||t.n<t.goal) return; t.claimed=true; S.medals+=3; floatText(C0,C0,"+3 🏅");
   if(S.daily.tasks.every(x=>x.claimed)&&!S.daily.bonus){ S.daily.bonus=true; S.packs.silver=(S.packs.silver||0)+1; toast("All tasks done! +1 Silver Pack"); }
   sfx("collect"); save(); }
 const tasksReady = () => S.daily&&S.daily.tasks.filter(t=>t.n>=t.goal&&!t.claimed).length;

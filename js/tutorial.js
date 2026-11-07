@@ -17,7 +17,7 @@ const CLASH_DIFFS = [
   "<b>Matches are scored like footy.</b> Knock down a building = goal. They get a behind for each building still standing and each player they knock out (goal for big ones). Outscore them to win.",
   "<b>The Season is a real ladder.</b> 4 points a win, percentage splits ties, top 8 play finals, win the Grand Final for a premiership.",
   "<b>Daily tasks</b> pay Brownlow votes, and each weekday has an event (double loot on Grand Final Weekend).",
-  "<b>Brownlow votes 🏅</b> (gems) come from tasks, clearing trees, Season stars and revenge, never real money.",
+  "<b>Brownlow votes 🏅</b> (gems) are rare, like Clash gems: a trickle from daily tasks, clearing trees, the odd win and premierships. Spend them wisely.",
   "<b>Not in yet:</b> clans, chat, real-player attacks and wars. Coming next.",
 ];
 function showClashGuide(fromChoice){
@@ -25,7 +25,7 @@ function showClashGuide(fromChoice){
   modal(`<h2>Footy Fortress for Clash players</h2><p class="center">Same game loop: build, train, attack, upgrade. Here's what everything is called.</p>${rows}
     <h3>What's different</h3><ul class="diffs">${CLASH_DIFFS.map(d=>`<li>${d}</li>`).join("")}</ul>
     <div class="center"><button class="btn green big" id="gotIt">Got it, let's play</button></div>`);
-  $("gotIt").onclick=()=>{ closeModal(); if(fromChoice){ S.tut="done"; S.medals+=50; save(); toast("+50 🏅 to get you started"); } };
+  $("gotIt").onclick=()=>{ closeModal(); if(fromChoice){ S.tut="done"; S.medals+=10; save(); toast("+10 🏅 to get you started"); } };
 }
 function showTutorialChoice(){
   modal(`<h2>Have you played Clash of Clans?</h2><p class="center">Pick how you'd like to learn the ropes.</p>
@@ -92,7 +92,7 @@ const TUT = [
   {say:"Real AFL players! Tap Nice! to see your collection.", el:"#pk", wait:"cards"},
   {say:"Tap a card to put it on your Team Sheet. Each card boosts your players in that position.", el:".cgrid [data-card]", wait:"team"},
   {say:"Close this. Next goals: build a Pie Warmer and Esky so you can hold more, then a fence and a Goal Tower. 📋 Tasks pay Brownlow votes every day, and 🛡️ Home shows when other clubs raid you.", el:"#side", next:true},
-  {say:"That's the lot! Upgrade your Clubhouse to unlock more buildings, players and your captain. Here's 50 🏅 to get going. Good luck!", next:true, finish:true},
+  {say:"That's the lot! Upgrade your Clubhouse to unlock more buildings, players and your captain. Here's 10 🏅 to get going. Good luck!", next:true, finish:true},
 ];
 let tutCount=0;
 // A patch of grass just outside the map edge that's on screen, near the lower middle
@@ -110,7 +110,7 @@ function tut(ev){
 function advanceTut(){
   uiDirty=true;
   const st=TUT[S.tut];
-  if(st.finish){ S.tut="done"; S.medals+=50; save(); $("tut").classList.add("hide"); $("tutHand").classList.add("hide"); toast("+50 🏅"); sfx("cheer"); uiDirty=true; return; }
+  if(st.finish){ S.tut="done"; S.medals+=10; save(); $("tut").classList.add("hide"); $("tutHand").classList.add("hide"); toast("+10 🏅"); sfx("cheer"); uiDirty=true; return; }
   S.tut++; save(); setTimeout(showTutStep,250);
 }
 function showTutStep(){

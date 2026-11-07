@@ -295,7 +295,7 @@ function endBattle(){
   S.trophies=Math.max(0,S.trophies+tro);
   let medals=0, pack=null;
   const sc=scoreNow(); let season=null;
-  if(BT.kind==="season"){ season=seasonResult({g:sc.a.g,b:sc.a.b},{g:sc.h.g,b:sc.h.b}); if(season.res==="W"){ medals=10; S.medals+=medals; } }
+  if(BT.kind==="season"){ season=seasonResult({g:sc.a.g,b:sc.a.b},{g:sc.h.g,b:sc.h.b}); if(season.res==="W"&&Math.random()<.25){ medals=1; S.medals+=medals; } }
   if(stars>0&&!friendly){ track("win",1); pack=stars>=3?"gold":stars===2?"silver":"bronze"; if(BT.kind==="match"&&stars<3&&Math.random()<.5) pack=null; if(pack) S.packs[pack]=(S.packs[pack]||0)+1; }
   track("destroy",BT.destroyed);
   if(BT.revenge){ const r=S.raids.find(x=>x.id===BT.revenge); if(r) r.revenged=true; }

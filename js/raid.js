@@ -39,17 +39,20 @@ function raidPlan(army,d,r){
 }
 function raidBattle(raid, mode){
   return makeBattle({mode, club:S.club, atkClub:raid.club, buildings:raid.base.map(b=>({...b,loot:b.loot?{...b.loot}:undefined})),
-    army:raid.army, spells:{}, heroes:raid.plan.some(p=>p.k==="hero")?{captain:true}:{}, plan:raid.plan.map(p=>({...p})),
-    lvOf:()=>raid.lv, heroStat:h=>heroStats(h,CLUBS[raid.club],raid.heroLv), bonus:null, homeHeroes:{captain:heroHome("captain")?CLUBS[S.club]:null, coach:heroHome("coach")?CLUBS[S.club]:null}});
+    army:raid.army, spells:raid.spells||{}, heroes:Object.fromEntries(raid.plan.filter(p=>p.k==="hero").map(p=>[p.v,true])), plan:raid.plan.map(p=>({...p})),
+    endT:raid.endT||0, lvOf:u=>typeof raid.lv==="object"?(raid.lv[u]||1):raid.lv, heroStat:h=>heroStats(h,CLUBS[raid.club],typeof raid.heroLv==="object"?(raid.heroLv[h]||1):raid.heroLv),
+    bonus:raid.bonus?(pos=>raid.bonus[pos]||0):null, homeHeroes:{captain:heroHome("captain")?CLUBS[S.club]:null, coach:heroHome("coach")?CLUBS[S.club]:null}});
 }
 function runRaid(){
   const r=rng(Date.now()%1e9), d=Math.max(1,Math.min(MAX_TH,th()+(r()<.3?1:0)-(r()<.3?1:0)));
   let club; do{ club=r()*18|0; }while(club===S.club);
+  // online: the raid comes from one of the bot clubs near your trophies, so names match the leaderboard
+  let bot=null; if(typeof NET!=="undefined"&&NET.bots&&NET.bots.length){ const near=NET.bots.filter(b=>Math.abs(b.trophies-S.trophies)<250&&b.club!==S.club); const pool=near.length?near:NET.bots.filter(b=>b.club!==S.club); bot=pool[r()*pool.length|0]; if(bot) club=bot.club; }
   const army=raidArmy(d,r);
-  const raid={id:Date.now(), at:Date.now(), club, d, lv:Math.max(1,Math.min(UNIT_MAX,d-2)), heroLv:Math.max(1,d*2-3), army, plan:raidPlan(army,d,r), base:homeBattleBase()};
+  const raid={id:Date.now(), at:Date.now(), club, attacker:bot?bot.name:null, botId:bot?bot.id:null, d, lv:Math.max(1,Math.min(UNIT_MAX,d-2)), heroLv:Math.max(1,d*2-3), army, plan:raidPlan(army,d,r), base:homeBattleBase()};
   // play the whole match out instantly
   const saved=BT, sm=shake; simulating=true; BT=raidBattle(raid,"raid");
-  let steps=0; while(steps++<4000 && !battleStep(1/20)){}
+  let steps=0; while(steps++<6000 && !battleStep(1/30)){}
   const stars=starsNow(), p=Math.round(pct()), sc=scoreNow();
   // what was taken from each building
   const lost={pies:0,drink:0};
@@ -65,7 +68,8 @@ function runRaid(){
   Object.assign(raid,{stars,pct:p,sc,lost,tro,seen:false,revenged:false});
   S.raids.unshift(raid); S.raids=S.raids.slice(0,8);
   uiDirty=true; save();
-  toast(stars?`⚠️ ${CLUBS[club].name} raided your ground! ${"★".repeat(stars)}`:`🛡️ You held off ${CLUBS[club].name}!`);
+  const who=bot?`${bot.name} (${CLUBS[club].short})`:CLUBS[club].name;
+  toast(stars?`⚠️ ${who} raided your ground! ${"★".repeat(stars)}`:`🛡️ You held off ${who}!`);
   sfx(stars?"siren":"cheer");
 }
 function watchReplay(raid){
@@ -75,5 +79,6 @@ function watchReplay(raid){
 }
 function revenge(raid){
   if(raid.revenged) return toast("You already got them back!");
-  closeModal(); startBattle({kind:"revenge", club:raid.club, d:raid.d, seed:raid.id%1e9, lootMul:1.5, revenge:raid.id});
+  if(raid.real&&raid.attackerId&&typeof attackPlayer==="function"){ raid.revenged=true; save(); closeModal(); return attackPlayer(raid.attackerId,"pvp"); }
+  closeModal(); startBattle({kind:"revenge", club:raid.club, d:raid.d, seed:raid.id%1e9, lootMul:1.5, revenge:raid.id, opp:raid.botId?{id:raid.botId,name:raid.attacker,bot:true}:null});
 }

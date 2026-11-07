@@ -56,7 +56,8 @@ function startBattle(o){
   if(!Object.values(S.army).some(n=>n>0)) return toast("Train some players first!");
   const heroes={}; for(const h of Object.keys(HEROES)) if(heroReady(h)) heroes[h]=true;
   BT=makeBattle({mode:"attack", kind:o.kind, round:o.round, fixture:o.fixture, d:o.d, club:o.club, atkClub:S.club, buildings:o.buildings||genBase(o.d,o.seed),
-    army:S.army, spells:S.spells, heroes, lvOf:u=>S.unitLv[u], heroStat:h=>heroStats(h), bonus:cardBonus, lootMul:(eventNow()&&eventNow().loot||1)*(o.lootMul||1), revenge:o.revenge});
+    army:S.army, spells:S.spells, heroes, lvOf:u=>S.unitLv[u], heroStat:h=>heroStats(h), bonus:cardBonus, lootMul:o.kind==="friendly"?0:(eventNow()&&eventNow().loot||1)*(o.lootMul||1), revenge:o.revenge, opp:o.opp});
+  BT.rec=[]; BT.origBase=o.buildings?JSON.parse(JSON.stringify(o.buildings)):null;
   BT.sel = firstSel();
   mode="battle"; selected=null; placing=null; cam.x=0; cam.y=0; setZoom(.8); sfx("whistle"); refreshUI(); tut("battle");
 }
@@ -213,7 +214,7 @@ function updateZones(dt){
 }
 function useAbility(h){
   const u=BT.heroU[h]; if(!u||u.hp<=0||BT.abilityUsed[h]) return;
-  BT.abilityUsed[h]=true; const st=BT.heroStat(h), lvm=1+.1*(st.lv-1);
+  BT.abilityUsed[h]=true; recordMove({k:"ability",v:h}); const st=BT.heroStat(h), lvm=1+.1*(st.lv-1);
   floatText(u.x,u.y,st.ability+"!","#fff"); sfx("cheer");
   if(u.pos==="mid"){ healUnit(u,u.max*.25); u.rage=8; }
   if(u.pos==="def"){ healUnit(u,u.max*.5); u.shield=8; }
@@ -227,12 +228,16 @@ function useAbility(h){
 // ---------- deploy ----------
 function canDeployAt(x,y){ if(x<0||y<0||x>=N||y>=N) return true; if(BT.dirty) rebuildGrid(); return !BT.noDeploy[(y|0)*N+(x|0)]; }
 function deployAt(k,v,x,y){ // returns true if something was placed
+  const ok=placeAt(k,v,x,y); if(ok) recordMove({k,v,x,y}); return ok;
+}
+function placeAt(k,v,x,y){
   if(k==="spell"){ if(!(BT.spellsLeft[v]>0)) return false; BT.spellsLeft[v]--; castSpell(v,x,y); BT.started=true; return true; }
   if(!canDeployAt(x,y)){ BT.mask=1.5; return false; }
   if(k==="unit"){ if(!(BT.left[v]>0)) return false; BT.left[v]--; spawnUnit(v,x,y); }
   if(k==="hero"){ if(!BT.heroesLeft[v]) return false; BT.heroesLeft[v]=false; BT.heroU[v]=spawnUnit("hero:"+v,x,y); sfx("cheer"); }
   BT.started=true; return true;
 }
+const recordMove = m => { if(BT&&BT.rec&&!BT.plan) BT.rec.push({...m,t:Math.round(BT.elapsed*1000)/1000}); };
 function battleTap(x,y){
   if(!BT||BT.over||!BT.sel||BT.mode!=="attack") return;
   if(x<-1.5||y<-1.5||x>N+1.5||y>N+1.5) return;
@@ -258,7 +263,7 @@ function battleStep(dt){
   shake=Math.max(0,shake-dt); BT.mask=Math.max(0,BT.mask-dt);
   if(BT.dirty) rebuildGrid();
   if(BT.started){ BT.time-=dt; BT.elapsed+=dt; }
-  if(BT.plan) while(BT.plan.length && BT.plan[0].t<=BT.elapsed){ const p=BT.plan.shift(); deployAt(p.k,p.v,p.x,p.y); if(p.k==="hero"&&p.ability) BT.abilityAt={h:p.v,t:BT.elapsed+p.ability}; }
+  if(BT.plan) while(BT.plan.length && BT.plan[0].t<=BT.elapsed){ const p=BT.plan.shift(); if(p.k==="ability"){ useAbility(p.v); continue; } deployAt(p.k,p.v,p.x,p.y); if(p.k==="hero"&&p.ability) BT.abilityAt={h:p.v,t:BT.elapsed+p.ability}; }
   if(BT.abilityAt&&BT.elapsed>=BT.abilityAt.t){ useAbility(BT.abilityAt.h); BT.abilityAt=null; }
   for(const u of BT.units) updateUnit(u,dt);
   for(const b of BT.buildings){ if(BLD[b.t].trap) updateTrap(b,dt); else updateDefence(b,dt); }
@@ -269,13 +274,15 @@ function battleStep(dt){
   BT.units=BT.units.filter(u=>u.hp>0||u.hero);
   const alive=BT.units.some(u=>u.hp>0&&u.pref!=="heal");
   const toDeploy=Object.values(BT.left).some(n=>n>0)||Object.values(BT.heroesLeft).some(Boolean)||(BT.plan&&BT.plan.length);
+  if(BT.endT && BT.elapsed>=BT.endT-1e-6) return true; // replay stops where the real match stopped
   if(BT.time<=0 || pct()>=100 || (BT.started&&!alive&&!toDeploy&&!BT.proj.length)) return true;
   return false;
 }
 function battleUpdate(dt){
   if(!BT||BT.over) return;
-  const speed=BT.mode==="replay"?(BT.speed||1):1;
-  for(let i=0;i<speed;i++) if(battleStep(dt)){ endBattle(); break; }
+  const speed=BT.mode==="replay"?(BT.speed||1):1, STEP=1/30;
+  BT.acc=(BT.acc||0)+dt*speed;
+  while(BT.acc>=STEP){ BT.acc-=STEP; if(battleStep(STEP)){ endBattle(); break; } }
 }
 function endBattle(){
   if(BT.over) return; BT.over=true;
@@ -283,20 +290,22 @@ function endBattle(){
   if(BT.mode==="replay"){ showReplayEnd(); return; }
   const mul=BT.lootMul||1;
   const got={pies:addRes("pies",Math.floor(BT.loot.pies*mul)), drink:addRes("drink",Math.floor(BT.loot.drink*mul))};
-  let tro = stars ? Math.round((8+stars*6)*(BT.d>=th()?1.2:.8)) : -10;
+  const friendly=BT.kind==="friendly";
+  let tro = friendly ? 0 : stars ? Math.round((8+stars*6)*(BT.d>=th()?1.2:.8)) : -10;
   S.trophies=Math.max(0,S.trophies+tro);
   let medals=0, pack=null;
   const sc=scoreNow(); let season=null;
   if(BT.kind==="season"){ season=seasonResult({g:sc.a.g,b:sc.a.b},{g:sc.h.g,b:sc.h.b}); if(season.res==="W"){ medals=10; S.medals+=medals; } }
-  if(stars>0){ track("win",1); pack=stars>=3?"gold":stars===2?"silver":"bronze"; if(BT.kind==="match"&&stars<3&&Math.random()<.5) pack=null; if(pack) S.packs[pack]=(S.packs[pack]||0)+1; }
+  if(stars>0&&!friendly){ track("win",1); pack=stars>=3?"gold":stars===2?"silver":"bronze"; if(BT.kind==="match"&&stars<3&&Math.random()<.5) pack=null; if(pack) S.packs[pack]=(S.packs[pack]||0)+1; }
   track("destroy",BT.destroyed);
   if(BT.revenge){ const r=S.raids.find(x=>x.id===BT.revenge); if(r) r.revenged=true; }
   S.army=Object.fromEntries(Object.entries(BT.left).filter(([,n])=>n>0));
   S.spells=Object.fromEntries(Object.entries(BT.spellsLeft).filter(([,n])=>n>0));
-  S.shield=0; // attacking breaks your shield
+  if(!friendly) S.shield=0; // attacking breaks your shield
+  if(BT.opp&&typeof netReportAttack==="function") netReportAttack(BT,{stars,p,sc,got,friendly});
   save(); sfx(stars?"cheer":"siren");
   setTimeout(()=>tut("battleEnd"),50);
-  showResult({stars,p,got,tro,medals,pack,sc,season,fixture:BT.fixture,home:CLUBS[BT.club],away:CLUBS[BT.atkClub],club:CLUBS[BT.club].name, full:(got.pies<Math.floor(BT.loot.pies*mul)||got.drink<Math.floor(BT.loot.drink*mul))});
+  showResult({stars,p,got,tro,medals,pack,sc,season,fixture:BT.fixture,opp:BT.opp,friendly,home:CLUBS[BT.club],away:CLUBS[BT.atkClub],club:CLUBS[BT.club].name, full:(got.pies<Math.floor(BT.loot.pies*mul)||got.drink<Math.floor(BT.loot.drink*mul))});
 }
 function leaveBattle(){ BT=null; mode="home"; cam.x=0; cam.y=0; setZoom(1); refreshUI(); }
 

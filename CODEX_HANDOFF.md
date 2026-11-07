@@ -335,7 +335,7 @@ The current art keeps working as the fallback: if a new file is missing or fails
 4. **Portraits.** The menu icons come from `playerIcon()` in `js/ui.js`, which calls `drawArtIcon("portrait-...")` in `js/art.js`. Make `drawArtIcon` prefer `art/portraits/...` when it's loaded. Don't change `ui.js` beyond that.
 5. **Buildings.** In `drawBuildingArt`, use `kitroom-<lv>` / `herohall-<lv>` when loaded; right now they borrow the Coach's Office and Captain's Locker art. Keep the footprint anchoring (the `artBuildings` table).
 6. **Cards and packs.** No code needed; `js/cards.js` picks them up from the manifest. Check it works (section 8).
-7. **Release.** Bump `CACHE` in `sw.js` (e.g. `footy-fortress-v18`) and `VERSION` in `js/data.js` (the date-like string). Those are the only edits allowed in `data.js`.
+7. **Release.** Bump `CACHE` in `sw.js` (e.g. `footy-fortress-v19`) and `VERSION` in `js/data.js` (the date-like string). Those are the only edits allowed in `data.js`.
 
 ---
 

@@ -286,17 +286,60 @@ function drawBuilding(b, club, list, opts={}){
   if(b.hp!==undefined && b.hp<b.max) bar(...P(x+s/2,y+s/2,top),b.hp/b.max,b.hp/b.max>.5?"#5fd16b":"#e8503a");
   if(opts.collect && opts.collect>=1){ const [cx,cy]=P(x+s/2,y+s/2,top+1.2+Math.sin(performance.now()/300)*.2); bubble(cx,cy,BLD[b.t].makes==="pies"?"🥧":"💧"); }
 }
-const FENCE_COL=["#f7f1e2","#c9a26b","#9aa0a8","#f6c343","#4a3f6b"];
+// ---------- fences: stone pillars with gold caps, joined by a brick wall with a club panel ----------
+// Long straight runs (5+ pieces) automatically get club banners on the wall, like a stadium fence.
+const FENCE_RUN_BANNER = 5;
+const hexShade=(hex,f)=>"#"+rgb(hex).map(v=>Math.max(0,Math.min(255,f>1?v+(255-v)*(f-1):v*f))|0).map(v=>v.toString(16).padStart(2,"0")).join("");
+// Quick lookup of standing fence pieces, refreshed a few times a second (fences are drawn every frame).
+const fenceCache=new WeakMap();
+function fenceSet(list){
+  const now=performance.now(), c=fenceCache.get(list);
+  if(c&&c.n===list.length&&now-c.t<250) return c.set;
+  const set=new Set(); for(const o of list) if(o.t==="fence"&&!(o.hp<=0)&&!(o.busy&&o.busy.kind==="build")) set.add(o.x+","+o.y);
+  fenceCache.set(list,{set,n:list.length,t:now}); return set;
+}
 function drawFence(b,club,list,lv){
-  const x=b.x,y=b.y, col=FENCE_COL[Math.min(lv,FENCE_COL.length)-1];
-  const has=(i,j)=>list.some(o=>o.t==="fence"&&!(o.hp<=0)&&o.x===i&&o.y===j&&!(o.busy&&o.busy.kind==="build"));
-  const h=.85+lv*.08, w=.24+lv*.02;
-  if(drawFenceArt(x,y,h,lv,has(x+1,y),has(x,y+1))) return;
-  if(has(x+1,y)) for(const z of [.28,h*.7]) prism(x+.5,y+.46,1,.08,z,.12,col);
-  if(has(x,y+1)) for(const z of [.28,h*.7]) prism(x+.46,y+.5,.08,1,z,.12,col);
-  prism(x+.5-w/2,y+.5-w/2,w,w,0,h,col);
-  prism(x+.5-w/2-.03,y+.5-w/2-.03,w+.06,w+.06,h,.12,lv>=4?"#fff3b0":club.a);
-  if(lv===5){ const [sx,sy]=P(x+.5,y+.5,h+.12); poly([[sx-TW*.05,sy],[sx+TW*.05,sy],[sx,sy-TH*.45]],"#ddd"); }
+  const x=b.x,y=b.y;
+  const fs=fenceSet(list), has=(i,j)=>fs.has(i+","+j);
+  const E=has(x+1,y), Wn=has(x-1,y), S=has(x,y+1), Nn=has(x,y-1);
+  const h=.9+lv*.04, pw=.5, wt=.42, wh=h*.72;
+  const stone=lv<3?"#a59f93":lv<6?"#9a9ca6":"#a7abb9", dark=hexShade(stone,.7), light=hexShade(stone,1.2);
+  const capCol=lv<3?"#c3bcae":lv<6?"#e2ac22":"#ffc93c";
+  const lum=c=>{ const [r,g,b2]=rgb(c); return r*.3+g*.59+b2*.11; };
+  const panel=lv<3?null:hexShade(lum(club.a)<45?club.b:club.a,.78);
+  const mortar=(pts)=>{ ctx.strokeStyle="#0000002e"; ctx.lineWidth=Math.max(1,TW*.012); ctx.beginPath(); for(const [p0,p1] of pts){ ctx.moveTo(...p0); ctx.lineTo(...p1); } ctx.stroke(); };
+  // where this piece sits in its straight run (pillars every 3, banners in between)
+  const run=dir=>{ let s0=dir==="x"?x:y, s1=s0; if(dir==="x"){ while(has(s0-1,y)) s0--; while(has(s1+1,y)) s1++; } else { while(has(x,s0-1)) s0--; while(has(x,s1+1)) s1++; } return {k:(dir==="x"?x:y)-s0, len:s1-s0}; };
+  const straightX=(E||Wn)&&!S&&!Nn, straightY=(S||Nn)&&!E&&!Wn;
+  const pillar=!(straightX||straightY) || (straightX&&run("x").k%3===0) || (straightY&&run("y").k%3===0) || (straightX&&!E) || (straightY&&!S);
+  // wall section toward the next piece: stone base and top, club-colour panel between
+  const seg=dir=>{
+    const f=dir==="x"?(a,z)=>P(x+a,y+.5+wt/2,z):(a,z)=>P(x+.5+wt/2,y+a,z);
+    if(dir==="x") prism(x+.5,y+.5-wt/2,1,wt,0,wh,stone,light); else prism(x+.5-wt/2,y+.5,wt,1,0,wh,stone,light);
+    if(panel){ poly([f(.5,wh*.22),f(1.5,wh*.22),f(1.5,wh*.8),f(.5,wh*.8)],panel,"#0006",Math.max(1,TW*.015));
+      mortar([[f(.5,wh*.51),f(1.5,wh*.51)]]); }
+    else mortar([[f(.5,wh*.33),f(1.5,wh*.33)],[f(.5,wh*.66),f(1.5,wh*.66)],[f(.8,0),f(.8,wh*.33)],[f(1.2,wh*.33),f(1.2,wh*.66)],[f(.95,wh*.66),f(.95,wh)]]);
+    mortar([[f(1,0),f(1,wh*.22)]]);
+    if(dir==="x") prism(x+.5,y+.5-wt/2-.04,1,wt+.08,wh,.08,dark,light); else prism(x+.5-wt/2-.04,y+.5,wt+.08,1,wh,.08,dark,light);
+    // club banners on long straight runs
+    const r=run(dir); if(r.len<FENCE_RUN_BANNER || r.k%3!==1) return;
+    const pennant=Math.floor(r.k/3)%2===0, g=(a,z)=>f(a,z), top=wh*1.02, bot=pennant?wh*.02:wh*.18, lw=Math.max(1,TW*.02);
+    if(pennant){ poly([g(.66,top),g(1.34,top),g(1.34,wh*.42),g(1,bot),g(.66,wh*.42)],club.a,"#000",lw);
+      poly([g(.71,top-.03),g(1.29,top-.03),g(1.29,wh*.46),g(1,bot+.07),g(.71,wh*.46)],null,club.b,Math.max(1,TW*.022)); }
+    else poly([g(.62,top),g(1.38,top),g(1.38,bot),g(.62,bot)],lum(club.b)>200?club.a:club.b,"#000",lw);
+    poly([g(.6,top+.03),g(1.4,top+.03),g(1.4,top-.03),g(.6,top-.03)],"#e2ac22","#000",lw);
+    const [bx,by]=g(1,pennant?wh*.6:wh*.58); drawBadge(ctx,bx,by,TW*.12,club);
+  };
+  if(E) seg("x");
+  if(S) seg("y");
+  if(!pillar) return;
+  // stone pillar with a gold cap
+  const x0=x+.5-pw/2, y0=y+.5-pw/2;
+  prism(x0,y0,pw,pw,0,h,stone,light);
+  mortar([[P(x0,y0+pw,h*.3),P(x0+pw,y0+pw,h*.3)],[P(x0+pw,y0,h*.3),P(x0+pw,y0+pw,h*.3)],[P(x0,y0+pw,h*.62),P(x0+pw,y0+pw,h*.62)],[P(x0+pw,y0,h*.62),P(x0+pw,y0+pw,h*.62)],
+    [P(x0+pw*.5,y0+pw,h*.3),P(x0+pw*.5,y0+pw,h*.62)],[P(x0+pw,y0+pw*.5,0),P(x0+pw,y0+pw*.5,h*.3)],[P(x0+pw,y0+pw*.5,h*.62),P(x0+pw,y0+pw*.5,h)]]);
+  prism(x0-.05,y0-.05,pw+.1,pw+.1,h,.12,capCol,hexShade(capCol,1.25));
+  if(lv>=3) prism(x0+pw*.28,y0+pw*.28,pw*.44,pw*.44,h+.12,.1,capCol,hexShade(capCol,1.35));
 }
 function drawTrap(b){ const [x,y]=P(b.x+.5,b.y+.5); ctx.fillStyle="#425657"; ctx.strokeStyle=OUT; ctx.lineWidth=1.5; ctx.beginPath(); ctx.ellipse(x,y,TW*.21,TH*.23,0,0,7); ctx.fill(); ctx.stroke();
   ctx.beginPath(); ctx.arc(x,y-TH*.15,TW*.06,0,7); ctx.fillStyle="#d6ad59"; ctx.fill(); ctx.stroke(); }
@@ -494,8 +537,9 @@ function thumb(t, club, lv=1){
   TH=TW/2;
   // centre building footprint
   const want=[80,s===1?105:122]; cam.x=0; cam.y=0; const [ax,ay]=iso(s/2,s/2); cam.x=want[0]-ax; cam.y=want[1]-ay - (s===1?0:0);
-  const list=[{t,x:0,y:0,lv}]; if(t==="fence"){ list.push({t,x:1,y:0,lv}); list[0].x=-.5; }
-  try{ drawBuilding({t,x:t==="fence"?0:0,y:0,lv},club,list,{fill:.7,heroes:{captain:club,coach:club},lit:true}); }catch(e){ console.error("thumb",t,e.message); }
+  // fences: show a short wall (pillar, wall, pillar)
+  const list=t==="fence"?[{t,x:-1,y:-.5,lv},{t,x:0,y:-.5,lv},{t,x:1,y:-.5,lv}]:[{t,x:0,y:0,lv}];
+  try{ for(const b of list) drawBuilding(b,club,list,{fill:.7,heroes:{captain:club,coach:club},lit:true}); }catch(e){ console.error("thumb",t,e.message); }
   ctx=saved.ctx; W=saved.W; H=saved.H; TW=saved.TW; TH=saved.TH; cam.x=saved.cx; cam.y=saved.cy;
   return c;
 }

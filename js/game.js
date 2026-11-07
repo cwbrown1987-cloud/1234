@@ -179,7 +179,21 @@ function startResearch(u){
 }
 
 // ---------- heroes ----------
-const heroHome = h => S.buildings.some(b=>b.t===HEROES[h].building&&built(b));
+const heroHome = h => S.buildings.some(b=>b.t===HEROES[h].building&&built(b)&&b.lv>=(HEROES[h].hhLv||1));
+// The heroes you take into a match: up to HERO_SLOTS, chosen in Squad → Heroes (Clash's Hero Hall).
+function heroPicked(){
+  const home=Object.keys(HEROES).filter(heroHome);
+  S.heroSeen=S.heroSeen||[];
+  if(!S.heroPick) S.heroPick=[];
+  for(const h of home) if(!S.heroSeen.includes(h)){ S.heroSeen.push(h); if(S.heroPick.length<HERO_SLOTS&&!S.heroPick.includes(h)) S.heroPick.push(h); }
+  return S.heroPick.filter(h=>home.includes(h)).slice(0,HERO_SLOTS);
+}
+function toggleHeroPick(h){
+  heroPicked(); const i=S.heroPick.indexOf(h);
+  if(i>=0) S.heroPick.splice(i,1);
+  else { if(heroPicked().length>=HERO_SLOTS) return toast(`Only ${HERO_SLOTS} heroes per match. Take one off first.`); S.heroPick.push(h); }
+  save();
+}
 const heroReady = h => heroHome(h)&&!S.heroes[h].busy;
 function heroStats(h="captain", club, lv){
   const own=club===undefined; club=club||myClub(); lv=lv||S.heroes[h].lv;
@@ -252,7 +266,7 @@ function renderHome(){
   drawGround();
   if(placing){ ctx.strokeStyle="#ffffff28"; ctx.lineWidth=1; for(let i=0;i<=N;i++){ ctx.beginPath(); ctx.moveTo(...P(i,0)); ctx.lineTo(...P(i,N)); ctx.moveTo(...P(0,i)); ctx.lineTo(...P(N,i)); ctx.stroke(); } }
   const club=myClub(), list=S.buildings, ents=[];
-  const heroes={captain:heroReady("captain")?club:null, coach:heroReady("coach")?club:null, busy:{captain:!!S.heroes.captain.busy,coach:!!S.heroes.coach.busy}};
+  const heroes={busy:{}}; for(const h of Object.keys(HEROES)){ heroes[h]=heroReady(h)?club:null; heroes.busy[h]=!!S.heroes[h].busy; }
   for(const t of deco) ents.push({k:t.x+t.y,f:()=>drawDeco(t)});
   for(const o of S.obstacles) ents.push({k:o.x+o.y+1,f:()=>{ if(selected===o) selectGlow(o.x,o.y,1);
     const v=(o.id*37%10)/10; drawDeco({x:o.x+.5,y:o.y+.55,k:o.k,s:(o.k==="tree"?.78:o.k==="bush"?.62:.85)*(.92+v*.16),h:v,inGround:true}); }});

@@ -54,7 +54,7 @@ function makeBattle(o){
 }
 function startBattle(o){
   if(!Object.values(S.army).some(n=>n>0)) return toast("Train some players first!");
-  const heroes={}; for(const h of Object.keys(HEROES)) if(heroReady(h)) heroes[h]=true;
+  const heroes={}; for(const h of heroPicked()) if(heroReady(h)) heroes[h]=true;
   BT=makeBattle({mode:"attack", kind:o.kind, ranked:!!o.ranked, round:o.round, fixture:o.fixture, d:o.d, club:o.club, atkClub:S.club, buildings:o.buildings||genBase(o.d,o.seed),
     army:S.army, spells:S.spells, heroes, lvOf:u=>S.unitLv[u], heroStat:h=>heroStats(h), bonus:cardBonus, lootMul:o.kind==="friendly"?0:(eventNow()&&eventNow().loot||1)*(o.lootMul||1), revenge:o.revenge, opp:o.opp});
   S.lastArmy={...S.army}; S.lastSpells={...S.spells};
@@ -132,12 +132,13 @@ function hurt(b,dmg){
   }
 }
 const healUnit = (u,amt) => { u.hp=Math.min(u.max,u.hp+amt); };
-function damageUnit(u,dmg){ if(u.hp<=0) return; if(u.shield>0) dmg*=.5; if(u.armor) dmg*=1-u.armor; u.hp-=dmg;
+function damageUnit(u,dmg){ if(u.hp<=0||u.immune>0) return; if(u.shield>0) dmg*=.5;
+  const rl=BT.heroU&&BT.heroU.rleg; if(rl&&rl.hp>0&&Math.hypot(rl.x-u.x,rl.y-u.y)<=3) dmg*=.85; // Ruck Legend's aura if(u.armor) dmg*=1-u.armor; u.hp-=dmg;
   if(u.hp<=0){ BT.fx.push({k:"poof",x:u.x,y:u.y,t:0,air:u.air}); if(u.hero||(UNITS[u.kind]&&UNITS[u.kind].space>=5)) BT.koBig=(BT.koBig||0)+1; else BT.koSmall=(BT.koSmall||0)+1; } }
 
 function updateUnit(u,dt){
   if(u.hp<=0) return;
-  u.cd-=dt; u.rage=Math.max(0,u.rage-dt); u.shield=Math.max(0,u.shield-dt); u.atk=Math.max(0,(u.atk||0)-dt);
+  u.cd-=dt; u.rage=Math.max(0,u.rage-dt); u.shield=Math.max(0,u.shield-dt); u.immune=Math.max(0,(u.immune||0)-dt); u.atk=Math.max(0,(u.atk||0)-dt);
   const spd=u.spd*(u.rage>0?1.4:1), mul=u.rage>0?1.6:1;
   if(u.pref==="heal"){
     let best=null,bv=1e9; for(const o of BT.units){ if(o===u||o.hp<=0||o.pref==="heal") continue; const d=Math.hypot(o.x-u.x,o.y-u.y); const v=d-(1-o.hp/o.max)*20; if(v<bv){bv=v;best=o;} }
@@ -222,6 +223,10 @@ function useAbility(h){
   if(u.pos==="ruck"){ healUnit(u,u.max*.3); BT.fx.push({k:"splash",x:u.x,y:u.y,t:0,r:2.8}); shake=.3; for(const b of BT.buildings) if(b.hp>0&&!BLD[b.t].trap&&rectDist(u.x,u.y,b)<=2.8) hurt(b,260*lvm); }
   if(u.pos==="fwd"){ const ts=BT.buildings.filter(b=>b.hp>0&&counts(b)).sort((a,b)=>rectDist(u.x,u.y,a)-rectDist(u.x,u.y,b)).slice(0,3);
     ts.forEach((b,i)=>{ const [x,y]=cen(b); BT.proj.push({k:"bigfooty",x0:u.x,y0:u.y,x1:x,y1:y,t:-i*.25,dur:.7,arc:3,hit:()=>{ hurt(b,320*lvm); BT.fx.push({k:"boom",x,y,t:0,s:1.5}); }}); }); }
+  if(u.pos==="vice"){ BT.fx.push({k:"splash",x:u.x,y:u.y,t:0,r:3.5}); for(const b of BT.buildings) if(b.hp>0&&isDef(b.t)&&rectDist(u.x,u.y,b)<=3.5) b.stun=Math.max(b.stun||0,4*(1+(g.ability||0))); u.rage=Math.max(u.rage,5); healUnit(u,u.max*.2); }
+  if(u.pos==="star"){ const ts=BT.buildings.filter(b=>b.hp>0&&counts(b)).sort((a,b)=>rectDist(u.x,u.y,a)-rectDist(u.x,u.y,b)).slice(0,5);
+    ts.forEach((b,i)=>{ const [x,y]=cen(b); BT.proj.push({k:"bigfooty",x0:u.x,y0:u.y,x1:x,y1:y,t:-i*.2,dur:.7,arc:3,hit:()=>{ hurt(b,280*lvm); BT.fx.push({k:"boom",x,y,t:0,s:1.5}); }}); }); }
+  if(u.pos==="rleg"){ BT.fx.push({k:"heal",x:u.x,y:u.y,t:0,r:4}); for(const o of BT.units) if(o.hp>0&&Math.hypot(o.x-u.x,o.y-u.y)<=4) o.immune=Math.max(o.immune||0,4*(1+(g.ability||0))); }
   if(u.pos==="coach"){ BT.fx.push({k:"heal",x:u.x,y:u.y,t:0,r:5}); for(const o of BT.units) if(o.hp>0&&Math.hypot(o.x-u.x,o.y-u.y)<=5){ healUnit(o,o.max*Math.min(1,.4*(1+(g.heal||0)))); o.rage=Math.max(o.rage,5+(g.rage||0)); if(g.shield) o.shield=Math.max(o.shield,g.shield); } }
   uiDirty=true;
 }
@@ -355,7 +360,8 @@ function drawUnitB(u){
   if(u.air) return drawFlyer(u);
   const [x,y]=P(u.x,u.y);
   const k = TW*(u.hero?.5:u.kind==="ruck"?.42:u.kind==="trainer"?.4:u.kind==="tagger"?.3:.33);
-  drawPlayer(x,y,k,u.club,{id:u.id,moving:u.moving,face:u.face,atk:u.atk>0,kind:u.pos==="coach"?"coach":u.kind,hero:u.hero,ranged:u.ranged,rage:u.rage>0});
+  drawPlayer(x,y,k,u.club,{id:u.id,moving:u.moving,face:u.face,atk:u.atk>0,kind:u.pos==="coach"?"coach":u.kind,hero:u.hero,heroKey:u.heroKey,ranged:u.ranged,rage:u.rage>0});
+  if(u.immune>0){ ctx.save(); ctx.globalAlpha=.35; ctx.fillStyle="#ffd34d"; ctx.beginPath(); ctx.ellipse(x,y-k*1.4,k*1.2,k*1.9,0,0,7); ctx.fill(); ctx.restore(); }
   if(u.shield>0){ ctx.save(); ctx.globalAlpha=.3; ctx.fillStyle="#7fd3ff"; ctx.beginPath(); ctx.ellipse(x,y-k*1.4,k*1.1,k*1.8,0,0,7); ctx.fill(); ctx.restore(); }
   if(u.hp<u.max||u.hero) bar(x,y-k*(u.hero?4:3.5),u.hp/u.max,u.hero?GOLD:"#5fd16b",u.hero?TW*1.3:TW*.8);
   if(u.hero) txt(u.name.split(" ").pop(),x,y-k*4.5,TH*.55,GOLD);

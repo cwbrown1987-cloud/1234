@@ -141,7 +141,7 @@ function netReportAttack(bt, r) {
   if (!signedIn() || !bt.opp) return;
   const avail = bt.lootTotal.pies + bt.lootTotal.drink, share = avail ? (bt.loot.pies + bt.loot.drink) / avail : 0;
   const body = { defender: bt.opp.id, friendly: !!r.friendly, ranked: !!bt.ranked, magicShield: !r.friendly && share >= .3, stars: r.stars, pct: r.p, sc: r.sc, loot: { pies: Math.floor(bt.loot.pies), drink: Math.floor(bt.loot.drink) },
-    plan: bt.rec || [], endT: Math.round(bt.elapsed * 1000) / 1000, army: bt.had, spells: bt.hadSpells, lv: { ...S.unitLv }, heroLv: { captain: S.heroes.captain.lv, coach: S.heroes.coach.lv },
+    plan: bt.rec || [], endT: Math.round(bt.elapsed * 1000) / 1000, army: bt.had, spells: bt.hadSpells, lv: { ...S.unitLv }, heroLv: Object.fromEntries(Object.keys(HEROES).map(h => [h, S.heroes[h].lv])),
     bonus: Object.fromEntries(["mid", "fwd", "ruck", "def"].map(p => [p, cardBonus(p)])), base: bt.opp.bot ? [] : (bt.origBase || []).map(b => ({ t: b.t, x: b.x, y: b.y, lv: b.lv, hp: b.max, max: b.max, loot: b.loot, armed: b.armed })),
     atkClub: S.club, myTrophies: S.trophies };
   api("/attack", { method: "POST", body }).then(() => pushSave()).catch(e => toast("Couldn't send the result: " + e.message));

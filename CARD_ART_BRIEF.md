@@ -1,30 +1,48 @@
-# Footy Fortress — Card art handoff (for GPT/Codex)
+# Footy Fortress — Character + card art handoff (for GPT/Codex)
 
-Repo: github.com/cwbrown1987-cloud/Footy-Fortress (branch from `master`; call it `art/cards`). The game is at the repo root (`index.html`, `js/`, `art/`).
+## Style reference
+`docs/card-style-reference.png` is the approved **look**: chunky, cartoony Clash-style players, bold coloured frames, binder album.
+Use it for style only. **Ignore its data**: player clubs, positions, ratings and the Clash currency bar in that mock-up are placeholders and several are wrong
+(e.g. Tom Stewart and Jeremy Cameron are Geelong, Connor Rozee is Port Adelaide, Isaac Heeney is a forward).
+**Every player's club, guernsey and position must come from the checklist at the bottom of this file.**
+Ratings and stat bars on the cards are calculated by the game from real 2026 stats, so leave those areas empty in the art.
+
+## Characters: one style everywhere
+The same character style is used for on-field players, menu portraits, captains and card portraits:
+1. On-field generic players (rover, forward, ruck, tagger, shepherd, trainer, coach): stand / run / attack poses, transparent, current isometric scale.
+   Paint guernseys as dark main colour + light trim (navy/white); the game recolours them to each club at runtime.
+2. Menu portraits for the same 7 types (same guernsey rule).
+3. The 18 captains: portrait + stand + run in their real club guernsey (3×3 sheets like the current captains sheets).
+4. 198 card portraits (checklist below), real 2026 club guernsey.
+
+## Rarity frames (renamed to match the style reference)
+Common (grey/silver), Rare (blue), Epic (red/purple), Legendary (gold), plus 24K Gold (solid gold, rarest) and the specials below.
+
+Repo: github.com/cwbrown1987-cloud/Footy-Fortress (branch from `master`; call it `art/characters`). The game is at the repo root (`index.html`, `js/`, `art/`).
 **Art only.** Don't change gameplay, saves (`localStorage` key `footyFortress2`) or `js/*.js` logic. Claude will wire the art in.
 
 ## The set (matches a real Teamcoach base set)
 - **198 base cards**: 11 per club. Exact list below, numbered 001–198.
-- **Finishes** of each base card: Common, Silver Foil, Gold Foil, Pearl (same player art, different frame/finish).
+- **Rarities** of each base card: Common, Rare, Epic, Legendary (same player art, different frame).
 - **Specials, one per club unless noted**: Star Wildcard (the captain), Best & Fairest, Goal Kicker, Future Legend (2 per club), and **24K Gold** (the captain, rarest).
 
 ## Deliverables
 All WebP, transparent where noted, card ratio **5:7** at **360 × 504 px**.
 
 1. **Card front frames** (transparent centre window for the player art):
-   `frame-common`, `frame-silver`, `frame-gold`, `frame-pearl`,
+   `frame-common`, `frame-rare`, `frame-epic`, `frame-legendary`,
    `frame-star-wildcard`, `frame-best-fairest`, `frame-goal-kicker`, `frame-future-legend`, `frame-24k-gold`.
    Keep these zones clear, because the game prints text and badges there:
    - top-left 70×70: club badge
-   - top-right 70×70: jumper number circle
+   - top-right 70×70: overall rating (number) + small rarity tag under it
    - bottom 360×110: name plate (first name small, SURNAME big, then position · club · card no.)
    - specials: a banner area 60 px tall at the top-centre for the special's name
-   Foils should look like real foil (shine/holo), Pearl iridescent, 24K Gold solid gold.
+   Match the style reference: thick glowing frames, Legendary gold with sparkle, 24K Gold solid gold.
 2. **Card back template** `card-back`: club-coloured border is drawn by the game, so make a neutral back with a header area (name/number), an info line, and a stats table area (8 rows × 3 columns: stat, 2026, Career), plus a small footer.
 3. **Player portraits, 198 of them**: head and shoulders, yelling/action pose, **same painted style as the existing captain art** (`art/sheets.js` "captains" sheets), each in their club's **2026 home guernsey**, facing the viewer, transparent background.
    - One file per player: `art/players/<card number>.webp`, e.g. `art/players/004.webp`. **256 × 320**, about 15–25 KB each.
    - The 18 captains already exist; reuse their faces for consistency (they're in the list too).
-4. **Album**: `album-page` background (one club page, 360 × 640, subtle stadium/paper texture) and `album-slot-empty` (360 × 504, dashed outline with a footy silhouette).
+4. **Album**: a leather binder like the style reference: `album-binder` (open binder with rings, 1536 × 900, transparent outside) and `album-slot-empty` (360 × 504, dashed outline with a footy silhouette). The game lays the cards, club badge strip, stats panel and buttons over it.
 5. **Packs**: `pack-footy` (Footy Pack: 6 cards + 1 special) and `pack-prize` (Prize Pack, gold) at 360 × 480, foil wrapper with crimped ends and the "FOOTY FORTRESS" logo.
 
 Put frames, back, album and pack art in `art/cards/`, and portraits in `art/players/`. Add `art/cards/manifest.json` listing every file. **Don't** add them to `art/sheets.js`. Claude will host them as separate files so the site stays under Cloudflare's size limit.

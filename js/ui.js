@@ -32,31 +32,6 @@ function spellIcon(sp){
   }
   return iconCache[sp]=c.toDataURL();
 }
-// Player card art
-function cardArt(card){
-  const key="card"+card.id; if(iconCache[key]) return iconCache[key];
-  const club=CLUBS[card.club], R=RARITY[card.rarity];
-  const c=document.createElement("canvas"); c.width=180; c.height=240; const g=c.getContext("2d");
-  const bg=g.createLinearGradient(0,0,0,240); bg.addColorStop(0,shade(club.a,1.35)); bg.addColorStop(1,shade(club.a,.7)); g.fillStyle=bg; g.fillRect(0,0,180,240);
-  g.fillStyle=club.b; g.globalAlpha=.25; g.fillRect(66,0,48,240); g.globalAlpha=1;
-  if(card.rarity==="legend"){ g.save(); g.globalAlpha=.25; for(let i=0;i<12;i++){ g.fillStyle="#fff"; g.beginPath(); g.moveTo(90,110); g.arc(90,110,200,i*Math.PI/6,i*Math.PI/6+.18); g.fill(); } g.restore(); }
-  const role=card.rarity==="legend"?"captain":({mid:"rover",fwd:"forward",ruck:"ruck",def:"shepherd"})[card.pos];
-  const likeness=card.name===club.hero.name && namedHeroArt[club.abbr];
-  if (!(likeness && drawArtIcon(likeness,g,90,193,174,184)) && !drawArtIcon("portrait-"+role,g,90,193,174,184,club)) {
-    const save={ctx,TW,TH}; ctx=g; TW=70; TH=35;
-    drawPlayer(90,190,46,club,{kind:card.pos==="ruck"?"ruck":null,hero:card.rarity==="legend",ranged:card.pos==="fwd",id:card.club});
-    ctx=save.ctx; TW=save.TW; TH=save.TH;
-  }
-
-  drawBadge(g,30,32,20,club);
-  g.fillStyle="#000a"; g.fillRect(0,192,180,48);
-  g.font='20px "Lilita One",sans-serif'; g.textAlign="center"; g.fillStyle="#fff"; g.textBaseline="middle";
-  const nm=card.name.length>18?card.name.split(" ").pop():card.name; g.fillText(nm,90,207,162);
-  g.font='13px "Lilita One",sans-serif'; g.fillStyle=R.col; g.fillText(`${R.name} · ${POS_NAME[card.pos]}`,90,227);
-  g.lineWidth=8; g.strokeStyle=R.col; g.strokeRect(4,4,172,232); g.lineWidth=2; g.strokeStyle="#000"; g.strokeRect(1,1,178,238);
-  return iconCache[key]=c.toDataURL();
-}
-
 // ---------- HUD ----------
 function refreshUI(){
   const home=mode==="home", bat=mode==="battle", replay=bat&&BT&&BT.mode==="replay";
@@ -79,7 +54,8 @@ function refreshUI(){
   if(S&&home){ const u=S.raids.filter(r=>!r.seen).length, tr=tasksReady()||0;
     $("logDot").textContent=u; $("logDot").classList.toggle("hide",!u);
     $("taskDot").textContent=tr; $("taskDot").classList.toggle("hide",!tr);
-    const pk=Object.values(S.packs).reduce((a,b)=>a+b,0); $("cardDot").textContent=pk; $("cardDot").classList.toggle("hide",!pk); }
+    const pk=Math.floor((S.tokens||0)/PACK_COST)+(S.prizePacks||0)+(dailyReady()?1:0); $("cardDot").textContent=pk; $("cardDot").classList.toggle("hide",!pk);
+    $("lvlBadge").textContent=S.lvl; }
   updateHUD(true);
 }
 function updateHUD(force){
@@ -175,12 +151,6 @@ function openShop(tab){
   }
 }
 function shopDeals(g){
-  for(const [k,p] of Object.entries(PACKS)){
-    const it=document.createElement("div"); it.className="item";
-    it.innerHTML=`<img class="packimg" src="${packArt(k)}" alt=""><div class="nm">${p.name}</div><div class="meta">${p.n} player cards${p.guarantee?` · 1 ${RARITY[p.guarantee].name}+`:""}</div><div class="cost ${S.medals>=p.cost?"":"bad"}">${p.cost} 🏅</div>`;
-    it.onclick=()=>{ if(!pay("medals",p.cost)) return toast("Not enough Brownlow votes 🏅"); S.packs[k]=(S.packs[k]||0)+1; save(); openPackFlow(k); };
-    g.append(it);
-  }
   for(const r of ["pies","drink"]){
     const it=document.createElement("div"); it.className="item"; const room=Math.max(0,capOf(r)-S[r]), amt=Math.floor(room*.25), cost=Math.max(15,Math.ceil(amt/120));
     it.innerHTML=`<div class="pack" style="--pc:${r==="pies"?"#e9a92a":"#1aa3d6"}">${resIcon(r)}</div><div class="nm">Top up ${r==="pies"?"pies":"drink"}</div><div class="meta">+${fmt(amt)} (a quarter of your free space)</div><div class="cost ${S.medals>=cost?"":"bad"}">${cost} 🏅</div>`;
@@ -250,46 +220,6 @@ function openSquad(tab){
     document.querySelectorAll("[data-hs]").forEach(el=>el.onclick=()=>{ const st=S.heroes[el.dataset.hs]; if(pay("medals",speedCost(st.busy.end))){ st.busy.end=Date.now(); processTimers(); } else toast("Not enough Brownlow votes 🏅"); render(); });
   };
   render();
-}
-
-// ---------- cards ----------
-let cardTab="Team Sheet";
-function cardHTML(c,opts={}){
-  const lv=cardLevel(c.id), owned=lv>0, pr=cardProgress(c.id), inTeam=S.team.includes(c.id);
-  return `<div class="pcard ${owned?"":"locked"} ${inTeam&&!opts.noTick?"inteam":""}" data-card="${c.id}"><img src="${cardArt(c)}">${owned?`<span class="lv">Lv ${lv}</span>`:""}${inTeam&&!opts.noTick?'<span class="tick">✔</span>':""}
-    ${owned&&!opts.noBar&&pr.need?`<div class="cbar"><div style="width:${Math.min(100,100*pr.have/pr.need)}%"></div><span>${pr.have}/${pr.need}</span></div>`:""}</div>`;
-}
-function openCards(tab){
-  cardTab=tab||cardTab;
-  let h=`<h2>Player Cards</h2>${tabsHTML(["Team Sheet","Collection","Packs"],cardTab)}`;
-  const owned=CARDS.filter(c=>cardLevel(c.id)>0);
-  if(cardTab==="Team Sheet"){
-    const slots=teamSlots(th());
-    h+=`<p class="center">Pick up to <b>${slots}</b> card${slots>1?"s":""}. Each one boosts your squad by position.</p><div class="sheet">`;
-    for(let i=0;i<slots;i++){ const id=S.team[i]; h+= id?cardHTML(cardById(id),{noBar:true,noTick:true}):`<div class="pcard empty">+</div>`; }
-    h+=`</div><div class="effects">${Object.keys(POS_EFFECT).map(p=>{ const b=cardBonus(p); return `<div class="stat"><span>${POS_EFFECT[p]}</span><b>${b?"+"+Math.round(b*100)+"%":"–"}</b></div>`; }).join("")}</div>`;
-    h+=`<h3>Your cards (tap to add or remove)</h3><div class="cgrid">${owned.sort((a,b)=>cardPower(b.id)-cardPower(a.id)).map(c=>cardHTML(c)).join("")||"<i>No cards yet. Open a pack!</i>"}</div>`;
-  }
-  if(cardTab==="Collection"){
-    h+=`<p class="center">${owned.length} / ${CARDS.length} collected</p>`;
-    for(const [ci,c] of CLUBS.entries()) h+=`<h3 class="clubh">${badgeImg(c,"sm")} ${c.name}</h3><div class="cgrid">${CARDS.filter(x=>x.club===ci).map(x=>cardHTML(x)).join("")}</div>`;
-  }
-  if(cardTab==="Packs"){
-    h+=`<div class="grid">`;
-    for(const [k,p] of Object.entries(PACKS)){ const n=S.packs[k]||0;
-      h+=`<div class="item ${n?"":"off"}" data-pack="${k}"><img class="packimg" src="${packArt(k)}" alt=""><div class="nm">${p.name}</div><div class="meta">You have ${n}</div><div class="cost">${n?"Open":"Win matches or visit the shop"}</div></div>`; }
-    h+=`</div>`;
-  }
-  modal(h); bindTabs(openCards); tut("cards"); tut("tab-"+cardTab);
-  document.querySelectorAll("[data-card]").forEach(el=>el.onclick=()=>{ const id=el.dataset.card; if(!cardLevel(id)) return; if(cardTab!=="Team Sheet") return showCard(id); toggleTeam(id); sfx("tap",.4); openCards(); tut("team"); });
-  document.querySelectorAll("[data-pack]").forEach(el=>el.onclick=()=>{ if(S.packs[el.dataset.pack]>0) openPackFlow(el.dataset.pack); });
-}
-function showCard(id){ const c=cardById(id); modal(`<div class="center"><div class="sheet">${cardHTML(c)}</div><h2>${c.name}</h2><div>${CLUBS[c.club].name} · ${RARITY[c.rarity].name} ${POS_NAME[c.pos]}</div><div class="stat"><span>${POS_EFFECT[c.pos]}</span><b>+${Math.round(cardPower(id)*100)}%</b></div><br><button class="btn" id="back">Back</button></div>`); $("back").onclick=()=>openCards(); }
-function openPackFlow(k){
-  const got=openPack(k); if(!got) return;
-  modal(`<h2>${PACKS[k].name}</h2><div class="reveal">${got.map((c,i)=>`<div class="flip" style="animation-delay:${i*.35}s">${cardHTML(c,{noBar:true,noTick:true})}<div class="newtag">${S.cards[c.id]===1?"NEW!":"+1"}</div></div>`).join("")}</div><div class="center"><button class="btn green" id="pk">Nice!</button></div>`);
-  got.forEach((c,i)=>setTimeout(()=>sfx(c.rarity==="legend"||c.rarity==="epic"?"cheer":"card",.6),i*350)); tut("pack");
-  $("pk").onclick=()=>openCards("Team Sheet"); uiDirty=true;
 }
 
 // ---------- tasks / log / match ----------
@@ -370,11 +300,11 @@ function showResult(r){
     <div class="stat"><span>Pies</span><b>+${fmt(r.got.pies)} 🥧</b></div><div class="stat"><span>Drink</span><b>+${fmt(r.got.drink)} 💧</b></div>
     ${r.ranked?`<div class="stat"><span>Trophies</span><b>${r.tro>=0?"+":""}${r.tro} 🏆</b></div>`:""}
     ${r.starRes?`<div class="stat"><span>⭐ Star Bonus</span><b>+${fmt(r.starRes.pies)} 🥧 +${fmt(r.starRes.drink)} 💧</b></div>`:r.stars&&["match","pvp","revenge"].includes(BT&&BT.kind)?`<div class="stat"><span>⭐ Star Bonus</span><b>${Math.min(S.starBonus.stars,STAR_GOAL)}/${STAR_GOAL} stars</b></div>`:""}${r.medals?`<div class="stat"><span>Win bonus</span><b>+${r.medals} 🏅</b></div>`:""}
-    ${r.pack?`<div class="stat"><span>Reward</span><b><img class="packmini" src="${packArt(r.pack)}" alt=""> ${PACKS[r.pack].name}</b></div>`:""}
+    ${r.tokens?`<div class="stat"><span>Reward</span><b>+${r.tokens} 🎟️ Footy Token · ${S.tokens||0} total</b></div>`:""}
     ${r.full?`<p>Some loot didn't fit. Build more storage!</p>`:""}<br>
-    ${r.pack?`<button class="btn gold" id="openNow">Open Pack</button> `:""}<button class="btn green" id="goHome">Return Home</button></div>`,{noClose:true});
+    ${(S.tokens||0)>=PACK_COST?`<button class="btn gold" id="openNow">Card Album</button> `:""}<button class="btn green" id="goHome">Return Home</button></div>`,{noClose:true});
   $("goHome").onclick=()=>{ closeModal(); leaveBattle(); tut("home"); };
-  const on=$("openNow"); if(on) on.onclick=()=>{ leaveBattle(); openPackFlow(r.pack); };
+  const on=$("openNow"); if(on) on.onclick=()=>{ closeModal(); leaveBattle(); openAlbum(); };
 }
 function openSettings(){
   const acct = !NET.online ? `<div class="stat"><span>Online play</span><span class="tiny">on footy-fortress.pages.dev</span></div>`
@@ -402,7 +332,7 @@ $("btnShop").onclick=()=>openShop();
 $("btnSquad").onclick=()=>openSquad();
 $("btnAttack").onclick=openMatch;
 $("btnSettings").onclick=openSettings;
-$("btnCards").onclick=()=>openCards();
+$("btnCards").onclick=()=>openAlbum();
 $("btnTasks").onclick=openTasks;
 $("btnLog").onclick=openLog;
 $("btnSocial").onclick=()=>openSocial();
@@ -469,7 +399,7 @@ function homeTap(gx,gy){
 }
 
 // ---------- card pack artwork: a foil footy-card pack in bronze, silver or gold ----------
-const PACK_FOIL = {bronze:["#f3c08a","#b86a2c","#6e3a14"], silver:["#ffffff","#b9c4cf","#5d6875"], gold:["#fff3b0","#f2b51f","#8a5a06"]};
+const PACK_FOIL = {footy:["#ffffff","#b9c4cf","#5d6875"], prize:["#fff3b0","#f2b51f","#8a5a06"]};
 function packArt(kind, W=180, H=240){
   const key="pack"+kind+W; if(iconCache[key]) return iconCache[key];
   const c=document.createElement("canvas"); c.width=W; c.height=H; const g=c.getContext("2d"), P=PACKS[kind], [hi,mid,lo]=PACK_FOIL[kind];
@@ -497,10 +427,10 @@ function packArt(kind, W=180, H=240){
   word("FORTRESS",H*.27,W*.15,"#ffd34d");
   // ribbon with pack name and card count
   g.fillStyle="#1b1206"; g.beginPath(); g.roundRect(W*.08,H*.66,W*.84,H*.19,10); g.fill();
-  g.fillStyle=kind==="gold"?"#c8102e":kind==="silver"?"#0b2a6f":"#5a2a0c"; g.beginPath(); g.roundRect(W*.1,H*.67,W*.8,H*.17,8); g.fill();
+  g.fillStyle=kind==="prize"?"#c8102e":kind==="footy"?"#0b2a6f":"#5a2a0c"; g.beginPath(); g.roundRect(W*.1,H*.67,W*.8,H*.17,8); g.fill();
   word(P.name.toUpperCase(),H*.725,W*.105,"#fff");
   g.font=`${W*.085}px "Lilita One","Trebuchet MS",sans-serif`; g.textAlign="center"; g.textBaseline="middle"; g.fillStyle="#ffe07a"; g.fillText(`${P.n} PLAYER CARDS`,W/2,H*.795);
-  if(kind==="gold"){ for(const [x,y] of [[.18,.42],[.84,.36],[.8,.6]]){ g.fillStyle="#fff"; g.beginPath(); for(let i=0;i<8;i++){ const r=i%2?3:10, a=i*Math.PI/4; g.lineTo(W*x+Math.cos(a)*r,H*y+Math.sin(a)*r); } g.fill(); } }
+  if(kind==="prize"){ for(const [x,y] of [[.18,.42],[.84,.36],[.8,.6]]){ g.fillStyle="#fff"; g.beginPath(); for(let i=0;i<8;i++){ const r=i%2?3:10, a=i*Math.PI/4; g.lineTo(W*x+Math.cos(a)*r,H*y+Math.sin(a)*r); } g.fill(); } }
   return iconCache[key]=c.toDataURL();
 }
 // side button: a little fan of player cards instead of the joker emoji

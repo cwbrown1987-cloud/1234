@@ -17,7 +17,7 @@ const CLASH_DIFFS = [
   "<b>Revenge</b> always gets back at least what they took.",
   "<b>Brownlow votes 🏅</b> are your gems: rare, 500 to start, the 2nd groundskeeper costs 250, up to 6 groundskeepers.",
   "<b>Scoring is footy:</b> knock a building down for a goal, the home side gets behinds. ★ win, ★★ plus Clubhouse, ★★★ flattened.",
-  "<b>Footy extras:</b> your hero is your club's real captain, player cards boost your squad, and the Season is a real ladder with finals.",
+  "<b>Footy extras:</b> your hero is your club's real captain, the Season is a real ladder with finals, and there's a card album of every AFL player to collect (cards don't change stats).",
   "<b>Online:</b> sign in (Settings) to attack real players and join a Cheer Squad (clan). Wars aren't in yet.",
 ];
 // Picture for each of our things, found by its name
@@ -107,11 +107,10 @@ const TUT = [
   {say:"", wait:"battleEnd", hidden:true},
   {say:"Wins earn premiership points, trophies 🏆, loot and card packs. Tap Return Home.", el:"#goHome", wait:"home"},
   // 6. cards
-  {say:"Here's a Silver Pack on me. Tap Cards.", el:"#btnCards", wait:"cards", prep:()=>{ S.packs.silver=(S.packs.silver||0)+1; uiDirty=true; }},
-  {say:"Tap the Packs tab.", el:'[data-tab="Packs"]', wait:"tab-Packs"},
-  {say:"Tap your Silver Pack to open it.", el:'[data-pack="silver"]', wait:"pack"},
-  {say:"Real AFL players! Tap Nice! to see your collection.", el:"#pk", wait:"cards"},
-  {say:"Tap a card to put it on your Team Sheet. Each card boosts your players in that position.", el:".cgrid [data-card]", wait:"team"},
+  {say:"Every match you win earns a Footy Token 🎟️. 3 tokens opens a pack of real AFL player cards for your album. Here's 3 on me. Tap Cards.", el:"#btnCards", wait:"cards", prep:()=>{ earnTokens(3); }},
+  {say:"Tap Open Footy Pack.", el:"#openPackBtn", wait:"pack"},
+  {say:"6 players and a special! They go into your album, sorted by club. Tap Done.", el:"#pk", wait:"album"},
+  {say:"Tap any card to flip it and see the player's real stats. Collect them all!", next:true},
   {say:"Close this. Next goals: build a Pie Warmer and Esky so you can hold more, then a fence and a Goal Tower. 📋 Tasks pay Brownlow votes every day, and 🛡️ Home shows when other clubs raid you.", el:"#side", next:true},
   {say:"That's the lot! Upgrade your Clubhouse to unlock more buildings, players and your captain. Here's 10 🏅 to get going. Good luck!", next:true, finish:true},
 ];
@@ -150,7 +149,7 @@ function tutFrame(){
   const hand=$("tutHand"), box=$("tut");
   if(!tutActive()){ hand.classList.add("hide"); return; }
   const st=TUT[S.tut]; let x=null, y=null;
-  if(st.el){ const el=document.querySelector(st.el); if(el&&el.offsetParent!==null){ const r=el.getBoundingClientRect(); x=r.left+r.width/2; y=r.top+r.height/2; } }
+  if(st.el){ const el=document.querySelector(st.el); if(el&&el.offsetParent!==null){ let r=el.getBoundingClientRect(); if(r.bottom>innerHeight-10||r.top<0){ el.scrollIntoView({block:"center"}); r=el.getBoundingClientRect(); } x=r.left+r.width/2; y=r.top+r.height/2; } }
   else if(st.world){ const w=st.world(); if(w){ const [px,py]=P(w[0],w[1],w[2]||0); x=px*innerWidth/W; y=py*innerHeight/H; } }
   if(st.hidden||x===null){ hand.classList.add("hide"); }
   else { hand.classList.remove("hide"); hand.style.left=x+"px"; hand.style.top=y+"px"; }

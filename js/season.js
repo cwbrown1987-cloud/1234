@@ -48,11 +48,11 @@ function seasonResult(my,their){
     s.round++;
     if(s.round>=ROUNDS){
       const pos=ladderPos(S.club); s.place=pos;
-      if(pos<=8){ s.finals={stage:0}; note=`You finished ${ordinal(pos)}. Finals footy!`; S.packs.silver=(S.packs.silver||0)+1; }
+      if(pos<=8){ s.finals={stage:0}; note=`You finished ${ordinal(pos)}. Finals footy!`; earnTokens(2); }
       else { s.over=true; note=`You finished ${ordinal(pos)}. No finals this year.`; }
     }
   } else {
-    if(res==="W"){ if(s.finals.stage===3){ s.over=true; s.premiers=true; S.premierships++; S.medals+=40; S.packs.gold=(S.packs.gold||0)+1; note="PREMIERS! +40 🏅 and a Gold Pack"; }
+    if(res==="W"){ if(s.finals.stage===3){ s.over=true; s.premiers=true; S.premierships++; S.medals+=40; S.prizePacks=(S.prizePacks||0)+1; note="PREMIERS! +40 🏅 and a Prize Pack"; }
                    else { s.finals.stage++; note=`Through to the ${FINALS[s.finals.stage]}!`; } }
     else { s.over=true; note=res==="D"?"A drawn final… and you lost the replay. Season over.":`Knocked out in the ${FINALS[s.finals.stage]}.`; }
   }

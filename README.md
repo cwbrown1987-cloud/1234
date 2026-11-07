@@ -1,6 +1,6 @@
 # Footy Fortress
 
-A Clash-style base builder with all 18 AFL clubs. Play at **https://footy-fortress.pages.dev** or open `index.html` in a browser. Made for phones; progress saves on the device.
+A Clash-style base builder with all 18 AFL clubs. Play at **https://ff.backyardlegendsgames.app** (also https://footy-fortress.pages.dev) or open `index.html` in a browser. Made for phones; progress saves on the device.
 
 Unofficial fan game, not affiliated with the AFL or its clubs.
 

@@ -1,5 +1,5 @@
 // ---------- Game data ----------
-const VERSION = "2026.11.08.1";
+const VERSION = "2026.11.08.2";
 // Club names + colours. Logos: drop PNGs named <abbr>.png (e.g. coll.png) into the logos/ folder and they're used everywhere.
 // Player names checked against the 2026 trade period and retirements (lists for the 2027 season); edit freely.
 const CLUBS = [
@@ -141,9 +141,9 @@ CLUBS.forEach((c,ci)=>{
 const POS_NAME = {mid:"Midfielder", fwd:"Forward", ruck:"Ruckman", def:"Defender", coach:"Coach"};
 const POS_EFFECT = {mid:"Rovers & Crumbers hit harder", fwd:"Forwards & Seagulls hit harder", ruck:"Ruckmen & Blimps get tougher", def:"Your buildings get tougher on defence"};
 const PACKS = {
-  bronze:{name:"Bronze Pack", n:3, min:"common", cost:30,  col:"#c98a3a"},
-  silver:{name:"Silver Pack", n:5, min:"common", cost:80,  col:"#c8d0d8", guarantee:"rare"},
-  gold:  {name:"Gold Pack",   n:8, min:"rare",   cost:200, col:"#ffc531", guarantee:"epic"},
+  bronze:{name:"Bronze Pack", n:3, min:"common", cost:90,  col:"#c98a3a"},
+  silver:{name:"Silver Pack", n:5, min:"common", cost:220,  col:"#c8d0d8", guarantee:"rare"},
+  gold:  {name:"Gold Pack",   n:8, min:"rare",   cost:550, col:"#ffc531", guarantee:"epic"},
 };
 const teamSlots = th => Math.min(5, 1+Math.floor(th/2));
 

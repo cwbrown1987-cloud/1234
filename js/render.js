@@ -98,7 +98,7 @@ function drawBuilding(b, club, list, opts={}){
   const isNew = b.busy && b.busy.kind==="build";
   if(opts.selected) selectGlow(x,y,s);
   if(b.t!=="fence"){
-    if(!isNew) shadow(x+.3,y+.3,s-.6,s-.6);
+    if(!isNew) groundPatch(x,y,s);
     if(isNew || !artSprites.has(b.t)) pad(x,y,s);
   }
   let top=isNew?1.8:drawBuildingArt(b,club,opts);
@@ -373,7 +373,7 @@ function makeDeco(){
   for(let i=-10;i<N+10;i++) for(let j=-10;j<N+10;j++){
     if(i>=-2&&j>=-2&&i<=N+2&&j<=N+2) continue; // clear apron so border trees never hide the ground
     if(i>=-5&&j>=-5&&i<=N+1&&j<=N+1&&(i<0||j<0)) continue;
-    if(r()<(i<-2||j<-2||i>N+2||j>N+2?.28:.09)) deco.push({x:i+.2+r()*.6,y:j+.2+r()*.6,k:r()<.72?"tree":r()<.6?"bush":"rock",s:.7+r()*.3,h:r()});
+    if(false) deco.push({x:i+.2+r()*.6,y:j+.2+r()*.6,k:r()<.72?"tree":r()<.6?"bush":"rock",s:.7+r()*.3,h:r()});
   }
   for(let n=0;n<320;n++) tufts.push([r()*N,r()*N]);
   patches=[]; for(let n=0;n<26;n++) patches.push([r()*N,r()*N,1+r()*2.5,r()<.5]);
@@ -398,15 +398,7 @@ function drawDeco(t,ox=0,oy=0){
 function drawGround(){
   if(!deco) makeDeco();
   const [cx,cy]=P(N/2,N/2);
-  const radius=Math.max(W,H)*.88;
-  const light=ctx.createRadialGradient(cx-TW*3,cy-TH*6,0,cx,cy,radius);
-  light.addColorStop(0,"#a9ae52");
-  light.addColorStop(.56,"#728c36");
-  light.addColorStop(1,"#40591f");
-  ctx.fillStyle=light;
-  ctx.fillRect(0,0,W,H);
-
-  diamond(-1.3,-1.3,N+2.6,N+2.6,"#839347","#6f8036",Math.max(1,TW*.05));
+  drawStadiumBowl();
   diamond(0,0,N,N,"#91aa49");
   for(let i=0;i<N;i+=4) diamond(i,0,2,N,"#a4bb515c");
   for(const [a,b,r,dark] of patches){
@@ -429,7 +421,6 @@ function drawGround(){
     ctx.moveTo(x-s,y-s); ctx.lineTo(x,y); ctx.lineTo(x+s*.3,y-s*1.3);
   }
   ctx.stroke();
-  drawStadium();
 }
 
 // Draw a single building centred into a small canvas (shop thumbnails)

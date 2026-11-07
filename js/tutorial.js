@@ -41,7 +41,7 @@ function showClashGuide(fromChoice){
     return `<div class="vrow">${clashPic(a)}<a class="vclash" ${a.startsWith("(")||a==="Stars"?"":`href="${clashWiki(a)}" target="_blank" rel="noopener"`}>${a}${a.startsWith("(")||a==="Stars"?"":" ↗"}</a><span class="arrow">→</span>${pic?`<img src="${pic}" alt="">`:`<span class="noimg"></span>`}<span class="vours">${b}</span></div>`; }).join("")}</div>`).join("");
   modal(`<h2>Footy Fortress for Clash players</h2><p class="center">Same game, footy style. Clash on the left, Footy Fortress on the right. Tap a Clash name to see it on the Clash wiki.</p>${rows}
     <h3>How it works (same as Clash today)</h3><ul class="diffs">${CLASH_DIFFS.map(d=>`<li>${d}</li>`).join("")}</ul>
-    ${SUPERCELL_NOTE}<div class="center"><button class="btn green big" id="gotIt">${fromChoice?"Got it, let's build":"Got it"}</button></div>`);
+    ${SUPERCELL_NOTE}<div class="center"><button class="btn green big" id="gotIt">${fromChoice?"Got it, let's build":"Got it"}</button></div>`,{noClose:!!fromChoice});
   $("gotIt").onclick=()=>{ closeModal(); if(fromChoice) startTutorial(); };
 }
 function showTutorialChoice(){
@@ -110,9 +110,10 @@ const TUT = [
   {say:"Wins earn premiership points, trophies 🏆, loot and card packs. Tap Return Home.", el:"#goHome", wait:"home"},
   // 6. cards
   {say:"Every match you win earns a Footy Token 🎟️. 3 tokens opens a pack of real AFL player cards for your album. Here's 3 on me. Tap Cards.", el:"#btnCards", wait:"cards", prep:()=>{ earnTokens(3); }},
-  {say:"Tap Open Footy Pack.", el:"#openPackBtn", wait:"pack"},
-  {say:"6 players and a special! They go into your album, sorted by club. Tap Done.", el:"#pk", wait:"album"},
-  {say:"Tap any card to flip it and see the player's real stats. Collect them all!", next:true},
+  {say:"Tap Open Pack.", el:"#openPackBtn", wait:"pack"},
+  {say:"Slide your finger across the top of the pack to tear it open!", el:"#packTear .tearline", wait:"torn"},
+  {say:"6 players and a special! Tap a card to see its stats, or tap Done to put them in your album.", el:"#pk", wait:"album"},
+  {say:"Your cards sit in the binder, sorted by club. Tap one to see its stats, and tap the big card to flip it. Collect them all!", next:true},
   {say:"Close this. Next goals: build a Pie Warmer and Esky so you can hold more, then a fence and a Goal Tower. 📋 Tasks pay Brownlow votes every day, and 🛡️ Home shows when other clubs raid you.", el:"#side", next:true},
   {say:"That's the lot! Upgrade your Clubhouse to unlock more buildings, players and your captain. Here's 10 🏅 to get going. Good luck!", next:true, finish:true},
 ];

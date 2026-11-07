@@ -92,7 +92,7 @@ function updateHUD(force){
 
 function buildSelPanel(sp){
   const o=selected;
-  if(!BLD[o.t]){ const d=obsInfo(o); sp.innerHTML=`<div class="title">${d.name}</div><div class="acts"></div>`; addBtn(sp,"btn gold",`Clear<small>${fmt(d.cost)} ${resIcon(d.res)}</small>`,()=>removeObstacle(o)); return; }
+  if(!BLD[o.t]){ const d=obsInfo(o); sp.innerHTML=`<div class="title">${d.name}${o.busy?" · clearing…":""}</div><div class="acts"></div>`; if(o.busy) return; addBtn(sp,"btn gold",`Clear<small>${fmt(d.cost)} ${resIcon(d.res)}</small>`,()=>removeObstacle(o)); return; }
   const d=BLD[o.t];
   sp.innerHTML=`<div class="title">${d.name} <span style="color:var(--gold)">Lv ${o.lv}</span>${o.busy?` · <span class="timer"></span>`:""}</div><div class="acts"></div>`;
   addBtn(sp,"btn blue","ℹ️<small>Info</small>",()=>openInfo(o));

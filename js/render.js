@@ -300,7 +300,8 @@ function drawFence(b,club,list,lv){
 }
 function drawTrap(b){ const [x,y]=P(b.x+.5,b.y+.5); ctx.fillStyle="#425657"; ctx.strokeStyle=OUT; ctx.lineWidth=1.5; ctx.beginPath(); ctx.ellipse(x,y,TW*.21,TH*.23,0,0,7); ctx.fill(); ctx.stroke();
   ctx.beginPath(); ctx.arc(x,y-TH*.15,TW*.06,0,7); ctx.fillStyle="#d6ad59"; ctx.fill(); ctx.stroke(); }
-function rubble(x,y,s){ const sprite=artSprites.get("rubble"); if(sprite && paintArt(sprite,...P(x+s/2,y+s/2),TW*s*.86/sprite.w,.75)) return; poly([P(x+.1,y+.1),P(x+s-.1,y+.1),P(x+s-.1,y+s-.1),P(x+.1,y+s-.1)],"#6d5d48","#4a3f33",1);
+function rubble(x,y,s){ const sprite=artSprites.get("rubble");
+  if(sprite){ const [px,py]=P(x+s/2,y+s/2); ctx.save(); ctx.translate(px,py); ctx.scale(1,.6); paintArt(sprite,0,0,TW*s*.82/sprite.w,.7); ctx.restore(); return; } poly([P(x+.1,y+.1),P(x+s-.1,y+.1),P(x+s-.1,y+s-.1),P(x+.1,y+s-.1)],"#6d5d48","#4a3f33",1);
   const r=rng(x*131+y*7); for(let i=0;i<s*s*1.5+1;i++){ const a=x+.2+r()*(s-.5),c=y+.2+r()*(s-.5); prism(a,c,.22+r()*.15,.22+r()*.15,0,.15+r()*.25,r()<.5?"#9a8f80":"#b07a4a"); } }
 function scaffold(b,s){
   const x=b.x,y=b.y,h=b.busy.kind==="build"?1.4:2.2;
@@ -411,6 +412,7 @@ function drawObstacle(o){
   const g=ctx.createRadialGradient(cx,cy,0,cx,cy,rx);
   g.addColorStop(0,"#1c3a0c55"); g.addColorStop(.75,"#1c3a0c22"); g.addColorStop(1,"#1c3a0c00");
   ctx.save(); ctx.translate(cx,cy); ctx.scale(1,ry/rx); ctx.translate(-cx,-cy); ctx.fillStyle=g; ctx.beginPath(); ctx.arc(cx,cy,rx,0,7); ctx.fill(); ctx.restore();
+  if(o.busy){ ctx.save(); ctx.globalAlpha=.75; } // being cleared: faded, with a progress bar on top
   const items = o.s ? OBS_LAYOUT[o.k] : [[o.k,.5,.55,o.k==="tree"?.85:o.k==="bush"?.8:.9]];
   for(const [k,dx,dy,sc] of items){
     const [x,y]=P(o.x+dx,o.y+dy), z=sc*(.94+v*.12), kk=TW*.5*z;
@@ -419,6 +421,8 @@ function drawObstacle(o){
     else if(k==="pebble") drawPebble(x,y,kk);
     else drawDeco({x:o.x+dx,y:o.y+dy,k,s:z,h:v});
   }
+  if(o.busy){ ctx.restore(); const left=Math.max(0,(o.busy.end-Date.now())/1000), [bx,by]=P(o.x+s/2,o.y+s/2,s+1.2);
+    bar(bx,by,1-left/(o.busy.total||1),"#5fd16b",TW*1.2); txt("🪓 "+fmtTime(left),bx,by-TH*.45,TH*.55); }
 }
 // Wattle bush: round leafy clumps with little yellow flowers
 function drawBush(x,y,k,seed){

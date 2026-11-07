@@ -4,6 +4,18 @@ Repo: `github.com/cwbrown1987-cloud/Footy-Fortress`. Branch from `master`, name 
 
 This is a **visual-only** job. Don't change gameplay numbers, save data (`localStorage` key `footyFortress2`), names or rules. Old saves must still load.
 
+## 0. Scope: what to redraw, and what to leave alone
+**Redraw / create:**
+- Every **character**: the 9 field units (animated), head variations, 18 captains, 54 Hero Hall heroes, and the Head Coach.
+- **Two new buildings only:** Kit Room and Hero Hall.
+- **Cards:** 198 portraits, rarity and special frames, card back, binder album art, and the two packs.
+
+**Do NOT redraw** (these already have finished art, so leave them exactly as they are):
+- All other buildings: Clubhouse, Pie Shop, Drink Tap, Pie Warmer, Esky, Training Oval, Interchange Bench, Physio Room, Coaches Box, Locker Room, Coach's Office, Shed, Goal Tower, Siren, Catapult, Floodlight, Sprinkler and Fences.
+- The stadium, ground, crowd, trees, rocks and obstacles.
+- The HUD, buttons, icons, menus and fonts.
+- The card layout. The game already draws the card (`cardFace()` in `js/cards.js`, matching `docs/card-style-reference.png`) and puts the rating, name, badges and stat bars on top of your art. Supply the portrait and frame images only.
+
 ## 1. Read these first
 - `js/data.js`: clubs (`CLUBS`: colours `a`/`b`/`c`, captain `hero.name`), units (`UNITS`), heroes (`HEROES`, `HERO_POS`), buildings (`BLD`).
 - `js/art.js`: how sprites are loaded (`loadArtSheet`), recoloured per club (`clubKit`, `portraitKit`), and drawn (`drawPlayerArt`, `drawBuildingArt`). Also `namedHeroArt` (captain likenesses) and `HERO_ART` (placeholder bodies for the new heroes).

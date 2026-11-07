@@ -333,7 +333,8 @@ function renderBattle(){
     if(z.k==="rain") rainDrops(z); }
   const ents=[];
   for(const t of deco) ents.push({k:t.x+t.y,f:()=>drawDeco(t)});
-  for(const b of BT.buildings) ents.push({k:b.x+b.y+BLD[b.t].size,f:()=>drawBuilding(b,club,BT.buildings,{hideTraps:BT.mode==="attack",fill:.6,heroes:BT.homeHeroes||{captain:club}})});
+  // Knocked-down buildings are flat rubble on the ground: draw them first so players never hide behind them.
+  for(const b of BT.buildings) ents.push({k:b.hp<=0?-1e3+b.x+b.y:b.x+b.y+BLD[b.t].size,f:()=>drawBuilding(b,club,BT.buildings,{hideTraps:BT.mode==="attack",fill:.6,heroes:BT.homeHeroes||{captain:club}})});
   for(const u of BT.units) if(u.hp>0) ents.push({k:u.x+u.y+(u.air?40:0),f:()=>drawUnitB(u)});
   ents.sort((a,b)=>a.k-b.k).forEach(e=>e.f());
   for(const p of BT.proj){ if(p.t<0) continue; const x=p.x0+(p.x1-p.x0)*p.t, y=p.y0+(p.y1-p.y0)*p.t;

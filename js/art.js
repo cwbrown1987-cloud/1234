@@ -56,7 +56,7 @@ function paintArt(sprite, x, y, scale, anchor, face = 1, tilt = 0) {
 // The front of a building's base must stay inside the logical footprint.
 const artBuildings = {
   clubhouse: [.98,.81], pieshop: [.91,.82], drinktap: [.87,.83], piewarmer: [.91,.82],
-  esky: [.69,.81], oval: [.93,.54], kitroom: [.89,.82], herohall: [.89,.82], bench: [.91,.78], physio: [.9,.8],
+  esky: [.69,.81], oval: [1.0,.64], kitroom: [.89,.82], herohall: [.89,.82], bench: [.91,.78], physio: [.9,.8],
   coachbox: [.9,.84], locker: [.89,.82], office: [.89,.82], shed: [.95,.82],
   goalpost: [.85,.89], siren: [.87,.81], catapult: [.89,.83], floodlight: [.84,.92]
 };

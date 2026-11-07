@@ -354,3 +354,59 @@ p.clash{color:#8a6d45;font-size:13px;margin:-4px 0 6px}
 .gpiece .gi{font-size:28px;width:36px;text-align:center}
 .gpiece .btn{font-size:12px;padding:4px 8px}
 .tag.epic{background:#8e44ad}
+
+/* ---------- Footy Card Collectors album (layout from docs/card-style-reference.png) ---------- */
+.fcc{display:flex;flex-direction:column;gap:8px}
+.fccbanner{display:flex;flex-direction:column;align-items:center;padding:8px 10px;margin:0 44px 0 -4px;border:3px solid #2a1b0f;border-radius:12px;
+  background:repeating-linear-gradient(90deg,#7a4d28 0 46px,#6c4322 46px 48px),#6c4322;box-shadow:inset 0 2px 0 #ffffff33,0 4px 0 #0006;text-shadow:0 2px 0 #000}
+.fccbanner b{font-size:clamp(18px,5.6vw,28px);text-align:center;line-height:1;color:#fff3d6;letter-spacing:.5px;text-transform:uppercase}
+.fccbanner small{color:#ffd34d;font-size:14px}
+.clubstrip{display:flex;gap:5px;overflow-x:auto;padding:4px 2px 6px;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+.clubstrip::-webkit-scrollbar{display:none}
+.clubstrip button{flex:none;width:50px;display:flex;flex-direction:column;align-items:center;padding:3px;border:2px solid #0006;border-radius:9px;background:#2b2f38;color:#e9e3cf;font-size:10px;text-shadow:none}
+.clubstrip button.on{background:#ffe07a;border-color:#000;color:#3a2a18;box-shadow:0 0 0 2px #ffd34d}
+.clubstrip button.done{box-shadow:inset 0 0 0 2px #5fd16b}
+.binder{display:grid;grid-template-columns:1fr 14px 1fr;gap:6px;padding:10px 8px;border-radius:14px;border:3px solid #111;
+  background:radial-gradient(ellipse at 50% 0%,#3a3f4a,#1c1f26 70%);box-shadow:inset 0 0 0 2px #ffffff14,inset 0 0 0 6px #0005,0 5px 0 #0007}
+.bpage{display:grid;grid-template-columns:1fr 1fr;gap:6px;align-content:start}
+.rings{display:flex;flex-direction:column;justify-content:space-around;align-items:center;background:linear-gradient(90deg,#0000,#0008,#0000)}
+.rings i{width:16px;height:10px;border-radius:6px;background:linear-gradient(#e9eef3,#7e8a96);border:1px solid #000}
+.binder .acard{aspect-ratio:240/336}
+.binder .acard.empty{border-color:#ffffff30;background:#ffffff0d;color:#cbbf9f}
+.acard.sel img{outline:3px solid #fff;outline-offset:1px}
+.acard.t-s img{box-shadow:0 0 9px #5fb2ff,0 3px 0 #0005}.acard.t-g img{box-shadow:0 0 10px #ff5a5a,0 3px 0 #0005}.acard.t-p img{box-shadow:0 0 12px #ffd34d,0 3px 0 #0005}
+.statpanel{display:grid;grid-template-columns:118px 1fr;gap:10px;padding:10px;border-radius:14px;border:3px solid #111;background:linear-gradient(#262a33,#15171d);color:#e9e3cf;text-shadow:none}
+.spcard{cursor:pointer;text-align:center}.spcard img{width:100%;display:block;border-radius:8px}.spcard small{font-size:10px;opacity:.7}
+.spinfo h4{margin:0 0 6px;color:#ffd34d;text-transform:uppercase;font-size:15px;text-shadow:0 2px 0 #000}
+.sbar{display:grid;grid-template-columns:72px 1fr 24px;align-items:center;gap:6px;font-size:12px;margin:3px 0}
+.sbar i{height:9px;border-radius:5px;background:#0008;overflow:hidden;border:1px solid #000}.sbar i b{display:block;height:100%;border-radius:5px}
+.sbar em{font-style:normal;text-align:right}
+.spblurb{margin-top:8px;padding:6px 8px;border-radius:8px;border:2px solid #ffffff22;background:#0005;display:flex;flex-direction:column}
+.spblurb b{color:#ffd34d}.spblurb span{font-size:12px}
+.spinfo.wide{width:min(100%,320px);padding:10px;border-radius:12px;background:linear-gradient(#262a33,#15171d);color:#e9e3cf;text-shadow:none;margin:6px 0}
+.fccfoot{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center}
+.sets{display:grid;grid-template-columns:auto 1fr auto;gap:6px;align-items:center;padding:8px 10px;border-radius:12px;border:3px solid #111;background:#2b2f38;color:#e9e3cf;text-shadow:none}
+.sets i{height:10px;border-radius:5px;background:#0008;overflow:hidden}.sets i b{display:block;height:100%;background:#5fd16b}
+.openpack{position:relative;display:flex;flex-direction:column;align-items:center}
+.openpack .bang{position:absolute;top:-8px;right:-8px;width:22px;height:22px;border-radius:50%;background:#e8503a;border:2px solid #000;color:#fff;font-size:15px;line-height:18px}
+/* pack opening: slide to tear */
+.tearwrap{display:flex;justify-content:center;padding:70px 0 18px;touch-action:none;user-select:none;-webkit-user-select:none}
+.packbody{position:relative;width:min(62vw,240px);aspect-ratio:3/4;cursor:grab}
+.packbody img{-webkit-user-drag:none;pointer-events:none;position:absolute;inset:0;width:100%;height:100%;object-fit:contain;filter:drop-shadow(0 8px 10px #0008)}
+.packbody .ptop{z-index:3;clip-path:inset(0 0 87% 0);transform-origin:90% 20%;transition:transform .1s}
+.packbody .pbot{z-index:2;clip-path:inset(13% 0 0 0)}
+.tearline{z-index:4;position:absolute;left:4%;right:4%;top:12%;height:6px;border-radius:3px;background:repeating-linear-gradient(90deg,#fff 0 8px,#0000 8px 14px);opacity:.9}
+.tearline b{display:block;height:100%;width:0;background:#ffd34d;border-radius:3px;box-shadow:0 0 8px #ffd34d}
+.tearhand{z-index:5;position:absolute;top:6%;left:8%;font-size:30px;animation:tearhint 1.6s ease-in-out infinite;pointer-events:none}
+.tearwrap.tearing .tearhand,.tearwrap.torn .tearhand{display:none}
+.tearwrap.torn .ptop{transition:transform .6s ease-in,opacity .6s;transform:translate(60%,-140%) rotate(35deg)!important;opacity:0}
+.tearwrap.torn .pbot{animation:packshake .5s}
+@keyframes tearhint{0%{transform:translateX(0)}60%{transform:translateX(min(46vw,170px))}100%{transform:translateX(min(46vw,170px));opacity:0}}
+@keyframes packshake{0%,100%{transform:none}30%{transform:translateY(6px) scale(1.03)}60%{transform:translateY(-3px)}}
+.reveal .flip{cursor:pointer}
+.peek{position:absolute;left:16%;right:16%;top:16%;height:50%;z-index:1}
+.peek i{position:absolute;inset:0;border-radius:10px;border:3px solid #000;background:repeating-linear-gradient(45deg,#1b2a6b 0 10px,#22357f 10px 20px);box-shadow:inset 0 0 0 4px #ffd34d;transition:transform .5s ease-out}
+.tearwrap.torn .peek i:nth-child(1){transform:translateY(-36%) rotate(-7deg)}
+.tearwrap.torn .peek i:nth-child(2){transform:translateY(-46%);transition-delay:.08s}
+.tearwrap.torn .peek i:nth-child(3){transform:translateY(-36%) rotate(7deg);transition-delay:.16s}
+@media (prefers-reduced-motion:reduce){.tearhand{animation:none}}

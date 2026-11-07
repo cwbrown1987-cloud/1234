@@ -58,7 +58,7 @@ function startBattle(o){
   BT=makeBattle({mode:"attack", kind:o.kind, round:o.round, d:o.d, club:o.club, atkClub:S.club, buildings:o.buildings||genBase(o.d,o.seed),
     army:S.army, spells:S.spells, heroes, lvOf:u=>S.unitLv[u], heroStat:h=>heroStats(h), bonus:cardBonus, lootMul:(eventNow()&&eventNow().loot||1)*(o.lootMul||1), revenge:o.revenge});
   BT.sel = firstSel();
-  mode="battle"; selected=null; placing=null; cam.x=0; cam.y=0; setZoom(.8); sfx("whistle"); refreshUI();
+  mode="battle"; selected=null; placing=null; cam.x=0; cam.y=0; setZoom(.8); sfx("whistle"); refreshUI(); tut("battle");
 }
 function firstSel(){ const u=Object.keys(BT.left).find(u=>BT.left[u]>0); if(u) return {k:"unit",v:u}; const h=Object.keys(BT.heroesLeft).find(h=>BT.heroesLeft[h]); return h?{k:"hero",v:h}:null; }
 
@@ -236,7 +236,7 @@ function battleTap(x,y){
   if(!BT||BT.over||!BT.sel||BT.mode!=="attack") return;
   if(x<-1.5||y<-1.5||x>N+1.5||y>N+1.5) return;
   const {k,v}=BT.sel;
-  if(deployAt(k,v,x,y)){ if(k==="unit") sfx("tap",.2); autoSel(); uiDirty=true; }
+  if(deployAt(k,v,x,y)){ if(k==="unit") sfx("tap",.2); autoSel(); uiDirty=true; tut("deploy"); }
 }
 function autoSel(){ const s=BT.sel; const has = s&&(s.k==="unit"?BT.left[s.v]>0:s.k==="spell"?BT.spellsLeft[s.v]>0:BT.heroesLeft[s.v]); if(!has){ BT.sel=firstSel(); uiDirty=true; } }
 
@@ -284,6 +284,7 @@ function endBattle(){
   S.spells=Object.fromEntries(Object.entries(BT.spellsLeft).filter(([,n])=>n>0));
   S.shield=0; // attacking breaks your shield
   save(); sfx(stars?"cheer":"siren");
+  setTimeout(()=>tut("battleEnd"),50);
   showResult({stars,p,got,tro,medals,pack,club:CLUBS[BT.club].name, full:(got.pies<Math.floor(BT.loot.pies*mul)||got.drink<Math.floor(BT.loot.drink*mul))});
 }
 function leaveBattle(){ BT=null; mode="home"; cam.x=0; cam.y=0; setZoom(1); refreshUI(); }

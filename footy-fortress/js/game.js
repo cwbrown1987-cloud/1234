@@ -11,8 +11,8 @@ function newGame(club){
   const B=(t,x,y)=>({id:0,t,x,y,lv:1,busy:null,store:t==="pieshop"||t==="drinktap"?100:0});
   const s={v:3, club, pies:1500, drink:1500, medals:250, trophies:0, nextId:100,
     buildings:[B("clubhouse",c,c),B("pieshop",c-5,c-4),B("drinktap",c+6,c-4),B("piewarmer",c-4,c+1),B("esky",c+5,c+1),
-      B("oval",c-5,c+6),B("bench",c+1,c+7),B("goalpost",c+1,c-4),B("siren",c+6,c+5),B("shed",c-8,c),B("shed",c+10,c)],
-    obstacles:[], army:{rover:12,forward:6}, queue:[], trainAt:Date.now(), spells:{}, squeue:[], spellAt:Date.now(),
+      B("oval",c-5,c+6),B("bench",c+1,c+7),B("siren",c+6,c+5),B("shed",c-8,c),B("shed",c+10,c)],
+    obstacles:[], army:{rover:8,forward:4}, queue:[], trainAt:Date.now(), spells:{}, squeue:[], spellAt:Date.now(),
     unitLv:{}, research:null, heroes:{captain:{lv:1,busy:null},coach:{lv:1,busy:null}},
     season:Array(18).fill(0), cards:{}, team:[], packs:{silver:1}, daily:null, raids:[], nextRaid:Date.now()+8*60000, shield:0,
     sound:true, last:Date.now()};
@@ -77,7 +77,7 @@ function startPlacing(t){
   const st=shopStatus(t); if(!st.ok) return toast(st.why);
   if(!st.afford) return toast(`Not enough ${resIcon(st.res)}`);
   const s=BLD[t].size; const spot=findSpot(s); if(!spot) return toast("No room left!");
-  placing={t,x:spot[0],y:spot[1]}; selected=null; centreOn(spot[0]+s/2,spot[1]+s/2); refreshUI();
+  placing={t,x:spot[0],y:spot[1]}; selected=null; centreOn(spot[0]+s/2,spot[1]+s/2); refreshUI(); tut("placing");
 }
 function confirmPlace(){
   if(!placing) return;
@@ -87,7 +87,7 @@ function confirmPlace(){
   if(time>0 && !freeBuilder()) return toast("All groundskeepers are busy");
   if(!pay(d.res,cost)) return toast(`Not enough ${resIcon(d.res)}`);
   S.buildings.push({id:S.nextId++,t,x,y,lv:1,store:0,busy:time>0?{kind:"build",end:Date.now()+time*1000,total:time}:null});
-  sfx("build"); save();
+  sfx("build"); save(); tut("placed");
   if(t==="fence"){
     const st=shopStatus("fence"), nx=[[x+1,y],[x,y+1],[x-1,y],[x,y-1]].find(([a,c])=>footprintFree(a,c,1));
     placing = st.ok&&st.afford&&nx ? {t,x:nx[0],y:nx[1]} : null;
@@ -118,7 +118,7 @@ function collect(b){
   const d=BLD[b.t]; const n=Math.floor(b.store); if(n<1) return;
   const got=addRes(d.makes,n); b.store-=got;
   if(got<n) toast(`${d.makes==="pies"?"Pie Warmers":"Eskies"} are full!`);
-  if(got){ floatText(b.x+d.size/2,b.y+d.size/2,`+${got}`); track(d.makes,got); sfx("collect"); }
+  if(got){ floatText(b.x+d.size/2,b.y+d.size/2,`+${got}`); track(d.makes,got); sfx("collect"); tut("collect-"+d.makes); }
   save(); refreshUI();
 }
 
@@ -132,7 +132,7 @@ const unitCost = u => Math.round(UNITS[u].cost*unitMul(S.unitLv[u]));
 function trainUnit(u){
   if(usedSpace()+queuedSpace()+UNITS[u].space>armySpace()) return toast("Bench is full! Build or upgrade a bench.");
   if(!pay("drink",unitCost(u))) return toast("Not enough 💧");
-  if(!S.queue.length) S.trainAt=Date.now(); S.queue.push(u); sfx("tap",.3); save(); refreshUI();
+  if(!S.queue.length) S.trainAt=Date.now(); S.queue.push(u); sfx("tap",.3); save(); refreshUI(); tut("train");
 }
 function untrain(i){ const u=S.queue.splice(i,1)[0]; S.drink+=unitCost(u); if(i===0) S.trainAt=Date.now(); save(); refreshUI(); }
 const trainSpeed = () => Math.max(1,S.buildings.filter(b=>b.t==="oval"&&built(b)).length)*((eventNow()&&eventNow().train)||1);
@@ -290,6 +290,7 @@ function boot(){
   S=load();
   if(S){ const away=Math.min(24*3600,(Date.now()-S.last)/1000); produce(away); ensureDaily(); processTimers(); if(away>60&&!S.raids.some(r=>!r.seen)) toast(`Welcome back! You were away ${fmtTime(away)}.`); }
   else showClubPicker();
+  if(S&&typeof S.tut==="number") setTimeout(showTutStep,400);
   refreshUI(); requestAnimationFrame(frame);
   addEventListener("visibilitychange",()=>{ if(document.hidden&&mode==="home") save(); });
 }

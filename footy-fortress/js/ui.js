@@ -56,7 +56,7 @@ function refreshUI(){
   $("battleBottom").style.display=bat&&!replay?"flex":"none";
   $("replayBar").style.display=replay?"flex":"none";
   if(S){ const c=myClub(); $("clubName").textContent=c.name; $("g").src=badgeURL(c,96); }
-  const ev=S&&eventNow(); $("eventBanner").classList.toggle("hide",!home||!ev||!!placing); if(ev) $("eventBanner").innerHTML=`🎉 <b>${ev.name}</b> · ${ev.desc}`;
+  const ev=S&&eventNow(); $("eventBanner").classList.toggle("hide",!home||!ev||!!placing||(typeof tutActive==="function"&&tutActive())); if(ev) $("eventBanner").innerHTML=`🎉 <b>${ev.name}</b> · ${ev.desc}`;
   $("placePanel").style.display=home&&placing&&!placing.moving?"flex":"none";
   if(placing&&!placing.moving){ const d=BLD[placing.t]; $("placeName").textContent=`${d.name} · ${fmt(buildCost(placing.t))} ${resIcon(d.res)}`; }
   const sp=$("selPanel"); sp.innerHTML="";
@@ -87,7 +87,7 @@ function updateHUD(force){
     const s=starsNow(); $("bStars").innerHTML="★".repeat(s)+`<span class="dim">${"★".repeat(3-s)}</span>`;
     $("bPct").textContent=Math.floor(pct())+"%";
     const t=Math.max(0,Math.ceil(BT.time)); $("bTime").textContent=Math.floor(t/60)+":"+String(t%60).padStart(2,"0");
-    $("battleHint").style.display=BT.started||replay?"none":"block";
+    $("battleHint").style.display=BT.started||replay||tutActive()?"none":"block";
     const ab=$("abilities"); const want=replay?[]:Object.keys(BT.heroU).filter(h=>BT.heroU[h].hp>0&&!BT.abilityUsed[h]);
     if(ab.dataset.k!==want.join()){ ab.dataset.k=want.join(); ab.innerHTML=""; for(const h of want){ const b=document.createElement("button"); b.className="btn gold"; b.textContent="⚡ "+BT.heroStat(h).ability; b.onclick=()=>useAbility(h); ab.append(b); } }
   }
@@ -136,19 +136,19 @@ const bindTabs=fn=>document.querySelectorAll("[data-tab]").forEach(b=>b.onclick=
 function showClubPicker(){
   modal(`<h2>Pick your club</h2><p class="center">Build your ground, train your squad and take on the rest of the league.</p><p class="center tiny">Unofficial fan game. Not affiliated with the AFL or its clubs.</p><div class="clubs" id="clubList"></div>`,{noClose:true});
   CLUBS.forEach((c,i)=>{ const b=document.createElement("button"); b.innerHTML=`${badgeImg(c)}<span>${c.name}<small>⭐ ${c.hero.name}</small></span>`;
-    b.onclick=()=>{ newGame(i); closeModal(); cam.x=0; cam.y=0; setZoom(1); refreshUI(); sfx("cheer"); toast(`Welcome to Footy Fortress, ${c.name}!`); }; $("clubList").append(b); });
+    b.onclick=()=>{ newGame(i); closeModal(); cam.x=0; cam.y=0; setZoom(1); refreshUI(); sfx("cheer"); showTutorialChoice(); }; $("clubList").append(b); });
 }
 
 let shopTab="Resources";
 function openShop(tab){
   shopTab=tab||shopTab;
   modal(`<h2>Shop</h2>${tabsHTML(Object.keys(SHOP_TABS),shopTab)}<div class="grid" id="shopGrid"></div>`);
-  bindTabs(openShop);
+  bindTabs(openShop); tut("shop"); tut("tab-"+shopTab);
   const g=$("shopGrid");
   if(shopTab==="Deals") return shopDeals(g);
   for(const t of SHOP_TABS[shopTab]){
     const d=BLD[t], st=shopStatus(t);
-    const it=document.createElement("div"); it.className="item"+(st.ok?"":" off");
+    const it=document.createElement("div"); it.className="item"+(st.ok?"":" off"); it.dataset.t=t;
     it.append(thumb(t,myClub()));
     it.insertAdjacentHTML("beforeend",`<div class="nm">${d.name}</div><div class="meta">Built ${st.have}/${st.lim||MAXC[t][th()-1]}${d.time[0]?" · ⏱ "+fmtTime(d.time[0]):""}</div>`+
       (st.ok?`<div class="cost ${st.afford?"":"bad"}">${fmt(st.cost)} ${resIcon(st.res)}</div>`:`<div class="cost bad">${st.why}</div>`));
@@ -223,7 +223,7 @@ function openSquad(tab){
     }
     const sc=$("modalBody").parentElement.scrollTop;
     modal(h,{tick:render}); $("modalBody").parentElement.scrollTop=sc;
-    bindTabs(t=>{ squadTab=t; render(); });
+    bindTabs(t=>{ squadTab=t; render(); }); tut("squad");
     document.querySelectorAll("[data-u]").forEach(el=>el.onclick=()=>{ const k=el.dataset.u; if(!unlockedUnits().includes(k)) return toast("Upgrade your Training Oval to unlock"); trainUnit(k); render(); });
     document.querySelectorAll("#q .q").forEach(el=>el.onclick=()=>{ untrain(+el.dataset.i); render(); });
     document.querySelectorAll("[data-s]").forEach(el=>el.onclick=()=>{ if(!unlockedSpells().includes(el.dataset.s)) return toast("Upgrade your Physio Room"); brewSpell(el.dataset.s); render(); });
@@ -247,7 +247,7 @@ function openCards(tab){
   const owned=CARDS.filter(c=>cardLevel(c.id)>0);
   if(cardTab==="Team Sheet"){
     const slots=teamSlots(th());
-    h+=`<p class="center">Pick up to <b>${slots}</b> cards. Each one boosts your squad by position.</p><div class="sheet">`;
+    h+=`<p class="center">Pick up to <b>${slots}</b> card${slots>1?"s":""}. Each one boosts your squad by position.</p><div class="sheet">`;
     for(let i=0;i<slots;i++){ const id=S.team[i]; h+= id?cardHTML(cardById(id),{noBar:true,noTick:true}):`<div class="pcard empty">+</div>`; }
     h+=`</div><div class="effects">${Object.keys(POS_EFFECT).map(p=>{ const b=cardBonus(p); return `<div class="stat"><span>${POS_EFFECT[p]}</span><b>${b?"+"+Math.round(b*100)+"%":"–"}</b></div>`; }).join("")}</div>`;
     h+=`<h3>Your cards (tap to add or remove)</h3><div class="cgrid">${owned.sort((a,b)=>cardPower(b.id)-cardPower(a.id)).map(c=>cardHTML(c)).join("")||"<i>No cards yet. Open a pack!</i>"}</div>`;
@@ -262,15 +262,15 @@ function openCards(tab){
       h+=`<div class="item ${n?"":"off"}" data-pack="${k}"><div class="pack" style="--pc:${p.col}">🃏<b>${p.n}</b></div><div class="nm">${p.name}</div><div class="meta">You have ${n}</div><div class="cost">${n?"Open":"Win matches or visit the shop"}</div></div>`; }
     h+=`</div>`;
   }
-  modal(h); bindTabs(openCards);
-  document.querySelectorAll("[data-card]").forEach(el=>el.onclick=()=>{ const id=el.dataset.card; if(!cardLevel(id)) return; if(cardTab!=="Team Sheet") return showCard(id); toggleTeam(id); sfx("tap",.4); openCards(); });
+  modal(h); bindTabs(openCards); tut("cards"); tut("tab-"+cardTab);
+  document.querySelectorAll("[data-card]").forEach(el=>el.onclick=()=>{ const id=el.dataset.card; if(!cardLevel(id)) return; if(cardTab!=="Team Sheet") return showCard(id); toggleTeam(id); sfx("tap",.4); openCards(); tut("team"); });
   document.querySelectorAll("[data-pack]").forEach(el=>el.onclick=()=>{ if(S.packs[el.dataset.pack]>0) openPackFlow(el.dataset.pack); });
 }
 function showCard(id){ const c=cardById(id); modal(`<div class="center"><div class="sheet">${cardHTML(c)}</div><h2>${c.name}</h2><div>${CLUBS[c.club].name} · ${RARITY[c.rarity].name} ${POS_NAME[c.pos]}</div><div class="stat"><span>${POS_EFFECT[c.pos]}</span><b>+${Math.round(cardPower(id)*100)}%</b></div><br><button class="btn" id="back">Back</button></div>`); $("back").onclick=()=>openCards(); }
 function openPackFlow(k){
   const got=openPack(k); if(!got) return;
   modal(`<h2>${PACKS[k].name}</h2><div class="reveal">${got.map((c,i)=>`<div class="flip" style="animation-delay:${i*.35}s">${cardHTML(c,{noBar:true,noTick:true})}<div class="newtag">${S.cards[c.id]===1?"NEW!":"+1"}</div></div>`).join("")}</div><div class="center"><button class="btn green" id="pk">Nice!</button></div>`);
-  got.forEach((c,i)=>setTimeout(()=>sfx(c.rarity==="legend"||c.rarity==="epic"?"cheer":"card",.6),i*350));
+  got.forEach((c,i)=>setTimeout(()=>sfx(c.rarity==="legend"||c.rarity==="epic"?"cheer":"card",.6),i*350)); tut("pack");
   $("pk").onclick=()=>openCards("Team Sheet"); uiDirty=true;
 }
 
@@ -313,7 +313,7 @@ function openMatch(){
   for(let r=0;r<18;r++){ const c=CLUBS[seasonClub(r)], st=S.season[r], open=r===0||S.season[r-1]>0;
     h+=`<div class="fx ${open?"":"locked"}"><span class="rd">${r<17?"R"+(r+1):"🏆 GF"}</span>${badgeImg(c,"sm")}<span class="nm">${c.name}<br><small>Clubhouse ${roundDiff(r)}</small></span><span class="st">${"★".repeat(st)}<span class="dim">${"★".repeat(3-st)}</span></span>${open?`<button class="btn green" data-r="${r}">Play</button>`:"🔒"}</div>`; }
   h+="</div>";
-  modal(h);
+  modal(h); tut("match");
   $("findMatch").onclick=()=>{ if(!Object.values(S.army).some(n=>n>0)) return toast("Train some players first!"); if(!pay("pies",cost)) return toast("Not enough 🥧");
     let c; do{ c=Math.random()*18|0; }while(c===S.club); const d=Math.max(1,Math.min(MAX_TH,th()+(Math.random()*3|0)-1));
     closeModal(); startBattle({kind:"match",club:c,d,seed:Math.random()*1e9|0}); };
@@ -340,14 +340,17 @@ function showResult(r){
     ${r.pack?`<div class="stat"><span>Reward</span><b>${PACKS[r.pack].name} 🃏</b></div>`:""}
     ${r.full?`<p>Some loot didn't fit. Build more storage!</p>`:""}<br>
     ${r.pack?`<button class="btn gold" id="openNow">Open Pack</button> `:""}<button class="btn green" id="goHome">Return Home</button></div>`,{noClose:true});
-  $("goHome").onclick=()=>{ closeModal(); leaveBattle(); };
+  $("goHome").onclick=()=>{ closeModal(); leaveBattle(); tut("home"); };
   const on=$("openNow"); if(on) on.onclick=()=>{ leaveBattle(); openPackFlow(r.pack); };
 }
 function openSettings(){
   modal(`<h2>Settings</h2><p>Your club: <b>${myClub().name}</b></p>
     <div class="stat"><span>Sound effects</span><button class="btn ${S.sound?"green":""}" id="snd">${S.sound?"On":"Off"}</button></div>
     <p class="tiny">Club logos: put PNG files named after each club (for example <code>coll.png</code> or <code>wb.png</code>) in the <code>logos</code> folder next to the game and they replace the badges.</p>
+    <div class="stat"><span>Tutorials</span><span><button class="btn green" id="tutAgain">Walkthrough</button> <button class="btn gold" id="clashG">Clash guide</button></span></div>
     <p class="tiny">Progress saves on this device automatically.</p><button class="btn red" id="reset">Start over (new club)</button>`);
+  $("tutAgain").onclick=()=>{ closeModal(); TUT.forEach(s=>delete s._prepped); startTutorial(); };
+  $("clashG").onclick=()=>showClashGuide(false);
   $("snd").onclick=()=>{ S.sound=!S.sound; save(); audioCtx(); sfx("collect"); openSettings(); };
   $("reset").onclick=()=>{ const b=$("reset"); if(!b.dataset.sure){ b.dataset.sure="1"; b.textContent="Tap again to wipe everything"; return; }
     try{localStorage.removeItem(SAVE_KEY);}catch(e){} S=null; selected=null; closeModal(); showClubPicker(); };

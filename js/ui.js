@@ -195,24 +195,23 @@ function openSquad(tab){
   const render=()=>{
     let h=`<h2>Squad</h2>${tabsHTML(["Train","Spells","Heroes","Coaching"],squadTab)}`;
     if(squadTab==="Train"){
-      const cap=armySpace(), used=usedSpace(), q=queuedSpace();
-      h+=`<div>Squad size: <b>${used}</b> / ${cap} ${q?`(+${q} training)`:""}</div><div class="bar"><div style="width:${100*used/Math.max(1,cap)}%"></div></div>`;
-      h+=`<div class="armyrow">${Object.entries(S.army).filter(([,n])=>n>0).map(([u,n])=>`<span class="chip"><img src="${playerIcon(u)}">${n}</span>`).join("")||"<i>No players yet</i>"}</div>`;
-      h+=`<h3>Training ${S.queue.length?`· next in ${fmtTime(Math.max(0,UNITS[S.queue[0]].time/trainSpeed()-(Date.now()-S.trainAt)/1000))}`:""}</h3><div class="queue" id="q">${S.queue.map((u,i)=>`<div class="q" data-i="${i}"><img src="${playerIcon(u)}"><span>✖</span></div>`).join("")}</div>`;
+      const cap=armySpace(), used=usedSpace();
+      h+=`<div>Squad size: <b>${used}</b> / ${cap} <span class="tiny">· training is free and instant, like Clash</span></div><div class="bar"><div style="width:${100*used/Math.max(1,cap)}%"></div></div>`;
+      h+=`<div class="armyrow" id="q">${Object.entries(S.army).filter(([,n])=>n>0).map(([u,n])=>`<span class="chip q" data-rm="${u}"><img src="${playerIcon(u)}">${n} ✖</span>`).join("")||"<i>No players yet. Tap a player below to add them.</i>"}</div>`;
       h+=`<h3>Train players</h3><div class="grid">`;
       const un=unlockedUnits();
       for(const [k,u] of Object.entries(UNITS)){ const ok=un.includes(k), lv=S.unitLv[k], c=unitCost(k);
-        h+=`<div class="item ${ok?"":"off"}" data-u="${k}"><img src="${playerIcon(k)}"><div class="nm">${u.name} <small>Lv${lv}</small>${u.air?' <span class="tag">AIR</span>':""}</div><div class="meta">${u.desc}</div><div class="meta">👥 ${u.space} · ⏱ ${u.time}s</div>${ok?`<div class="cost ${S.drink>=c?"":"bad"}">${c} 💧</div>`:`<div class="cost bad">Training Oval ${BLD.oval.unlock.indexOf(k)+1}</div>`}</div>`; }
+        h+=`<div class="item ${ok?"":"off"}" data-u="${k}"><img src="${playerIcon(k)}"><div class="nm">${u.name} <small>Lv${lv}</small>${u.air?' <span class="tag">AIR</span>':""}</div><div class="meta">${u.desc}</div><div class="meta">👥 ${u.space} bench space</div>${ok?`<div class="cost free">FREE</div>`:`<div class="cost bad">Training Oval ${BLD.oval.unlock.indexOf(k)+1}</div>`}</div>`; }
       h+="</div>";
     }
     if(squadTab==="Spells"){
       const slots=spellSlots();
       if(!slots) h+=`<p>Build a <b>Physio Room</b> (Clubhouse 3) to brew spells.</p>`;
       else{
-        h+=`<div>Spells: <b>${spellCount()}</b> / ${slots}</div><div class="armyrow">${Object.entries(S.spells).filter(([,n])=>n>0).map(([s,n])=>`<span class="chip"><img src="${spellIcon(s)}">${n}</span>`).join("")}</div>`;
-        h+=`<h3>Brewing</h3><div class="queue">${S.squeue.map(s=>`<div class="q"><img src="${spellIcon(s)}"></div>`).join("")}</div><h3>Brew</h3><div class="grid">`;
+        h+=`<div>Spells: <b>${spellCount()}</b> / ${slots}</div><div class="armyrow">${Object.entries(S.spells).filter(([,n])=>n>0).map(([s,n])=>`<span class="chip q" data-unbrew="${s}"><img src="${spellIcon(s)}">${n} ✖</span>`).join("")}</div>`;
+        h+=`<p class="tiny">Tap a spell to remove it. Brewing is free and instant.</p><h3>Brew</h3><div class="grid">`;
         const un=unlockedSpells();
-        for(const [k,s] of Object.entries(SPELLS)){ const ok=un.includes(k); h+=`<div class="item ${ok?"":"off"}" data-s="${k}"><img src="${spellIcon(k)}"><div class="nm">${s.name}</div><div class="meta">${s.desc}</div>${ok?`<div class="cost ${S.drink>=s.cost?"":"bad"}">${s.cost} 💧</div>`:`<div class="cost bad">Physio Room ${BLD.physio.unlock.indexOf(k)+1}</div>`}</div>`; }
+        for(const [k,s] of Object.entries(SPELLS)){ const ok=un.includes(k); h+=`<div class="item ${ok?"":"off"}" data-s="${k}"><img src="${spellIcon(k)}"><div class="nm">${s.name}</div><div class="meta">${s.desc}</div>${ok?`<div class="cost free">FREE</div>`:`<div class="cost bad">Physio Room ${BLD.physio.unlock.indexOf(k)+1}</div>`}</div>`; }
         h+="</div>";
       }
     }
@@ -243,7 +242,8 @@ function openSquad(tab){
     modal(h,{tick:render}); $("modalBody").parentElement.scrollTop=sc;
     bindTabs(t=>{ squadTab=t; render(); }); tut("squad");
     document.querySelectorAll("[data-u]").forEach(el=>el.onclick=()=>{ const k=el.dataset.u; if(!unlockedUnits().includes(k)) return toast("Upgrade your Training Oval to unlock"); trainUnit(k); render(); });
-    document.querySelectorAll("#q .q").forEach(el=>el.onclick=()=>{ untrain(+el.dataset.i); render(); });
+    document.querySelectorAll("[data-rm]").forEach(el=>el.onclick=()=>{ untrain(el.dataset.rm); render(); });
+    document.querySelectorAll("[data-unbrew]").forEach(el=>el.onclick=()=>{ unbrew(el.dataset.unbrew); render(); });
     document.querySelectorAll("[data-s]").forEach(el=>el.onclick=()=>{ if(!unlockedSpells().includes(el.dataset.s)) return toast("Upgrade your Physio Room"); brewSpell(el.dataset.s); render(); });
     document.querySelectorAll("[data-r]").forEach(el=>el.onclick=()=>{ startResearch(el.dataset.r); render(); });
     document.querySelectorAll("[data-hu]").forEach(el=>el.onclick=()=>{ upgradeHero(el.dataset.hu); render(); });

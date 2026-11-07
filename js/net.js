@@ -29,7 +29,7 @@ addEventListener("visibilitychange", () => { if (document.hidden && signedIn() &
 
 // ---------- sign in / sign up ----------
 function openAccount(tab = "Create account") {
-  if (!NET.online) return toast("Online play works on the website: footy-fortress.pages.dev");
+  if (!NET.online) return toast("Online play works on the website: ff.backyardlegendsgames.app");
   const tabs = ["Create account", "Sign in", "Forgot password"];
   let h = `<h2>Play online</h2><p class="center tiny">Save your club to the cloud, play on any device, attack real players and join a Cheer Squad. Free.</p>${tabsHTML(tabs, tab)}<form id="acct" class="acct" autocomplete="on">`;
   if (tab === "Create account") h += `<label>Email<input id="aEmail" type="email" autocomplete="email" required></label>
@@ -148,7 +148,7 @@ function netReportAttack(bt, r) {
 
 // ---------- leaderboard & cheer squads ----------
 async function openSocial(tab = "Leaderboard") {
-  if (!NET.online) return toast("Online play works on the website: footy-fortress.pages.dev");
+  if (!NET.online) return toast("Online play works on the website: ff.backyardlegendsgames.app");
   const tabs = ["Leaderboard", "Cheer Squad"];
   modal(`<h2>Footy Fortress Online</h2>${tabsHTML(tabs, tab)}<div id="soc"><p class="center">Loading…</p></div>`, { tick: tab === "Cheer Squad" ? refreshChat : null });
   bindTabs(openSocial);

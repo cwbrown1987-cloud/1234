@@ -122,7 +122,7 @@ function buildCards(){
 
 // ---------- modals ----------
 let modalTick=null;
-function modal(html, opts={}){ $("modalBody").innerHTML=html; $("modal").classList.add("show"); $("modalX").style.display=opts.noClose?"none":"block"; modalTick=opts.tick||null; }
+function modal(html, opts={}){ $("modal").querySelector(".card").classList.remove("albummode"); $("modalBody").innerHTML=html; $("modal").classList.add("show"); $("modalX").style.display=opts.noClose?"none":"block"; modalTick=opts.tick||null; }
 function closeModal(){ $("modal").classList.remove("show"); modalTick=null; refreshUI(); }
 setInterval(()=>{ if(modalTick&&$("modal").classList.contains("show")) modalTick(); },1000);
 $("modalX").onclick=closeModal;

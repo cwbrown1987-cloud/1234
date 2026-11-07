@@ -325,7 +325,11 @@ function openMatch(){
   let h=`<h2>Match Day</h2><div class="center">🏆 ${S.trophies} · ${league(S.trophies)}${S.shield>Date.now()?` · <span class="tiny">attacking ends your shield</span>`:""}</div>`;
   const cost=50*th();
   const online=typeof signedIn==="function"&&signedIn();
-  h+=`<div class="center" style="margin:10px 0"><button class="btn gold big" id="findMatch">🔎 Find a Match<small>${cost} 🥧 · ${online?"real players and bots near your trophies":"random club, trophies, loot & packs"}</small></button></div>`;
+  const sb=S.starBonus||{stars:0,until:0}, sbWait=sb.until>Date.now();
+  h+=`<div class="starbonus"><span>⭐ Star Bonus</span><div class="bar"><div style="width:${Math.min(100,100*sb.stars/STAR_GOAL)}%"></div></div><span>${Math.min(sb.stars,STAR_GOAL)}/${STAR_GOAL}${sbWait?` · ready in ${fmtTime((sb.until-Date.now())/1000)}`:""}</span></div>
+    <p class="tiny center">Win 5 stars in Battles or Ranked for +${fmt(starBonusLoot().pies)} 🥧 and +${fmt(starBonusLoot().drink)} 💧. Resets 24 hours after you collect.</p>`;
+  h+=`<div class="modes"><button class="btn gold big" id="findMatch">⚔️ Battle<small>${cost} 🥧 · loot and Star Bonus, no trophies</small></button>
+    <button class="btn blue big" id="findRanked">🏆 Ranked<small>${cost} 🥧 · win and lose trophies, climb the leagues</small></button></div>`;
   if(typeof NET!=="undefined"&&NET.online) h+= online?`<div class="center tiny">Playing online as <b>${esc(NET.user.name)}</b> · <a href="#" id="lbLink">Leaderboard</a></div>`:`<div class="banner">Play real people and climb the leaderboard. <button class="btn green" id="goOnline">Play online</button></div>`;
   ensureSeason(); const s=S.season, f=nextFixture(), pos=ladderPos(S.club), L=s.ladder[S.club];
   h+=`<h3>Season ${s.year}${S.premierships?` · 🏆×${S.premierships}`:""}</h3><div class="seasonbar"><span>${s.finals?"Finals":`Round ${Math.min(s.round+1,ROUNDS)} of ${ROUNDS}`}</span><span>${L.w+L.l+L.d?`${ordinal(pos)} on the ladder · ${L.w}W ${L.l}L${L.d?" "+L.d+"D":""}`:"First bounce coming up"}</span><button class="btn blue" id="ladder">Ladder</button></div>`;
@@ -335,10 +339,11 @@ function openMatch(){
   modal(h); tut("match");
   const lb=$("lbLink"); if(lb) lb.onclick=e=>{ e.preventDefault(); openSocial("Leaderboard"); };
   const go=$("goOnline"); if(go) go.onclick=()=>openAccount();
-  $("findMatch").onclick=()=>{ if(online) return findOnlineMatch();
+  const find=ranked=>{ if(online) return findOnlineMatch([],ranked);
     if(!Object.values(S.army).some(n=>n>0)) return toast("Train some players first!"); if(!pay("pies",cost)) return toast("Not enough 🥧");
-    let c; do{ c=Math.random()*18|0; }while(c===S.club); const d=Math.max(1,Math.min(MAX_TH,th()+(Math.random()*3|0)-1));
-    closeModal(); startBattle({kind:"match",club:c,d,seed:Math.random()*1e9|0}); };
+    let c; do{ c=Math.random()*18|0; }while(c===S.club); const d=Math.max(1,Math.min(MAX_TH,th()+(ranked?(Math.random()*3|0)-1:0)));
+    closeModal(); startBattle({kind:"match",ranked,club:c,d,seed:Math.random()*1e9|0}); };
+  $("findMatch").onclick=()=>find(false); $("findRanked").onclick=()=>find(true);
   document.querySelectorAll("[data-r]").forEach(b=>b.onclick=()=>{ if(!Object.values(S.army).some(n=>n>0)) return toast("Train some players first!"); closeModal(); playSeasonMatch(); });
   $("ladder").onclick=openLadder; const ns=$("newSeason"); if(ns) ns.onclick=startNextSeason;
 }
@@ -363,7 +368,8 @@ function showResult(r){
     <div class="stars">${"★".repeat(r.stars)}<span class="dim">${"★".repeat(3-r.stars)}</span></div>
     ${r.season&&r.season.note?`<p class="note">${r.season.note}</p>`:""}
     <div class="stat"><span>Pies</span><b>+${fmt(r.got.pies)} 🥧</b></div><div class="stat"><span>Drink</span><b>+${fmt(r.got.drink)} 💧</b></div>
-    <div class="stat"><span>Trophies</span><b>${r.tro>=0?"+":""}${r.tro} 🏆</b></div>${r.medals?`<div class="stat"><span>Win bonus</span><b>+${r.medals} 🏅</b></div>`:""}
+    ${r.ranked?`<div class="stat"><span>Trophies</span><b>${r.tro>=0?"+":""}${r.tro} 🏆</b></div>`:""}
+    ${r.starRes?`<div class="stat"><span>⭐ Star Bonus</span><b>+${fmt(r.starRes.pies)} 🥧 +${fmt(r.starRes.drink)} 💧</b></div>`:r.stars&&["match","pvp","revenge"].includes(BT&&BT.kind)?`<div class="stat"><span>⭐ Star Bonus</span><b>${Math.min(S.starBonus.stars,STAR_GOAL)}/${STAR_GOAL} stars</b></div>`:""}${r.medals?`<div class="stat"><span>Win bonus</span><b>+${r.medals} 🏅</b></div>`:""}
     ${r.pack?`<div class="stat"><span>Reward</span><b><img class="packmini" src="${packArt(r.pack)}" alt=""> ${PACKS[r.pack].name}</b></div>`:""}
     ${r.full?`<p>Some loot didn't fit. Build more storage!</p>`:""}<br>
     ${r.pack?`<button class="btn gold" id="openNow">Open Pack</button> `:""}<button class="btn green" id="goHome">Return Home</button></div>`,{noClose:true});
@@ -515,8 +521,11 @@ function shopInfo(t){
   if(d.unlock) rows.push(["Unlocks first",(UNITS[d.unlock[0]]||SPELLS[d.unlock[0]]).name]);
   if(d.dmg) rows.push(["Damage",d.dmg[0]]);
   rows.push(["Size",`${d.size}×${d.size} tiles`],["Max levels",levels(t)]);
-  modal(`<div class="center"><canvas id="infoThumb" width="160" height="160" class="thumbbig"></canvas></div><h2>${d.name}</h2><p class="center clash">In Clash of Clans: ${CLASH_NAME[t]}</p><p class="center">${d.desc}</p>
+  modal(`<div class="center"><canvas id="infoThumb" width="160" height="160" class="thumbbig"></canvas></div><h2>${d.name}</h2><p class="center clash">In Clash of Clans: <a href="${clashWiki(CLASH_NAME[t])}" target="_blank" rel="noopener">${CLASH_NAME[t]} ↗</a></p><p class="center">${d.desc}</p>
     ${rows.map(([a,v])=>`<div class="stat"><span>${a}</span><b>${v}</b></div>`).join("")}<br><div class="center"><button class="btn" id="infoBack">Back to Shop</button></div>`);
   const th=thumb(t,myClub()); $("infoThumb").getContext("2d").drawImage(th,0,0);
   $("infoBack").onclick=()=>openShop();
 }
+
+// Link to the Clash of Clans wiki page for a Clash name (opens in a new tab)
+const clashWiki = n => "https://clashofclans.fandom.com/wiki/"+encodeURIComponent(n.replace(/ altar$/,"").replace(/ /g,"_"));

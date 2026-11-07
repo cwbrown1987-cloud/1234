@@ -3,30 +3,43 @@
 const CLASH_MAP = [
   ["Resources", [["Gold","Pies 🥧"],["Elixir","Sports Drink 💧"],["Gems","Brownlow votes 🏅"]]],
   ["Buildings", [["Town Hall","Clubhouse"],["Gold Mine","Pie Shop"],["Elixir Collector","Drink Tap"],["Gold Storage","Pie Warmer"],["Elixir Storage","Esky"],
-    ["Barracks","Training Oval"],["Army Camp","Interchange Bench"],["Spell Factory","Physio Room"],["Laboratory","Coaches Box"],["Builder's Hut","Groundskeeper Shed"],["Hero altars","Captain's Locker & Coach's Office"]]],
+    ["Barracks","Training Oval"],["Army Camp","Interchange Bench"],["Spell Factory","Physio Room"],["Laboratory","Coaches Box"],["Builder's Hut","Groundskeeper Shed"],["Hero Hall","Captain's Locker"]]],
   ["Defences", [["Cannon","Siren Cannon"],["Archer Tower","Goal Tower"],["Mortar","Kick-Out Catapult"],["Air Defense","Floodlight Tower"],["Bomb","Sprinkler Trap"],["Walls","Fences"]]],
   ["Troops", [["Barbarian","Rover"],["Archer","Full-Forward"],["Giant","Ruckman"],["Goblin","Crumber"],["Wall Breaker","Shepherd"],["Minion","Seagulls"],["Balloon","Blimp"],["Healer","Trainer"]]],
   ["Spells", [["Healing","Half-time Oranges"],["Rage","Crowd Roar"],["Lightning","Umpire's Free Kick"],["Freeze","Rain Delay"],["(new)","Late Sub: drops 6 Rovers"]]],
   ["Heroes & modes", [["Barbarian King","Your club's real captain"],["Archer Queen","Head Coach (Clubhouse 5)"],["Goblin campaign","The Season: 17 rounds, ladder, finals"],["Stars","★ win, ★★ + Clubhouse, ★★★ flatten it"]]],
 ];
 const CLASH_DIFFS = [
-  "<b>Your hero is your club's star player</b> (e.g. Daicos, Gawn, Bontempelli) with a position-based ability.",
-  "<b>Player cards are new.</b> Win packs, level duplicates, and put up to 5 on your Team Sheet to boost players by position.",
-  "<b>Raids come from AI clubs</b> every 10–20 minutes, even when you're away. Check the 🛡️ Log for replays, and hit Revenge for 1.5× loot.",
-  "<b>Much faster.</b> Timers are seconds to 2 hours, not days. The Clubhouse tops out at level 8.",
-  "<b>Build a Pie Shop and a Drink Tap first</b> (both free). Pie Shops cost drink to upgrade and Drink Taps cost pies, so you need both earning.",
-  "<b>Matches are scored like footy.</b> Knock down a building = goal. They get a behind for each building still standing and each player they knock out (goal for big ones). Outscore them to win.",
-  "<b>The Season is a real ladder.</b> 4 points a win, percentage splits ties, top 8 play finals, win the Grand Final for a premiership.",
-  "<b>Daily tasks</b> pay Brownlow votes, and each weekday has an event (double loot on Grand Final Weekend).",
-  "<b>Brownlow votes 🏅</b> (gems) are rare, like Clash gems: a trickle from daily tasks, clearing trees, the odd win and premierships. Spend them wisely.",
-  "<b>Training is free and instant</b>, like Clash today. Your squad refills itself after each match.",
-  "<b>Online:</b> sign in (Settings) to attack real players, climb the leaderboard and join a Cheer Squad (clan) with chat. Wars aren't in yet.",
+  "<b>Training is free and instant</b> and your squad refills after each match. Bench (army camp) space is the only limit.",
+  "<b>Battle or Ranked:</b> Battles are for loot and the Star Bonus, matched by Clubhouse level, no trophies. Ranked wins and loses trophies and climbs the leagues.",
+  "<b>Star Bonus:</b> win 5 stars in Battles or Ranked for bonus pies and drink, then it resets 24 hours later.",
+  "<b>Magic Shield:</b> if someone takes 30% or more of your loot you get an 8-hour shield. New clubs start with a 3-day shield. Attacking ends your shield.",
+  "<b>Revenge</b> always gets back at least what they took.",
+  "<b>Brownlow votes 🏅</b> are your gems: rare, 500 to start, the 2nd groundskeeper costs 250, up to 6 groundskeepers.",
+  "<b>Scoring is footy:</b> knock a building down for a goal, the home side gets behinds. ★ win, ★★ plus Clubhouse, ★★★ flattened.",
+  "<b>Footy extras:</b> your hero is your club's real captain, player cards boost your squad, and the Season is a real ladder with finals.",
+  "<b>Online:</b> sign in (Settings) to attack real players and join a Cheer Squad (clan). Wars aren't in yet.",
 ];
+// Picture for each of our things, found by its name
+function guidePic(ours){
+  const name=ours.split(/[:(]/)[0].replace(/ \(.*$/,"").trim();
+  const bk=Object.keys(BLD).find(k=>BLD[k].name===name || BLD[k].name+"s"===name || (name.startsWith("Captain") && k==="locker"));
+  if(bk) return thumb(bk,myClub()).toDataURL();
+  const uk=Object.keys(UNITS).find(k=>UNITS[k].name===name); if(uk) return playerIcon(uk);
+  const sk=Object.keys(SPELLS).find(k=>SPELLS[k].name===name || (name.startsWith("Late Sub")&&k==="sub")); if(sk) return spellIcon(sk);
+  const ico={"Pies 🥧":"icon-pies","Sports Drink 💧":"icon-drink","Brownlow votes 🏅":"icon-medals"}[ours];
+  if(ico){ const c=document.createElement("canvas"); c.width=c.height=96; if(drawArtIcon(ico,c.getContext("2d"),48,92,88,88)) return c.toDataURL(); }
+  if(/captain/i.test(ours)) return playerIcon("hero:captain");
+  if(/Head Coach/.test(ours)) return playerIcon("hero:coach");
+  if(/Season/.test(ours)) return badgeURL(myClub(),96);
+  return null;
+}
 function showClashGuide(fromChoice){
-  const rows=CLASH_MAP.map(([h,list])=>`<h3>${h}</h3><div class="map">${list.map(([a,b])=>`<span class="from">${a}</span><span class="arrow">→</span><span class="to">${b}</span>`).join("")}</div>`).join("");
-  modal(`<h2>Footy Fortress for Clash players</h2><p class="center">Same game loop: build, train, attack, upgrade. Here's what everything is called.</p>${rows}
-    <h3>What's different</h3><ul class="diffs">${CLASH_DIFFS.map(d=>`<li>${d}</li>`).join("")}</ul>
-    <div class="center"><button class="btn green big" id="gotIt">Got it, let's play</button></div>`);
+  const rows=CLASH_MAP.map(([h,list])=>`<h3>${h}</h3><div class="vguide">${list.map(([a,b])=>{ const pic=guidePic(b);
+    return `<div class="vrow"><a class="vclash" ${a.startsWith("(")||a==="Stars"?"":`href="${clashWiki(a)}" target="_blank" rel="noopener"`}>${a}${a.startsWith("(")||a==="Stars"?"":" ↗"}</a><span class="arrow">→</span>${pic?`<img src="${pic}" alt="">`:`<span class="noimg"></span>`}<span class="vours">${b}</span></div>`; }).join("")}</div>`).join("");
+  modal(`<h2>Footy Fortress for Clash players</h2><p class="center">Same game, footy style. Clash name on the left (tap ↗ to see it on the Clash wiki), ours on the right.</p>${rows}
+    <h3>How it works (same as Clash today)</h3><ul class="diffs">${CLASH_DIFFS.map(d=>`<li>${d}</li>`).join("")}</ul>
+    <div class="center"><button class="btn green big" id="gotIt">${fromChoice?"Got it, let's build":"Got it"}</button></div>`);
   $("gotIt").onclick=()=>{ closeModal(); if(fromChoice) startTutorial(); };
 }
 function showTutorialChoice(){

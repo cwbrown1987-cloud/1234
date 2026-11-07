@@ -32,6 +32,7 @@ function fixup(s){
   s.unitLv=s.unitLv||{}; for(const k of Object.keys(UNITS)) s.unitLv[k]=s.unitLv[k]||1;
   s.heroes=s.heroes||{}; for(const h of Object.keys(HEROES)) s.heroes[h]=s.heroes[h]||{lv:1,busy:null};
   if(!s.season||Array.isArray(s.season)) s.season=newSeason(1); s.premierships=s.premierships||0;
+  s.starBonus=s.starBonus||{stars:0,until:0};
   s.cards=s.cards||{}; s.team=s.team||[]; s.packs=s.packs||{}; s.raids=s.raids||[];
   s.nextRaid=s.nextRaid||Date.now()+8*60000; s.shield=s.shield||0; if(s.sound===undefined) s.sound=true;
   return s;
@@ -68,7 +69,7 @@ function findSpot(s){ const c=N/2-s/2|0; for(let r=0;r<N;r++) for(let dx=-r;dx<=
 // ---------- shop / build / upgrade ----------
 // Your first Pie Shop and Drink Tap are free, so spending everything can never leave you with no income.
 const FREE_FIRST = ["pieshop","drinktap"];
-const buildCost = t => t==="shed" ? SHED_COST[Math.min(4,sheds())] : FREE_FIRST.includes(t)&&countOf(t)===0 ? 0 : BLD[t].cost[0];
+const buildCost = t => t==="shed" ? SHED_COST[Math.min(5,sheds())] : FREE_FIRST.includes(t)&&countOf(t)===0 ? 0 : BLD[t].cost[0];
 const missingIncome = () => S ? FREE_FIRST.filter(t=>countOf(t)===0) : [];
 function shopStatus(t){
   const lim=MAXC[t][th()-1], have=countOf(t);
@@ -243,6 +244,22 @@ function produce(sec){
     const boost = d.makes==="pies"&&ev&&ev.pies ? ev.pies : 1;
     b.store=Math.min(d.cap[b.lv-1], (b.store||0)+d.rate[b.lv-1]*boost/60*sec); }
 }
+// Star Bonus (like Clash): earn 5 stars in Battles or Ranked, collect bonus pies and drink, then it resets 24 hours later.
+const STAR_GOAL = 5;
+const starBonusLoot = () => ({pies:1500*th(), drink:1500*th()});
+function addStars(n){
+  S.starBonus=S.starBonus||{stars:0,until:0};
+  S.starBonus.stars=Math.min(STAR_GOAL*2,S.starBonus.stars+n); // up to two bonuses can bank, like Clash
+  return claimStarBonus();
+}
+function claimStarBonus(){
+  const sb=S.starBonus; if(!sb||sb.stars<STAR_GOAL||Date.now()<sb.until) return null;
+  const l=starBonusLoot(), got={pies:addRes("pies",l.pies), drink:addRes("drink",l.drink)};
+  sb.stars-=STAR_GOAL; sb.until=Date.now()+864e5; save(); sfx("cheer"); toast(`⭐ Star Bonus! +${fmt(got.pies)} 🥧 +${fmt(got.drink)} 💧`);
+  return got;
+}
+// Magic Shield (like Clash): lose 30% or more of what could be stolen and you get 8 hours of peace
+const MAGIC_SHIELD = 8*3600e3;
 function floatText(x,y,s,col){ floaters.push({x,y,s,life:1.4,col}); }
 
 // ---------- home rendering ----------

@@ -1,0 +1,387 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
+<title>Footy Fortress</title>
+<style>
+  :root{--ink:#1c1a17;--panel:#2b2620ee;--gold:#f6c343;--drink:#36c9e8;--good:#5fd16b;--bad:#e8503a}
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%;background:#1c1a17;font-family:"Trebuchet MS",system-ui,sans-serif;color:#fff;overflow:hidden;user-select:none}
+  canvas{display:block;width:100%;height:100%;touch-action:none}
+  .hud{position:fixed;left:0;right:0;top:0;display:flex;gap:8px;padding:10px;align-items:center;pointer-events:none}
+  .pill{background:var(--panel);border:2px solid #000;border-radius:14px;padding:4px 10px 4px 6px;display:flex;align-items:center;gap:6px;font-weight:800;text-shadow:0 2px 0 #000;font-size:15px}
+  .ico{width:22px;height:22px;border-radius:50%;display:inline-grid;place-items:center;font-size:13px;border:2px solid #000}
+  .club{background:var(--panel);border:2px solid #000;border-radius:14px;padding:4px 10px;font-weight:800;text-shadow:0 2px 0 #000;display:flex;gap:8px;align-items:center}
+  .guernsey{width:26px;height:26px;border-radius:6px;border:2px solid #000}
+  .spacer{flex:1}
+  .bar{position:fixed;left:0;right:0;bottom:0;display:flex;gap:8px;padding:10px;justify-content:center;flex-wrap:wrap}
+  button{font:inherit;font-weight:800;color:#fff;text-shadow:0 2px 0 #000;border:2px solid #000;border-radius:12px;padding:8px 12px;background:linear-gradient(#6c5b45,#463a2c);box-shadow:0 4px 0 #000;cursor:pointer;min-width:64px}
+  button:active{transform:translateY(3px);box-shadow:0 1px 0 #000}
+  button.go{background:linear-gradient(#ffb547,#e2731e)}
+  button.sel{outline:3px solid var(--gold)}
+  button small{display:block;font-size:11px;opacity:.9}
+  .toast{position:fixed;left:50%;top:64px;transform:translateX(-50%);background:var(--panel);border:2px solid #000;border-radius:12px;padding:8px 14px;font-weight:800;text-shadow:0 2px 0 #000;opacity:0;transition:opacity .25s;pointer-events:none;text-align:center}
+  .toast.show{opacity:1}
+  .modal{position:fixed;inset:0;display:none;place-items:center;background:#0008}
+  .modal.show{display:grid}
+  .card{background:#3a3128;border:3px solid #000;border-radius:16px;padding:16px;width:min(92vw,380px);text-align:center;box-shadow:0 6px 0 #000}
+  .card h2{margin:0 0 8px;color:var(--gold);text-shadow:0 2px 0 #000}
+  .clubs{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
+  .clubs button{display:flex;align-items:center;gap:8px;justify-content:flex-start}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+
+<div class="hud">
+  <div class="club"><span class="guernsey" id="g"></span><span id="clubName">Club</span></div>
+  <div class="spacer"></div>
+  <div class="pill"><span class="ico" style="background:var(--gold)">🥧</span><span id="pies">0</span></div>
+  <div class="pill"><span class="ico" style="background:var(--drink)">💧</span><span id="drink">0</span></div>
+  <div class="pill"><span class="ico" style="background:#e9e2d0">🏉</span><span id="squad">0</span></div>
+</div>
+
+<div class="bar" id="bar"></div>
+<div class="toast" id="toast"></div>
+
+<div class="modal show" id="pick">
+  <div class="card">
+    <h2>Footy Fortress</h2>
+    <div>Pick your club, build your ground, then take on rival clubs on Match Day.</div>
+    <div class="clubs" id="clubs"></div>
+  </div>
+</div>
+
+<div class="modal" id="result">
+  <div class="card"><h2 id="resTitle"></h2><div id="resBody"></div><br><button class="go" onclick="goHome()">Back to the club</button></div>
+</div>
+
+<script>
+// ---------- Data ----------
+// Original fictional clubs (not official AFL marks) in classic footy colour combos.
+const CLUBS = [
+  {name:"Yarra Ravens",   a:"#111", b:"#f2f2f2"},
+  {name:"Bayside Flames", a:"#c8102e", b:"#111"},
+  {name:"Swan River Rays",a:"#0b2a6f", b:"#f6c343"},
+  {name:"Harbour Hawks",  a:"#d71920", b:"#fff"},
+  {name:"Torrens Tigers", a:"#f6c343", b:"#111"},
+  {name:"Gabba Bolts",    a:"#7a0f3a", b:"#2a6fdb"},
+  {name:"Coastline Gulls",a:"#2a6fdb", b:"#fff"},
+  {name:"Outback Roos",   a:"#1d7a3a", b:"#f6c343"},
+];
+const B = {
+  clubhouse:{label:"Clubhouse",  size:3, hp:1500, cost:0,   res:"pies",  color:"#b5543a", roof:"#7a2e1e"},
+  pieshop:  {label:"Pie Shop",   size:2, hp:500,  cost:150, res:"drink", color:"#d9a441", roof:"#8b5a1a", makes:"pies"},
+  drinktap: {label:"Drink Tap",  size:2, hp:500,  cost:150, res:"pies",  color:"#3aa6c4", roof:"#1d5f7a", makes:"drink"},
+  oval:     {label:"Training Oval",size:3,hp:600, cost:250, res:"pies",  color:"#3f9a46", roof:"#e9e2d0"},
+  goalpost: {label:"Goal Tower", size:2, hp:700,  cost:300, res:"drink", color:"#9b8c78", roof:"#fff", range:5.5, dmg:22},
+  siren:    {label:"Siren Cannon",size:2, hp:800, cost:400, res:"pies",  color:"#555", roof:"#e8503a", range:4.5, dmg:40},
+  fence:    {label:"Boundary Fence",size:1,hp:300,cost:20,  res:"pies",  color:"#e9e2d0", roof:"#cfc6b0"},
+};
+const UNITS = {
+  rover:   {label:"Rover",       cost:25,  hp:90,  dmg:10, spd:2.4, range:1.0, emoji:"🏃"},
+  ruck:    {label:"Ruckman",     cost:60,  hp:320, dmg:16, spd:1.4, range:1.0, emoji:"🧍", big:true},
+  forward: {label:"Full-Forward",cost:45,  hp:70,  dmg:14, spd:1.8, range:4.0, emoji:"🎯", kicker:true},
+};
+const N = 22; // grid size
+
+// ---------- State ----------
+let S = load() || {club:null, pies:600, drink:500, squad:{rover:0,ruck:0,forward:0}, buildings:[]};
+let mode = "home";     // home | build | attack
+let buildType = null, deployType = null;
+let enemy = null;      // attack state
+const cv = document.getElementById("c"), ctx = cv.getContext("2d");
+let W, H, TW, TH, OX, OY;
+
+function save(){ try{ localStorage.setItem("footyFortress", JSON.stringify(S)); }catch(e){} }
+function load(){ try{ return JSON.parse(localStorage.getItem("footyFortress")); }catch(e){ return null; } }
+
+function starterBase(){
+  return [
+    {t:"clubhouse",x:10,y:10},{t:"pieshop",x:6,y:7},{t:"drinktap",x:14,y:7},
+    {t:"oval",x:6,y:13},{t:"goalpost",x:14,y:13},
+    ...fenceRing(5,6,17,16)
+  ].map(b=>({...b, hp:B[b.t].hp, store:0}));
+}
+function fenceRing(x0,y0,x1,y1){
+  const f=[]; for(let x=x0;x<=x1;x++){f.push({t:"fence",x,y:y0});f.push({t:"fence",x,y:y1});}
+  for(let y=y0+1;y<y1;y++){f.push({t:"fence",x:x0,y});f.push({t:"fence",x:x1,y});}
+  return f.filter((_,i)=>i%5!==2); // leave gaps like a real boundary gate
+}
+
+// ---------- Layout ----------
+function resize(){
+  W=cv.width=innerWidth*devicePixelRatio; H=cv.height=innerHeight*devicePixelRatio;
+  // Fill the screen; on tall phones zoom in and let the outer corners crop.
+  TW=Math.min(W/(N+2)*(H>W?1.5:1), (H*0.7)/(N/2+1)); TH=TW/2;
+  OX=W/2; OY=(H-N*TH)/2 + TH*.5;
+}
+addEventListener("resize",resize);
+const iso=(x,y)=>[OX+(x-y)*TW/2, OY+(x+y)*TH/2];
+function unIso(px,py){ const a=(px-OX)/(TW/2), b=(py-OY)/(TH/2); return [(a+b)/2,(b-a)/2]; }
+
+// ---------- Drawing ----------
+function diamond(x,y,w,h,fill,stroke){
+  const [ax,ay]=iso(x,y),[bx,by]=iso(x+w,y),[cx,cy]=iso(x+w,y+h),[dx,dy]=iso(x,y+h);
+  ctx.beginPath();ctx.moveTo(ax,ay);ctx.lineTo(bx,by);ctx.lineTo(cx,cy);ctx.lineTo(dx,dy);ctx.closePath();
+  ctx.fillStyle=fill;ctx.fill(); if(stroke){ctx.strokeStyle=stroke;ctx.lineWidth=1;ctx.stroke();}
+}
+function shade(hex,f){ let n=parseInt(hex.slice(1).padEnd(6,hex.slice(1)),16); if(hex.length===4){n=parseInt(hex[1]+hex[1]+hex[2]+hex[2]+hex[3]+hex[3],16);}
+  let r=(n>>16)&255,g=(n>>8)&255,b=n&255; r=Math.min(255,r*f|0);g=Math.min(255,g*f|0);b=Math.min(255,b*f|0); return `rgb(${r},${g},${b})`; }
+
+function box(x,y,s,h,col,top){
+  // isometric block of footprint s×s and pixel height h
+  const [lx,ly]=iso(x,y+s),[fx,fy]=iso(x+s,y+s),[rx,ry]=iso(x+s,y),[tx,ty]=iso(x,y);
+  ctx.lineWidth=2; ctx.strokeStyle="#0009";
+  ctx.beginPath();ctx.moveTo(lx,ly);ctx.lineTo(fx,fy);ctx.lineTo(fx,fy-h);ctx.lineTo(lx,ly-h);ctx.closePath();ctx.fillStyle=shade(col,.8);ctx.fill();ctx.stroke();
+  ctx.beginPath();ctx.moveTo(fx,fy);ctx.lineTo(rx,ry);ctx.lineTo(rx,ry-h);ctx.lineTo(fx,fy-h);ctx.closePath();ctx.fillStyle=shade(col,.6);ctx.fill();ctx.stroke();
+  ctx.beginPath();ctx.moveTo(tx,ty-h);ctx.lineTo(rx,ry-h);ctx.lineTo(fx,fy-h);ctx.lineTo(lx,ly-h);ctx.closePath();ctx.fillStyle=top||col;ctx.fill();ctx.stroke();
+}
+
+function drawBuilding(b, club){
+  const d=B[b.t], s=d.size, x=b.x, y=b.y, u=TH;
+  ctx.save();
+  if(b.hp<=0){ diamond(x,y,s,s,"#4a3f33"); ctx.restore(); return; }
+  diamond(x-0.1,y-0.1,s+0.2,s+0.2,"#0003");
+  const [cx,cy]=iso(x+s/2,y+s/2);
+  switch(b.t){
+    case "clubhouse":
+      box(x+.2,y+.2,s-.4,u*2.2,"#d8cbb0");
+      // club-colour stripes on roof
+      box(x+.35,y+.35,s-.7,u*.6+u*2.2,club.a,club.a);
+      flag(cx,cy-u*4.2,club);
+      txt("CLUB",cx,cy-u*2.6,u*.6);
+      break;
+    case "pieshop":
+      box(x+.2,y+.2,s-.4,u*1.3,"#e7c27a");
+      box(x+.3,y+.3,s-.6,u*1.9,"#8b5a1a","#a86b22");
+      txt("🥧",cx,cy-u*2.3,u*1.1);
+      bar(b, cx, cy-u*3.4, b.store/200, "#f6c343");
+      break;
+    case "drinktap":
+      box(x+.5,y+.5,s-1,u*2.6,"#3aa6c4","#7fe0f5");
+      txt("💧",cx,cy-u*3,u*1.1);
+      bar(b, cx, cy-u*3.9, b.store/200, "#36c9e8");
+      break;
+    case "oval":{
+      // mini footy oval with centre square
+      const [ox,oy]=iso(x+s/2,y+s/2);
+      ctx.beginPath();ctx.ellipse(ox,oy,TW*s*.42,TH*s*.42,0,0,7);ctx.fillStyle="#57b45e";ctx.fill();
+      ctx.strokeStyle="#fff";ctx.lineWidth=2;ctx.stroke();
+      diamond(x+s/2-.3,y+s/2-.3,.6,.6,"#6cc873","#fff");
+      for(const [gx,gy] of [[x+.3,y+s/2],[x+s-.3,y+s/2]]){const [px,py]=iso(gx,gy);posts(px,py,u*.9);}
+      break;}
+    case "goalpost":{
+      box(x+.3,y+.3,s-.6,u*.6,"#9b8c78");
+      const [px,py]=iso(x+s/2,y+s/2); posts(px,py-u*.6,u*2.2,club);
+      break;}
+    case "siren":
+      box(x+.3,y+.3,s-.6,u*1,"#666");
+      ctx.beginPath();ctx.arc(cx,cy-u*1.8,u*.7,0,7);ctx.fillStyle="#e8503a";ctx.fill();ctx.strokeStyle="#000";ctx.lineWidth=2;ctx.stroke();
+      txt("📢",cx,cy-u*1.7,u*.8);
+      break;
+    case "fence":
+      box(x+.25,y+.25,.5,u*.55,"#f1ead8");
+      break;
+  }
+  if(b.hp<d.hp) bar(b,cx,cy-u*(s+1.2),b.hp/d.hp,b.hp/d.hp>.5?"#5fd16b":"#e8503a");
+  ctx.restore();
+}
+function posts(px,py,h,club){
+  ctx.lineCap="round";
+  const g=TW*.18;
+  [[-2,.65],[-1,1],[1,1],[2,.65]].forEach(([o,k])=>{
+    ctx.strokeStyle="#000";ctx.lineWidth=TW*.09;ctx.beginPath();ctx.moveTo(px+o*g,py);ctx.lineTo(px+o*g,py-h*k);ctx.stroke();
+    ctx.strokeStyle="#fff";ctx.lineWidth=TW*.05;ctx.beginPath();ctx.moveTo(px+o*g,py);ctx.lineTo(px+o*g,py-h*k);ctx.stroke();
+    if(club&&Math.abs(o)===1){ctx.fillStyle=club.a;ctx.fillRect(px+o*g-TW*.035,py-h*.35,TW*.07,h*.12);}
+  });
+}
+function flag(x,y,club){
+  ctx.strokeStyle="#222";ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(x,y+TH*1.6);ctx.lineTo(x,y-TH*.6);ctx.stroke();
+  const w=TW*.8,h=TH*.9, t=performance.now()/300;
+  ctx.beginPath();ctx.moveTo(x,y-TH*.6);
+  ctx.quadraticCurveTo(x+w/2,y-TH*.6+Math.sin(t)*4,x+w,y-TH*.6);ctx.lineTo(x+w,y-TH*.6+h);
+  ctx.quadraticCurveTo(x+w/2,y-TH*.6+h+Math.sin(t)*4,x,y-TH*.6+h);ctx.closePath();
+  ctx.fillStyle=club.a;ctx.fill();ctx.strokeStyle="#000";ctx.lineWidth=2;ctx.stroke();
+  ctx.fillStyle=club.b;ctx.fillRect(x+w*.35,y-TH*.6,w*.3,h);
+}
+function txt(s,x,y,sz){ctx.font=`900 ${sz}px Trebuchet MS, sans-serif`;ctx.textAlign="center";ctx.textBaseline="middle";ctx.lineWidth=4;ctx.strokeStyle="#000";ctx.strokeText(s,x,y);ctx.fillStyle="#fff";ctx.fillText(s,x,y);}
+function bar(b,x,y,f,col){ if(f<=0.01) return; const w=TW*1.1,h=TH*.25; ctx.fillStyle="#000";ctx.fillRect(x-w/2-2,y-2,w+4,h+4);ctx.fillStyle="#333";ctx.fillRect(x-w/2,y,w,h);ctx.fillStyle=col;ctx.fillRect(x-w/2,y,w*Math.min(1,f),h);}
+
+function drawUnit(u){
+  const [x,y]=iso(u.x,u.y), r=TW*(u.big?.32:.24), c=u.club;
+  ctx.fillStyle="#0004";ctx.beginPath();ctx.ellipse(x,y,r,r*.5,0,0,7);ctx.fill();
+  const bob=Math.sin(performance.now()/90+u.id)*2;
+  // body in club guernsey (vertical stripes)
+  ctx.fillStyle=c.a;ctx.strokeStyle="#000";ctx.lineWidth=2;
+  ctx.beginPath();ctx.roundRect(x-r*.7,y-r*2.1+bob,r*1.4,r*1.5,4);ctx.fill();ctx.stroke();
+  ctx.fillStyle=c.b;ctx.fillRect(x-r*.15,y-r*2.1+bob+2,r*.3,r*1.5-4);
+  ctx.fillStyle="#f1c7a0";ctx.beginPath();ctx.arc(x,y-r*2.5+bob,r*.5,0,7);ctx.fill();ctx.stroke();
+  if(u.kicker){ctx.fillStyle="#a0522d";ctx.beginPath();ctx.ellipse(x+r*.9,y-r*1.4+bob,r*.35,r*.22,-.6,0,7);ctx.fill();ctx.stroke();}
+  if(u.hp<u.max) bar(u,x,y-r*3.4,u.hp/u.max,"#5fd16b");
+}
+
+let particles=[], projectiles=[];
+function render(){
+  ctx.clearRect(0,0,W,H);
+  // sky + ground
+  const g=ctx.createLinearGradient(0,0,0,H); g.addColorStop(0,"#7cc6f2"); g.addColorStop(1,"#cfe9f7"); ctx.fillStyle=g; ctx.fillRect(0,0,W,H);
+  diamond(-1,-1,N+2,N+2,"#7a5a3a");
+  for(let x=0;x<N;x++)for(let y=0;y<N;y++) diamond(x,y,1,1,(x+y)%2?"#6fbf5a":"#66b552");
+  // hover ghost when building
+  if(mode==="build"&&buildType&&hover){ const s=B[buildType].size; diamond(hover[0],hover[1],s,s,canPlace(buildType,hover[0],hover[1])?"#ffffff66":"#e8503a77","#fff"); }
+  if(mode==="attack") { for(let x=0;x<N;x++)for(let y=0;y<N;y++) if(x<2||y<2||x>N-3||y>N-3) diamond(x,y,1,1,"#ffffff18"); }
+  const club = mode==="attack"? enemy.club : CLUBS[S.club];
+  const list = (mode==="attack"? enemy.buildings : S.buildings).slice();
+  const ents = list.map(b=>({k:b.x+b.y+B[b.t].size,draw:()=>drawBuilding(b,club)}));
+  if(mode==="attack") enemy.units.forEach(u=>ents.push({k:u.x+u.y,draw:()=>drawUnit(u)}));
+  ents.sort((a,b)=>a.k-b.k).forEach(e=>e.draw());
+  projectiles.forEach(p=>{const [x,y]=iso(p.x,p.y);ctx.fillStyle="#a0522d";ctx.strokeStyle="#000";ctx.lineWidth=2;ctx.beginPath();ctx.ellipse(x,y-TH*1.5-Math.sin(p.t*Math.PI)*TH*2,TW*.12,TW*.08,p.t*6,0,7);ctx.fill();ctx.stroke();});
+  particles.forEach(p=>{ctx.globalAlpha=p.life;txt(p.s,p.px,p.py,TH*.8);ctx.globalAlpha=1;});
+  if(mode==="attack"){ const ty=90*devicePixelRatio+TH; txt(`vs ${enemy.club.name}`,W/2,ty,TH*1.1); txt(`Destroyed ${Math.round(destroyedPct())}%  ·  ${Math.ceil(enemy.time)}s`,W/2,ty+TH*1.4,TH*.8); }
+}
+
+// ---------- Logic ----------
+function occupied(list,x,y,ignore){ return list.some(b=>b!==ignore && b.hp>0 && x>=b.x && x<b.x+B[b.t].size && y>=b.y && y<b.y+B[b.t].size); }
+function canPlace(t,x,y){ const s=B[t].size; if(x<0||y<0||x+s>N||y+s>N) return false; for(let i=0;i<s;i++)for(let j=0;j<s;j++) if(occupied(S.buildings,x+i,y+j)) return false; return true; }
+
+let last=performance.now(), econT=0;
+function tick(now){
+  const dt=Math.min(.05,(now-last)/1000); last=now;
+  econT+=dt;
+  if(econT>1){ econT=0; S.buildings.forEach(b=>{ if(B[b.t].makes) b.store=Math.min(200,b.store+6); }); }
+  if(mode==="attack") battle(dt);
+  projectiles=projectiles.filter(p=>{p.t+=dt*2.2;p.x=p.sx+(p.tx-p.sx)*p.t;p.y=p.sy+(p.ty-p.sy)*p.t;if(p.t>=1){p.hit();return false;}return true;});
+  particles=particles.filter(p=>{p.life-=dt;p.py-=dt*40;return p.life>0;});
+  render(); hud(); requestAnimationFrame(tick);
+}
+
+function battle(dt){
+  const E=enemy; E.time-=dt;
+  const alive=E.buildings.filter(b=>b.hp>0);
+  E.units.forEach(u=>{
+    if(u.hp<=0) return;
+    u.cd-=dt;
+    let tgt=u.tgt&&u.tgt.hp>0?u.tgt:null;
+    if(!tgt){ let best=1e9; alive.forEach(b=>{ if(b.t==="fence")return; const d=dist(u,b); if(d<best){best=d;tgt=b;} }); if(!tgt) alive.forEach(b=>{const d=dist(u,b);if(d<best){best=d;tgt=b;}}); u.tgt=tgt; }
+    if(!tgt) return;
+    const d=dist(u,tgt);
+    if(d>u.range+B[tgt.t].size/2){
+      const [cx,cy]=centre(tgt), dx=cx-u.x, dy=cy-u.y, L=Math.hypot(dx,dy);
+      const nx=u.x+dx/L*u.spd*dt, ny=u.y+dy/L*u.spd*dt;
+      const blocker=E.buildings.find(b=>b.t==="fence"&&b.hp>0&&nx>=b.x&&nx<b.x+1&&ny>=b.y&&ny<b.y+1);
+      if(blocker&&blocker!==tgt){ u.tgt=blocker; } else { u.x=nx; u.y=ny; }
+    } else if(u.cd<=0){
+      u.cd=1;
+      if(u.kicker){ const [tx,ty]=centre(tgt); projectiles.push({sx:u.x,sy:u.y,tx,ty,x:u.x,y:u.y,t:0,hit:()=>hurt(tgt,u.dmg)}); }
+      else hurt(tgt,u.dmg);
+    }
+  });
+  // defences
+  alive.forEach(b=>{ const d=B[b.t]; if(!d.range) return; b.cd=(b.cd||0)-dt; if(b.cd>0) return;
+    let tgt=null,best=d.range; E.units.forEach(u=>{ if(u.hp<=0)return; const dd=dist(u,b); if(dd<best){best=dd;tgt=u;} });
+    if(tgt){ b.cd=1.1; const [sx,sy]=centre(b); projectiles.push({sx,sy,tx:tgt.x,ty:tgt.y,x:sx,y:sy,t:0,hit:()=>{tgt.hp-=d.dmg; if(tgt.hp<=0) pop("💥",tgt.x,tgt.y);}}); }
+  });
+  const unitsLeft=E.units.some(u=>u.hp>0)||Object.values(S.squad).some(n=>n>0);
+  if(E.time<=0 || !unitsLeft || destroyedPct()>=100) endBattle();
+}
+function hurt(b,dmg){ if(b.hp<=0)return; b.hp-=dmg; if(b.hp<=0){ pop(b.t==="fence"?"🪵":"💥",...centre(b)); if(B[b.t].makes||b.t==="clubhouse"){ const loot=b.t==="clubhouse"?150:80; enemy.loot[B[b.t].makes||"pies"]+=loot; pop(`+${loot}`,...centre(b)); } } }
+function pop(s,x,y){ const [px,py]=iso(x,y); particles.push({s,px,py:py-TH*2,life:1}); }
+const centre=b=>[b.x+B[b.t].size/2,b.y+B[b.t].size/2];
+const dist=(u,b)=>{const [cx,cy]=centre(b);return Math.hypot(cx-u.x,cy-u.y);};
+function destroyedPct(){ const nb=enemy.buildings.filter(b=>b.t!=="fence"); return 100*nb.filter(b=>b.hp<=0).length/nb.length; }
+
+function endBattle(){
+  const pct=Math.round(destroyedPct()), stars=(pct>=50)+(enemy.buildings.find(b=>b.t==="clubhouse").hp<=0)+(pct>=100);
+  S.pies+=enemy.loot.pies; S.drink+=enemy.loot.drink;
+  enemy.units=[]; mode="over"; save();
+  document.getElementById("resTitle").textContent = stars? `${"★".repeat(stars)}${"☆".repeat(3-stars)} Win!` : "Siren! You lost";
+  document.getElementById("resBody").innerHTML = `${pct}% of ${enemy.club.name}'s ground flattened.<br>Loot: 🥧 ${enemy.loot.pies} &nbsp; 💧 ${enemy.loot.drink}`;
+  document.getElementById("result").classList.add("show");
+}
+function goHome(){ document.getElementById("result").classList.remove("show"); mode="home"; enemy=null; renderBar(); }
+
+function startAttack(){
+  if(!Object.values(S.squad).some(n=>n>0)) return toast("Train some players at the Training Oval first!");
+  const others=CLUBS.filter((_,i)=>i!==S.club), club=others[Math.random()*others.length|0];
+  const bl=[{t:"clubhouse",x:10,y:10},{t:"pieshop",x:6,y:6},{t:"drinktap",x:15,y:6},{t:"pieshop",x:6,y:15},{t:"goalpost",x:15,y:15},{t:"goalpost",x:7,y:10},{t:"siren",x:14,y:10},...fenceRing(5,5,17,17)];
+  enemy={club,time:90,loot:{pies:0,drink:0},units:[],buildings:bl.map(b=>({...b,hp:B[b.t].hp}))};
+  mode="attack"; deployType=Object.keys(S.squad).find(k=>S.squad[k]>0); renderBar();
+}
+
+let uid=0;
+function deploy(x,y){
+  if(!deployType||S.squad[deployType]<=0) return;
+  if(!(x<2||y<2||x>N-2||y>N-2)) return toast("Deploy players on the outer boundary");
+  const d=UNITS[deployType]; S.squad[deployType]--;
+  enemy.units.push({...d,id:uid++,x,y,max:d.hp,cd:0,club:CLUBS[S.club]});
+  if(S.squad[deployType]<=0) deployType=Object.keys(S.squad).find(k=>S.squad[k]>0)||null;
+  renderBar();
+}
+
+// ---------- Input ----------
+let hover=null;
+function cellAt(e){ const r=cv.getBoundingClientRect(); const [x,y]=unIso((e.clientX-r.left)*devicePixelRatio,(e.clientY-r.top)*devicePixelRatio); return [x,y]; }
+cv.addEventListener("pointermove",e=>{ const [x,y]=cellAt(e); hover=[Math.floor(x),Math.floor(y)]; });
+cv.addEventListener("pointerdown",e=>{
+  const [fx,fy]=cellAt(e), x=Math.floor(fx), y=Math.floor(fy); hover=[x,y];
+  if(mode==="attack") return deploy(fx,fy);
+  if(mode==="build"&&buildType){
+    const d=B[buildType];
+    if(!canPlace(buildType,x,y)) return toast("Can't build there");
+    if(S[d.res]<d.cost) return toast(`Not enough ${d.res==="pies"?"pies 🥧":"sports drink 💧"}`);
+    S[d.res]-=d.cost; S.buildings.push({t:buildType,x,y,hp:d.hp,store:0}); save(); toast(`${d.label} built!`);
+    if(buildType!=="fence"){ buildType=null; mode="home"; renderBar(); }
+    return;
+  }
+  // tap to collect resources
+  const b=S.buildings.find(b=>x>=b.x&&x<b.x+B[b.t].size&&y>=b.y&&y<b.y+B[b.t].size);
+  if(b&&B[b.t].makes&&b.store>=1){ const n=Math.floor(b.store); S[B[b.t].makes]+=n; b.store=0; pop(`+${n}`,...centre(b)); save(); }
+  else if(b&&b.t==="oval") { mode="train"; renderBar(); }
+});
+
+// ---------- UI ----------
+function hud(){
+  document.getElementById("pies").textContent=Math.floor(S.pies);
+  document.getElementById("drink").textContent=Math.floor(S.drink);
+  document.getElementById("squad").textContent=Object.values(S.squad).reduce((a,b)=>a+b,0);
+}
+function btn(html,fn,cls=""){ const b=document.createElement("button"); b.innerHTML=html; b.className=cls; b.onclick=fn; return b; }
+function renderBar(){
+  const bar=document.getElementById("bar"); bar.innerHTML="";
+  if(mode==="home"){
+    bar.append(btn("🔨 Build",()=>{mode="build";renderBar();}), btn("🏉 Train",()=>{mode="train";renderBar();}), btn("⚔️ Match Day",startAttack,"go"));
+  } else if(mode==="build"){
+    Object.entries(B).filter(([k])=>k!=="clubhouse").forEach(([k,d])=>bar.append(btn(`${d.label}<small>${d.res==="pies"?"🥧":"💧"} ${d.cost}</small>`,()=>{buildType=k;renderBar();toast("Tap the grass to place");},buildType===k?"sel":"")));
+    bar.append(btn("✖ Done",()=>{mode="home";buildType=null;renderBar();}));
+  } else if(mode==="train"){
+    if(!S.buildings.some(b=>b.t==="oval")){ toast("Build a Training Oval first"); mode="home"; return renderBar(); }
+    Object.entries(UNITS).forEach(([k,u])=>bar.append(btn(`${u.emoji} ${u.label} (${S.squad[k]})<small>💧 ${u.cost}</small>`,()=>{ if(S.drink<u.cost) return toast("Need more sports drink 💧"); S.drink-=u.cost; S.squad[k]++; save(); renderBar(); })));
+    bar.append(btn("✖ Done",()=>{mode="home";renderBar();}));
+  } else if(mode==="attack"){
+    Object.entries(UNITS).forEach(([k,u])=>bar.append(btn(`${u.emoji} ${u.label}<small>x${S.squad[k]}</small>`,()=>{deployType=k;renderBar();},deployType===k?"sel":"")));
+    bar.append(btn("🏳️ End",()=>{enemy.time=0;}));
+  }
+}
+let tt; function toast(s){ const t=document.getElementById("toast"); t.textContent=s; t.classList.add("show"); clearTimeout(tt); tt=setTimeout(()=>t.classList.remove("show"),1600); }
+
+function setClub(i){
+  S.club=i; if(!S.buildings.length) S.buildings=starterBase();
+  save(); document.getElementById("pick").classList.remove("show");
+  const c=CLUBS[i]; document.getElementById("clubName").textContent=c.name;
+  document.getElementById("g").style.background=`linear-gradient(90deg,${c.a} 0 35%,${c.b} 35% 65%,${c.a} 65%)`;
+  renderBar();
+}
+const clubsEl=document.getElementById("clubs");
+CLUBS.forEach((c,i)=>clubsEl.append(btn(`<span class="guernsey" style="background:linear-gradient(90deg,${c.a} 0 35%,${c.b} 35% 65%,${c.a} 65%)"></span>${c.name}`,()=>setClub(i))));
+
+resize();
+if(S.club!==null && S.club!==undefined){ setClub(S.club); }
+// ?club=N skips the picker
+const q=new URLSearchParams(location.search);
+if(q.has("club")) setClub(+q.get("club"));
+requestAnimationFrame(tick);
+</script>
+</body>
+</html>

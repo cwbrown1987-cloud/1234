@@ -3,7 +3,7 @@
 // Each base card comes in Common, Rare, Epic and Legendary. 3 duplicates of a rarity make 1 of the next.
 // Each pack has 6 base cards + 1 special. Specials and 24K Gold prize cards can't be upgraded.
 // Packs cost Footy Tokens 🎟️, earned only by winning matches and from the daily bonus.
-// Ratings and stat bars come from real 2026 stats (AFL Tables). The look follows docs/card-style-reference.png.
+// Ratings and stat bars come from real 2026 stats (AFL Tables). The look follows docs/card-style-reference.png. Art specs: CODEX_HANDOFF.md.
 
 // Save keys stay c/s/g/p so old albums keep working.
 const TIERS = {

@@ -11,11 +11,11 @@ let floaters = [];
 function newGame(club){
   const c=C0-2;
   const B=(t,x,y)=>({id:0,t,x,y,lv:1,busy:null,store:0});
-  const s={v:3, club, pies:1000, drink:1000, medals:250, trophies:0, nextId:100,
+  const s={v:3, club, pies:750, drink:750, medals:500, trophies:0, nextId:100,
     buildings:[B("clubhouse",c,c),B("shed",c+6,c-3)],
     obstacles:[], army:{}, queue:[], trainAt:Date.now(), spells:{}, squeue:[], spellAt:Date.now(),
     unitLv:{}, research:null, heroes:{captain:{lv:1,busy:null},coach:{lv:1,busy:null}},
-    season:null, cards:{}, team:[], packs:{}, daily:null, raids:[], nextRaid:Date.now()+20*60000, shield:0,
+    season:null, cards:{}, team:[], packs:{}, daily:null, raids:[], nextRaid:Date.now()+3*864e5+60000, shield:Date.now()+3*864e5, // 3-day new player shield, like Clash
     sound:true, last:Date.now()};
   s.buildings.forEach(b=>b.id=s.nextId++);
   const r=rng(club*99+7);
@@ -122,7 +122,8 @@ function collect(b){
   const d=BLD[b.t]; const n=Math.floor(b.store); if(n<1) return;
   const got=addRes(d.makes,n); b.store-=got;
   if(got<n) toast(`${d.makes==="pies"?"Pie Warmers":"Eskies"} are full!`);
-  if(got){ floatText(b.x+d.size/2,b.y+d.size/2,`+${got}`); track(d.makes,got); sfx("collect"); tut("collect-"+d.makes); }
+  if(got){ floatText(b.x+d.size/2,b.y+d.size/2,`+${got}`); track(d.makes,got); sfx("collect"); }
+  tut("collect-"+d.makes);
   save(); refreshUI();
 }
 
@@ -133,37 +134,27 @@ const usedSpace = () => spaceOf(S.army);
 const queuedSpace = () => S.queue.reduce((a,u)=>a+UNITS[u].space,0);
 function unlockedUnits(){ const best=Math.max(0,...S.buildings.filter(b=>b.t==="oval"&&built(b)).map(b=>b.lv)); return BLD.oval.unlock.slice(0,best); }
 const unitCost = u => Math.round(UNITS[u].cost*unitMul(S.unitLv[u]));
+// Like Clash: training players is free and instant. Your bench (army camp) space is the only limit.
 function trainUnit(u){
-  if(usedSpace()+queuedSpace()+UNITS[u].space>armySpace()) return toast("Bench is full! Build or upgrade a bench.");
-  if(!pay("drink",unitCost(u))) return toast("Not enough 💧");
-  if(!S.queue.length) S.trainAt=Date.now(); S.queue.push(u); sfx("tap",.3); save(); refreshUI(); tut("train");
+  if(usedSpace()+UNITS[u].space>armySpace()) return toast("Bench is full! Build or upgrade a bench.");
+  S.army[u]=(S.army[u]||0)+1; track("train",1); sfx("tap",.3); save(); refreshUI(); tut("train");
 }
-function untrain(i){ const u=S.queue.splice(i,1)[0]; S.drink+=unitCost(u); if(i===0) S.trainAt=Date.now(); save(); refreshUI(); }
-const trainSpeed = () => Math.max(1,S.buildings.filter(b=>b.t==="oval"&&built(b)).length)*((eventNow()&&eventNow().train)||1);
-function trainTick(now){
-  if(!S.queue.length){ S.trainAt=now; return; }
-  const speed=trainSpeed(); let g=0;
-  while(S.queue.length && g++<1000){
-    const u=S.queue[0], need=UNITS[u].time*1000/speed;
-    if(now-S.trainAt<need) break;
-    if(usedSpace()+UNITS[u].space>armySpace()){ S.trainAt=now; break; }
-    S.army[u]=(S.army[u]||0)+1; S.queue.shift(); S.trainAt+=need; track("train",1); uiDirty=true;
-  }
+function untrain(u){ if(S.army[u]>0){ S.army[u]--; if(!S.army[u]) delete S.army[u]; save(); refreshUI(); } }
+function fillSquad(comp){ // re-add the players you last took to a match, as far as the bench allows
+  let added=0; for(const [u,n] of Object.entries(comp||{})){ if(!unlockedUnits().includes(u)) continue; while((S.army[u]||0)<n && usedSpace()+UNITS[u].space<=armySpace()){ S.army[u]=(S.army[u]||0)+1; added++; } }
+  return added;
 }
+function trainTick(now){ if(S.queue&&S.queue.length){ for(const u of S.queue.splice(0)) if(usedSpace()+UNITS[u].space<=armySpace()) S.army[u]=(S.army[u]||0)+1; uiDirty=true; } }
 const physio = () => S.buildings.find(b=>b.t==="physio"&&built(b));
 const spellSlots = () => physio()?BLD.physio.slots[physio().lv-1]:0;
 const unlockedSpells = () => physio()?BLD.physio.unlock.slice(0,physio().lv):[];
 const spellCount = () => Object.values(S.spells).reduce((a,b)=>a+b,0);
 function brewSpell(sp){
-  if(spellCount()+S.squeue.length>=spellSlots()) return toast("Physio Room is full");
-  if(!pay("drink",SPELLS[sp].cost)) return toast("Not enough 💧");
-  if(!S.squeue.length) S.spellAt=Date.now(); S.squeue.push(sp); save(); refreshUI();
+  if(spellCount()>=spellSlots()) return toast("Physio Room is full");
+  S.spells[sp]=(S.spells[sp]||0)+1; sfx("tap",.3); save(); refreshUI();
 }
-function spellTick(now){
-  if(!S.squeue.length){ S.spellAt=now; return; }
-  let g=0; while(S.squeue.length&&g++<50){ const sp=S.squeue[0], need=SPELLS[sp].time*1000; if(now-S.spellAt<need) break;
-    S.spells[sp]=(S.spells[sp]||0)+1; S.squeue.shift(); S.spellAt+=need; uiDirty=true; }
-}
+function unbrew(sp){ if(S.spells[sp]>0){ S.spells[sp]--; if(!S.spells[sp]) delete S.spells[sp]; save(); refreshUI(); } }
+function spellTick(now){ if(S.squeue&&S.squeue.length){ for(const sp of S.squeue.splice(0)) if(spellCount()<spellSlots()) S.spells[sp]=(S.spells[sp]||0)+1; uiDirty=true; } }
 const coachBox = () => S.buildings.find(b=>b.t==="coachbox"&&built(b));
 function researchInfo(u){
   const lv=S.unitLv[u], cb=coachBox();

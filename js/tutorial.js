@@ -19,25 +19,24 @@ const CLASH_DIFFS = [
   "<b>The Season is a real ladder.</b> 4 points a win, percentage splits ties, top 8 play finals, win the Grand Final for a premiership.",
   "<b>Daily tasks</b> pay Brownlow votes, and each weekday has an event (double loot on Grand Final Weekend).",
   "<b>Brownlow votes 🏅</b> (gems) are rare, like Clash gems: a trickle from daily tasks, clearing trees, the odd win and premierships. Spend them wisely.",
-  "<b>Not in yet:</b> clans, chat, real-player attacks and wars. Coming next.",
+  "<b>Training is free and instant</b>, like Clash today. Your squad refills itself after each match.",
+  "<b>Online:</b> sign in (Settings) to attack real players, climb the leaderboard and join a Cheer Squad (clan) with chat. Wars aren't in yet.",
 ];
 function showClashGuide(fromChoice){
   const rows=CLASH_MAP.map(([h,list])=>`<h3>${h}</h3><div class="map">${list.map(([a,b])=>`<span class="from">${a}</span><span class="arrow">→</span><span class="to">${b}</span>`).join("")}</div>`).join("");
   modal(`<h2>Footy Fortress for Clash players</h2><p class="center">Same game loop: build, train, attack, upgrade. Here's what everything is called.</p>${rows}
     <h3>What's different</h3><ul class="diffs">${CLASH_DIFFS.map(d=>`<li>${d}</li>`).join("")}</ul>
     <div class="center"><button class="btn green big" id="gotIt">Got it, let's play</button></div>`);
-  $("gotIt").onclick=()=>{ closeModal(); if(fromChoice){ S.tut="done"; S.medals+=10; save(); toast("+10 🏅 to get you started"); } };
+  $("gotIt").onclick=()=>{ closeModal(); if(fromChoice) startTutorial(); };
 }
 function showTutorialChoice(){
   modal(`<h2>Have you played Clash of Clans?</h2><p class="center">Pick how you'd like to learn the ropes.</p>
     <div class="choice">
-      <button class="btn gold big" id="tutClash">👍 Yes<small>Show me what's what (30 seconds)</small></button>
+      <button class="btn gold big" id="tutClash">👍 Yes<small>Show me what's what, then a quick build</small></button>
       <button class="btn green big" id="tutNew">🆕 No<small>Walk me through it (about 3 minutes)</small></button>
-      <button class="btn" id="tutSkip">Skip<small>I'll work it out</small></button>
     </div>`,{noClose:true});
   $("tutClash").onclick=()=>showClashGuide(true);
   $("tutNew").onclick=()=>{ closeModal(); startTutorial(); };
-  $("tutSkip").onclick=()=>{ S.tut="done"; save(); closeModal(); };
 }
 
 // ---------- guided walkthrough ----------
@@ -63,8 +62,16 @@ const TUT = [
   {say:"Tap the Drink Tap.", el:'[data-t="drinktap"]', wait:"placing"},
   {say:"Place it and tap ✔.", el:"#placeYes", wait:"placed"},
   {say:"Tap your Drink Tap to collect.", world:bCentre("drinktap"), wait:"collect-drink", prep:()=>{ finishNew("drinktap")(); const b=S.buildings.find(x=>x.t==="drinktap"); if(b) b.store=Math.max(b.store,120); }},
+  {say:"Somewhere to keep it all: tap Shop and build a Pie Warmer (it stores pies).", el:"#btnShop", wait:"shop"},
+  {say:"Tap the Resources tab.", el:'[data-tab="Resources"]', wait:"tab-Resources"},
+  {say:"Tap the Pie Warmer.", el:'[data-t="piewarmer"]', wait:"placing"},
+  {say:"Place it and tap ✔.", el:"#placeYes", wait:"placed"},
+  {say:"And an Esky to store sports drink. Tap Shop.", el:"#btnShop", wait:"shop", prep:finishNew("piewarmer")},
+  {say:"Tap the Resources tab.", el:'[data-tab="Resources"]', wait:"tab-Resources"},
+  {say:"Tap the Esky.", el:'[data-t="esky"]', wait:"placing"},
+  {say:"Place it and tap ✔.", el:"#placeYes", wait:"placed"},
   // 3. a second groundskeeper, bought with Brownlow votes (like Clash's second builder with gems)
-  {say:"One groundskeeper is slow going. Hire a second with your Brownlow votes 🏅. Tap Shop.", el:"#btnShop", wait:"shop"},
+  {say:"One groundskeeper is slow going. Hire a second with your Brownlow votes 🏅 (our gems). Tap Shop.", el:"#btnShop", wait:"shop", prep:finishNew("esky")},
   {say:"Tap the Resources tab.", el:'[data-tab="Resources"]', wait:"tab-Resources"},
   {say:"Tap the Groundskeeper Shed.", el:'[data-t="shed"]', wait:"placing"},
   {say:"Place it and tap ✔. Now two jobs can run at once.", el:"#placeYes", wait:"placed"},
@@ -78,7 +85,7 @@ const TUT = [
   {say:"Tap the Interchange Bench.", el:'[data-t="bench"]', wait:"placing"},
   {say:"Place it and tap ✔.", el:"#placeYes", wait:"placed"},
   {say:"Now train some players. Tap Squad.", el:"#btnSquad", wait:"squad", prep:finishNew("bench")},
-  {say:"Tap Rover 3 times. Players cost 💧 and take a few seconds each.", el:'[data-u="rover"]', wait:"train", count:3},
+  {say:"Tap Rover to add players. Training is free and instant; your bench space is the limit. Add 3.", el:'[data-u="rover"]', wait:"train", count:3},
   // 5. first match
   {say:"Close this window, then tap Match.", el:"#btnAttack", wait:"match", prep:()=>{ for(const u of S.queue.splice(0)) S.army[u]=(S.army[u]||0)+1; S.army.rover=Math.max(S.army.rover||0,8); uiDirty=true; }},
   {say:"The Season is 17 rounds against every other club. Win for 4 premiership points, finish top 8 for finals. Tap Play for Round 1.", el:'[data-r="0"]', wait:"battle"},
@@ -138,5 +145,5 @@ function tutFrame(){
   if(!box.classList.contains(pos)){ box.classList.remove("atTop","atBottom","atMid"); box.classList.add(pos); }
 }
 $("tutNext").onclick=()=>{ sfx("tap",.4); advanceTut(); };
-$("tutSkip2").onclick=()=>{ S.tut="done"; save(); showTutStep(); toast("Tutorial skipped. You can replay it from Settings."); };
+$("tutSkip2").remove();
 requestAnimationFrame(tutFrame);

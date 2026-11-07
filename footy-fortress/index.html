@@ -48,7 +48,8 @@
 <!-- battle -->
 <div id="battleTop">
   <div class="panel bl"><img class="badgeimg sm" id="bBadge" alt=""><div><div id="bVs"></div><div class="sub"><span id="bLoot"></span></div></div></div>
-  <div class="panel br"><div id="bScore"></div><div class="sub"><span id="bStars"></span> · <span id="bTime">3:00</span></div></div>
+  <div class="battleClock"><small>Battle Ends In</small><span id="bTime">3:00</span></div>
+  <div class="panel br"><div id="bScore"></div><div class="sub"><span id="bStars"></span></div></div>
 </div>
 <div id="battleHint">Tap the grass to send players in<br><small>Red zone = too close to buildings</small></div>
 <div id="battleBottom">
@@ -64,6 +65,8 @@
 
 <script src="js/data.js"></script>
 <script src="js/render.js"></script>
+<script src="art/sheets.js"></script>
+<script src="js/art.js"></script>
 <script src="js/game.js"></script>
 <script src="js/battle.js"></script>
 <script src="js/season.js"></script>
@@ -71,6 +74,6 @@
 <script src="js/audio.js"></script>
 <script src="js/ui.js"></script>
 <script src="js/tutorial.js"></script>
-<script>boot();</script>
+<script>loadFootyArt(); boot();</script>
 </body>
 </html>

@@ -205,3 +205,58 @@ button{font:inherit;color:#fff;text-shadow:0 2px 0 #000;cursor:pointer;border:no
 .ladder tr.me td{background:#ffe07a}
 .ladder tr.cut td{border-bottom:3px solid #3a2a18}
 .badgeimg.xs{width:22px;height:22px}
+
+/* Stadium presentation */
+:root{--panel:#15232be8;--edge:#10161b;--gold:#ffd465}
+html,body{background:#75883a;text-shadow:0 2px 0 #16212a}
+button{text-shadow:0 2px 0 #14202a}
+.badge,.pill,.panel{border-color:#151a20;box-shadow:inset 0 1px 0 #f1e5c746,0 3px 0 #11192066}
+.badge{background:linear-gradient(#344451f2,#14202cf5)}
+.res{border-color:#22221e;background:#141d22;box-shadow:inset 0 1px 2px #000c,0 2px 0 #121d2390}
+.res .fill{box-shadow:inset 0 2px 0 #fff6,inset 0 -3px 0 #43251640}
+.res .hud-icon{width:30px;height:30px}
+.hud-icon{display:block;width:1.08em;height:1.08em;object-fit:contain}
+.round{border-color:#292019;background:linear-gradient(#aa8354,#69503e 60%,#483628);box-shadow:0 4px 0 #211a14, inset 0 2px 0 #fff7,inset 0 -5px 0 #422c285e}
+.round.attack{background:linear-gradient(#ffd97d,#f4a52e 45%,#cf631d)}
+.round.shop{background:linear-gradient(#ffe28c,#f8bd39 55%,#bc8117)}
+.sidebtn{background:linear-gradient(#5d6073,#363e50 55%,#28303b);border-color:#1a1f27;box-shadow:0 4px 0 #12191f,inset 0 2px 0 #fff4}
+.btn{border-color:#28201e;background:linear-gradient(#a38360,#694d37);box-shadow:0 4px 0 #252023,inset 0 2px 0 #fff7,inset 0 -4px 0 #0002}
+.btn.green{background:linear-gradient(#a3e970,#52aa3f 55%,#368438)}
+.btn.red{background:linear-gradient(#ff8472,#e23a2d 55%,#a9291b)}
+.btn.gold{background:linear-gradient(#ffe88c,#edb436 55%,#c98815)}
+.btn.blue{background:linear-gradient(#90ddff,#3798d8 55%,#226bad)}
+.card{background:linear-gradient(145deg,#fff1d5,#dbc398);border-color:#3d2e24;box-shadow:0 6px 0 #1c1c1d,inset 0 0 0 2px #fff6}
+.card h2{color:#3e2e20;text-shadow:0 1px 0 #fff7}
+.tabs button.on{color:#302414;text-shadow:0 1px 0 #fff8}
+.item{background:#fff5d6c9;border-color:#af9b78;box-shadow:inset 0 1px 0 #fff9}
+#battleTop .panel{background:linear-gradient(#364557e8,#151d26f2)}
+.battleClock{position:absolute;left:50%;top:64px;transform:translateX(-50%);text-align:center;color:#fff4d9;line-height:1;white-space:nowrap;text-shadow:0 2px 0 #151717,0 0 5px #0c1517}
+.battleClock small{display:block;font-size:12px}
+#bTime{font-size:28px}
+#battleBottom{background:linear-gradient(transparent,#10171c66 56%,#0e151dd9)}
+.cardbtn{border-color:#141c2b;background:linear-gradient(#73caff,#2d6fa8 48%,#1b344e);box-shadow:0 4px 0 #121a21,inset 0 2px 0 #e5f5ffb3}
+.cardbtn img{width:66px;height:66px;top:3px;filter:drop-shadow(0 2px 2px #10203099)}
+.cardbtn .n{top:1px;left:auto;right:4px;color:#fff;text-shadow:0 2px 0 #0b1422,0 0 4px #061020}
+.cardbtn .l{background:#17253fe8}
+.cardbtn.spell{background:linear-gradient(#b999ff,#7345c0 56%,#45336f)}
+.cardbtn.hero{background:linear-gradient(#ffeaa0,#bf8434 56%,#735323)}
+.cardbtn.sel{outline:2px solid #b4f1ff;box-shadow:0 0 8px #89dfff,0 4px 0 #121a21}
+@media (min-width:680px){
+  .battleClock{top:2px}
+  .battleClock small{font-size:15px}
+  #bTime{font-size:40px}
+  #cards{margin-inline:auto;max-width:100%}
+}
+@media (max-height:530px){
+  .battleClock{top:2px}
+  #battleHint{top:21%}
+}
+.res .cap{top:1px;font-size:8px;left:5px;background:#141d228f;border-radius:3px;padding:0 2px;line-height:1.15}
+@media (min-width:1080px) and (min-height:620px){
+  #battleBottom{gap:9px;padding-inline:18px}
+  .cardbtn{width:84px;height:102px}
+  .cardbtn img{width:81px;height:81px}
+  .cardbtn .n{font-size:19px;right:5px}
+  .cardbtn .l{font-size:12px}
+  #bEnd{font-size:20px}
+}

@@ -258,12 +258,12 @@ The game already draws each card in `cardFace()` (`js/cards.js`) and already loo
 
 **Frames:**
 - **480 × 672 px** (5:7). The window inside must be **fully transparent**: x 34–446, y 34–638 (the game paints the background and portrait there, then puts your frame on top).
-- Thick metallic bevelled border with an outer glow, like the reference, plus small corner ornaments. **No text.**
+- Thick metallic bevelled border with an outer glow, like the reference, plus small corner ornaments (the game's current drawn frame shows the layout; open the album to see it). **No text.**
 - The game draws over these zones, so keep them plain:
-  - top-left circle at (80, 84) r 40: club badge
+  - top-left shield x 32–132, y 32–144: club crest
   - top-right box x 324–460, y 40–170: rating + rarity tag
   - bottom band y 490–640: name plate + position strip
-  - lower-left circle at (100, 464) r 55: big club badge
+  - lower-left box x 44–172, y 372–500: big club badge
   - specials only: banner y 180–232, centred
 - About 40–80 KB each.
 
@@ -335,7 +335,7 @@ The current art keeps working as the fallback: if a new file is missing or fails
 4. **Portraits.** The menu icons come from `playerIcon()` in `js/ui.js`, which calls `drawArtIcon("portrait-...")` in `js/art.js`. Make `drawArtIcon` prefer `art/portraits/...` when it's loaded. Don't change `ui.js` beyond that.
 5. **Buildings.** In `drawBuildingArt`, use `kitroom-<lv>` / `herohall-<lv>` when loaded; right now they borrow the Coach's Office and Captain's Locker art. Keep the footprint anchoring (the `artBuildings` table).
 6. **Cards and packs.** No code needed; `js/cards.js` picks them up from the manifest. Check it works (section 8).
-7. **Release.** Bump `CACHE` in `sw.js` (e.g. `footy-fortress-v17`) and `VERSION` in `js/data.js` (the date-like string). Those are the only edits allowed in `data.js`.
+7. **Release.** Bump `CACHE` in `sw.js` (e.g. `footy-fortress-v18`) and `VERSION` in `js/data.js` (the date-like string). Those are the only edits allowed in `data.js`.
 
 ---
 

@@ -100,7 +100,7 @@ $("modalX").onclick=closeModal;
 $("modal").addEventListener("pointerdown",e=>{ if(e.target.id==="modal"&&$("modalX").style.display!=="none") closeModal(); });
 
 function showClubPicker(){
-  modal(`<h2>Pick your club</h2><p style="text-align:center;margin:0 0 10px">Build your ground, train your squad and take on the rest of the league.</p><div class="clubs" id="clubList"></div>`,{noClose:true});
+  modal(`<h2>Pick your club</h2><p style="text-align:center;margin:0 0 10px">Build your ground, train your squad and take on the rest of the league.</p><p style="text-align:center;margin:-4px 0 10px;font-size:12px;color:#6b5434">Unofficial fan game. Not affiliated with the AFL or its clubs.</p><div class="clubs" id="clubList"></div>`,{noClose:true});
   CLUBS.forEach((c,i)=>{ const b=document.createElement("button"); b.innerHTML=`<span class="guernsey" style="background:${jersey(c)}"></span><span>${c.name}<small>⭐ ${c.hero.name}</small></span>`;
     b.onclick=()=>{ newGame(i); closeModal(); cam.x=0; cam.y=0; setZoom(1); refreshUI(); toast(`Welcome to Footy Fortress, ${c.name}!`); }; $("clubList").append(b); });
 }
@@ -224,7 +224,9 @@ function showResult(r){
 }
 function openSettings(){
   modal(`<h2>Settings</h2><p>Your club: <b>${myClub().name}</b></p><p>Progress saves on this device automatically.</p><button class="btn red" id="reset">Start over (new club)</button>`);
-  $("reset").onclick=()=>{ if(confirm("Wipe your ground and start again?")){ try{localStorage.removeItem(SAVE_KEY);}catch(e){} S=null; selected=null; closeModal(); showClubPicker(); } };
+  $("reset").onclick=()=>{ const b=$("reset");
+    if(!b.dataset.sure){ b.dataset.sure="1"; b.textContent="Tap again to wipe everything"; return; }
+    try{localStorage.removeItem(SAVE_KEY);}catch(e){} S=null; selected=null; closeModal(); showClubPicker(); };
 }
 
 $("btnShop").onclick=()=>openShop();
@@ -233,7 +235,9 @@ $("btnAttack").onclick=openMatch;
 $("btnSettings").onclick=openSettings;
 $("placeYes").onclick=confirmPlace;
 $("placeNo").onclick=()=>{ placing=null; refreshUI(); };
-$("bEnd").onclick=()=>{ if(!BT.started||confirm("End the match now?")) endBattle(); };
+$("bEnd").onclick=()=>{ const b=$("bEnd");
+  if(BT.started&&!b.dataset.sure){ b.dataset.sure="1"; b.textContent="Tap to confirm"; setTimeout(()=>{ delete b.dataset.sure; b.textContent="End Match"; },2500); return; }
+  delete b.dataset.sure; b.textContent="End Match"; endBattle(); };
 $("bAbility").onclick=useAbility;
 
 // ---------- touch / mouse ----------

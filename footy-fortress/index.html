@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#4c9631">
+<title>Footy Fortress</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Lilita+One&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<canvas id="c"></canvas>
+
+<!-- top bar -->
+<div id="top">
+  <div class="tl">
+    <div class="badge" id="clubBadge">
+      <img class="badgeimg" id="g" alt="">
+      <div><div id="clubName">Footy Fortress</div><div class="sub">🏆 <span id="tro">0</span> · <span id="lg"></span></div></div>
+    </div>
+    <div class="row2"><div class="pill small" id="builders">👷 0/0</div><div class="pill small shield hide" id="shield"></div></div>
+  </div>
+  <div class="tr">
+    <div class="res" data-r="pies"><div class="fill" style="background:linear-gradient(#ffd96a,#e9a92a)"></div><span class="v"></span><span class="cap"></span><i>🥧</i></div>
+    <div class="res" data-r="drink"><div class="fill" style="background:linear-gradient(#7fe3ff,#1aa3d6)"></div><span class="v"></span><span class="cap"></span><i>💧</i></div>
+    <div class="res medals" data-r="medals"><span class="v"></span><i>🏅</i></div>
+  </div>
+</div>
+
+<!-- home buttons -->
+<div id="homeBtns">
+  <button class="round attack" id="btnAttack"><b>⚔️</b><span>Match</span></button>
+  <button class="round" id="btnSquad"><b>🏉</b><span>Squad</span></button>
+  <button class="round shop" id="btnShop"><b>🛒</b><span>Shop</span></button>
+</div>
+<div id="side">
+  <button class="sidebtn" id="btnCards">🃏<span>Cards</span><i class="dot hide" id="cardDot"></i></button>
+  <button class="sidebtn" id="btnTasks">📋<span>Tasks</span><i class="dot hide" id="taskDot"></i></button>
+  <button class="sidebtn" id="btnLog">🛡️<span>Home</span><i class="dot hide" id="logDot"></i></button>
+  <button class="sidebtn" id="btnSettings">⚙️<span>Settings</span></button>
+</div>
+<div id="eventBanner" class="hide"></div>
+
+<div id="selPanel"></div>
+<div id="placePanel"><button class="btn red" id="placeNo">✖</button><span id="placeName"></span><button class="btn green" id="placeYes">✔</button></div>
+
+<!-- battle -->
+<div id="battleTop">
+  <div class="panel bl"><img class="badgeimg sm" id="bBadge" alt=""><div><div id="bVs"></div><div class="sub"><span id="bLoot"></span></div></div></div>
+  <div class="panel br"><div id="bScore"></div><div class="sub"><span id="bStars"></span> · <span id="bTime">3:00</span></div></div>
+</div>
+<div id="battleHint">Tap the grass to send players in<br><small>Red zone = too close to buildings</small></div>
+<div id="battleBottom">
+  <div class="row"><button class="btn red" id="bEnd">End Match</button><div id="abilities"></div></div>
+  <div id="cards"></div>
+</div>
+
+<div id="replayBar"><span class="panel">▶ Replay</span><button class="btn blue" id="rSpeed">1×</button><button class="btn red" id="rExit">Exit</button></div>
+<div class="modal" id="modal"><div class="card"><button class="x" id="modalX">✖</button><div id="modalBody"></div></div></div>
+<div id="toast"></div>
+<div id="tut" class="tut hide atBottom"><img id="tutAvatar" alt=""><div class="tb"><div id="tutText"></div><div class="tbtns"><button class="btn green hide" id="tutNext">Next</button><button class="lnk" id="tutSkip2">Skip tutorial</button></div></div></div>
+<div id="tutHand" class="hide">👆</div>
+
+<script src="js/data.js"></script>
+<script src="js/render.js"></script>
+<script src="js/game.js"></script>
+<script src="js/battle.js"></script>
+<script src="js/season.js"></script>
+<script src="js/raid.js"></script>
+<script src="js/audio.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/tutorial.js"></script>
+<script>boot();</script>
+</body>
+</html>

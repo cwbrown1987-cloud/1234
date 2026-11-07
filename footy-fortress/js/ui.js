@@ -51,7 +51,7 @@ function cardArt(card){
   drawBadge(g,30,32,20,club);
   g.fillStyle="#000a"; g.fillRect(0,192,180,48);
   g.font='20px "Lilita One",sans-serif'; g.textAlign="center"; g.fillStyle="#fff"; g.textBaseline="middle";
-  const nm=card.name.length>18?card.name.split(" ").pop():card.name; g.fillText(nm,90,207);
+  const nm=card.name.length>18?card.name.split(" ").pop():card.name; g.fillText(nm,90,207,162);
   g.font='13px "Lilita One",sans-serif'; g.fillStyle=R.col; g.fillText(`${R.name} · ${POS_NAME[card.pos]}`,90,227);
   g.lineWidth=8; g.strokeStyle=R.col; g.strokeRect(4,4,172,232); g.lineWidth=2; g.strokeStyle="#000"; g.strokeRect(1,1,178,238);
   return iconCache[key]=c.toDataURL();

@@ -19,8 +19,8 @@ function newGame(club){
     sound:true, last:Date.now()};
   s.buildings.forEach(b=>b.id=s.nextId++);
   const r=rng(club*99+7);
-  for(let n=0;n<26;n++){ const x=1+(r()*(N-2)|0), y=1+(r()*(N-2)|0), k=r()<.55?"tree":r()<.6?"bush":"rock"; s.obstacles.push({id:s.nextId++,x,y,k}); }
-  S=fixup(s); S.obstacles=S.obstacles.filter(o=>!occupiedHome(o.x-1,o.y-1,3,o)&&Math.max(Math.abs(o.x-C0),Math.abs(o.y-C0))>4);
+  s.obsV=2; s.obsAt=Date.now()+OBSTACLE_EVERY;
+  S=fixup(s); for(let n=0;n<24;n++) spawnObstacle(r,6);
   save();
 }
 // Fill in anything missing (older saves) so every field exists.
@@ -68,7 +68,7 @@ const resIcon = r => r==="pies"?"🥧":r==="drink"?"💧":"🏅";
 function footprintFree(x,y,s,ignore){ if(x<0||y<0||x+s>N||y+s>N) return false; return !occupiedHome(x,y,s,ignore); }
 function occupiedHome(x,y,s,ignore){
   for(const b of S.buildings){ if(b===ignore) continue; const bs=BLD[b.t].size; if(x<b.x+bs&&x+s>b.x&&y<b.y+bs&&y+s>b.y) return true; }
-  for(const o of S.obstacles){ if(o===ignore) continue; if(x<o.x+1&&x+s>o.x&&y<o.y+1&&y+s>o.y) return true; }
+  for(const o of S.obstacles){ if(o===ignore) continue; const os=o.s||1; if(x<o.x+os&&x+s>o.x&&y<o.y+os&&y+s>o.y) return true; }
   return false;
 }
 function findSpot(s){ const c=N/2-s/2|0; for(let r=0;r<N;r++) for(let dx=-r;dx<=r;dx++) for(let dy=-r;dy<=r;dy++){ if(Math.max(Math.abs(dx),Math.abs(dy))!==r) continue; if(footprintFree(c+dx,c+dy,s)) return [c+dx,c+dy]; } return null; }
@@ -122,9 +122,28 @@ function startUpgrade(b){
 const speedCost = endMs => { const m=(endMs-Date.now())/60000; return Math.max(2, Math.ceil(2*m+Math.pow(Math.max(0,m),1.15)*.25)); };
 function speedUp(b){ const c=speedCost(b.busy.end); if(!pay("medals",c)) return toast("Not enough Brownlow votes 🏅"); b.busy.end=Date.now(); processTimers(); refreshUI(); }
 function removeObstacle(o){
-  if(!pay("pies",100)) return toast("Clearing costs 100 🥧");
-  S.obstacles=S.obstacles.filter(x=>x!==o); const m=Math.random()<.4?0:1+(Math.random()<.2?1:0); S.medals+=m;
-  if(m) floatText(o.x+.5,o.y+.5,`+${m} 🏅`); sfx("collect"); selected=null; save(); refreshUI();
+  const d=obsInfo(o), s=o.s||1;
+  if(!pay(d.res,d.cost)) return toast(`Clearing costs ${fmt(d.cost)} ${resIcon(d.res)}`);
+  S.obstacles=S.obstacles.filter(x=>x!==o); const [lo,hi]=d.votes, m=lo+Math.floor(Math.random()*(hi-lo+1)); S.medals+=m;
+  if(typeof addXP==="function") addXP(s*2);
+  floatText(o.x+s/2,o.y+s/2,m?`+${m} 🏅`:"Cleared!"); sfx("collect"); selected=null; save(); refreshUI();
+}
+// Grow a random obstacle on a free spot (with a one-tile gap around it). minC keeps it away from the middle.
+function spawnObstacle(r=Math.random, minC=0){
+  const ks=Object.keys(OBSTACLES), tot=ks.reduce((a,k)=>a+OBSTACLES[k].w,0);
+  let pick=r()*tot, k=ks[0]; for(const kk of ks){ pick-=OBSTACLES[kk].w; if(pick<0){ k=kk; break; } }
+  const s=OBSTACLES[k].s;
+  for(let t=0;t<80;t++){ const x=1+(r()*(N-1-s)|0), y=1+(r()*(N-1-s)|0);
+    if(Math.max(Math.abs(x+s/2-N/2),Math.abs(y+s/2-N/2))<minC) continue;
+    if(!footprintFree(x-1,y-1,s+2)) continue;
+    const o={id:S.nextId++,x,y,k,s}; S.obstacles.push(o); return o; }
+  return null;
+}
+function growObstacles(){
+  const now=Date.now();
+  if(!S.obsV){ S.obsV=2; S.obsAt=now+OBSTACLE_EVERY; for(let i=0;i<8;i++) spawnObstacle(Math.random,5); uiDirty=true; save(); }
+  let n=0; while(now>=S.obsAt&&n++<3){ S.obsAt+=OBSTACLE_EVERY; if(S.obstacles.length<OBSTACLE_MAX) spawnObstacle(); uiDirty=true; }
+  if(now>=S.obsAt) S.obsAt=now+OBSTACLE_EVERY;
 }
 function collect(b){
   const d=BLD[b.t]; const n=Math.floor(b.store); if(n<1) return;
@@ -225,6 +244,7 @@ const tasksReady = () => S.daily&&S.daily.tasks.filter(t=>t.n>=t.goal&&!t.claime
 
 // ---------- time passing ----------
 function processTimers(){
+  if(S&&S.tut==="done") growObstacles();
   const now=Date.now();
   for(const b of S.buildings) if(b.busy && b.busy.end<=now){
     if(b.busy.kind==="up"){ b.lv++; toast(`${BLD[b.t].name} upgraded to level ${b.lv}!`); } else toast(`${BLD[b.t].name} finished!`);
@@ -268,8 +288,7 @@ function renderHome(){
   const club=myClub(), list=S.buildings, ents=[];
   const heroes={busy:{}}; for(const h of Object.keys(HEROES)){ heroes[h]=heroReady(h)?club:null; heroes.busy[h]=!!S.heroes[h].busy; }
   for(const t of deco) ents.push({k:t.x+t.y,f:()=>drawDeco(t)});
-  for(const o of S.obstacles) ents.push({k:o.x+o.y+1,f:()=>{ if(selected===o) selectGlow(o.x,o.y,1);
-    const v=(o.id*37%10)/10; drawDeco({x:o.x+.5,y:o.y+.55,k:o.k,s:(o.k==="tree"?.78:o.k==="bush"?.62:.85)*(.92+v*.16),h:v,inGround:true}); }});
+  for(const o of S.obstacles) ents.push({k:o.x+o.y+(o.s||1),f:()=>{ if(selected===o) selectGlow(o.x,o.y,o.s||1); drawObstacle(o); }});
   const movingB = placing&&placing.moving;
   for(const b of list){ if(b===movingB) continue; const d=BLD[b.t];
     ents.push({k:b.x+b.y+d.size,f:()=>drawBuilding(b,club,list,{selected:selected===b, fill:fillOf(b), heroes, collect:d.makes&&!b.busy&&b.store>=Math.max(1,d.cap[b.lv-1]*.1)?b.store:0})}); }

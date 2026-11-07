@@ -208,7 +208,8 @@ function drawDaicosBurst(x,y,k,phase) {
 }
 
 function drawSceneryArt(t,x,y,k) {
-  const sprite = artSprites.get(t.k==="bush"?"rock":t.k);
+  if (t.k!=="tree" && t.k!=="rock") return false;
+  const sprite = artSprites.get(t.k);
   if (!sprite) return false;
   const widths = {tree:2.5,bush:2.0,rock:1.4};
   return paintArt(sprite,x,y,k*widths[t.k]/sprite.w,.92,t.h>.5?-1:1);

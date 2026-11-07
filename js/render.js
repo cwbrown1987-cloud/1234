@@ -395,6 +395,62 @@ function drawDeco(t,ox=0,oy=0){
   ctx.fillStyle=light; for(const [a,b,r] of blobs){ ctx.beginPath(); ctx.arc(x+a*k-r*k*.25,y+b*k-r*k*.3,r*k*.55,0,7); ctx.fill(); }
 }
 
+// ---------- obstacles: small and big trees, wattle bushes, stumps and rocks ----------
+// Each piece is a little cluster drawn back to front so it fills its footprint like Clash's obstacles.
+const OBS_LAYOUT = {
+  bush:   [["bush",.5,.55,.95]],
+  stump:  [["bush",.55,.7,.55],["stump",1.05,1.05,1.25],["bush",1.5,1.45,.5]],
+  tree:   [["tree",.85,.8,1.2],["bush",1.45,1.5,.6]],
+  bigtree:[["tree",.85,.75,.95],["bush",.55,2.1,.6],["tree",1.6,1.55,1.8],["bush",2.4,2.25,.65]],
+  rock:   [["rock",1.0,1.0,2.1],["rock",1.65,1.6,.8]],
+  bigrock:[["rock",.6,2.3,.9],["rock",1.45,1.4,3.1],["rock",2.35,2.3,1.0]],
+};
+function drawObstacle(o){
+  const s=o.s||1, v=(o.id*37%10)/10;
+  const [cx,cy]=P(o.x+s/2,o.y+s/2), rx=TW*s*.46, ry=TH*s*.46;
+  const g=ctx.createRadialGradient(cx,cy,0,cx,cy,rx);
+  g.addColorStop(0,"#1c3a0c55"); g.addColorStop(.75,"#1c3a0c22"); g.addColorStop(1,"#1c3a0c00");
+  ctx.save(); ctx.translate(cx,cy); ctx.scale(1,ry/rx); ctx.translate(-cx,-cy); ctx.fillStyle=g; ctx.beginPath(); ctx.arc(cx,cy,rx,0,7); ctx.fill(); ctx.restore();
+  const items = o.s ? OBS_LAYOUT[o.k] : [[o.k,.5,.55,o.k==="tree"?.85:o.k==="bush"?.8:.9]];
+  for(const [k,dx,dy,sc] of items){
+    const [x,y]=P(o.x+dx,o.y+dy), z=sc*(.94+v*.12), kk=TW*.5*z;
+    if(k==="bush") drawBush(x,y,kk,v+dx);
+    else if(k==="stump") drawStump(x,y,kk);
+    else if(k==="pebble") drawPebble(x,y,kk);
+    else drawDeco({x:o.x+dx,y:o.y+dy,k,s:z,h:v});
+  }
+}
+// Wattle bush: round leafy clumps with little yellow flowers
+function drawBush(x,y,k,seed){
+  const r=rng(Math.floor(seed*1000)+3), blobs=[[-.42,-.32,.4],[.42,-.3,.4],[0,-.62,.46],[-.15,-.2,.36],[.2,-.18,.34]];
+  ctx.fillStyle="#0002"; ctx.beginPath(); ctx.ellipse(x+k*.1,y,k*.75,k*.3,0,0,7); ctx.fill();
+  ctx.strokeStyle=OUT; ctx.lineWidth=LW()*1.6;
+  for(const [a,b,rr2] of blobs){ ctx.beginPath(); ctx.arc(x+a*k,y+b*k,rr2*k,0,7); ctx.stroke(); }
+  for(const [a,b,rr2] of blobs){ const gg=ctx.createRadialGradient(x+a*k-rr2*k*.3,y+b*k-rr2*k*.4,0,x+a*k,y+b*k,rr2*k);
+    gg.addColorStop(0,"#7cc24f"); gg.addColorStop(1,"#2e6b24"); ctx.fillStyle=gg; ctx.beginPath(); ctx.arc(x+a*k,y+b*k,rr2*k,0,7); ctx.fill(); }
+  for(let i=0;i<9;i++){ const a=r()*Math.PI*2, d=r()*.5; const fx=x+Math.cos(a)*d*k, fy=y-k*.42+Math.sin(a)*d*k*.6;
+    ctx.fillStyle="#ffd23a"; ctx.beginPath(); ctx.arc(fx,fy,k*.07,0,7); ctx.fill(); ctx.fillStyle="#fff3a0"; ctx.beginPath(); ctx.arc(fx-k*.02,fy-k*.02,k*.03,0,7); ctx.fill(); }
+}
+// Old tree stump with rings and roots
+function drawStump(x,y,k){
+  const w=k*.62, h=k*.55, top=y-h;
+  ctx.fillStyle="#0003"; ctx.beginPath(); ctx.ellipse(x+k*.1,y,k*.85,k*.32,0,0,7); ctx.fill();
+  ctx.strokeStyle=OUT; ctx.lineWidth=LW();
+  for(const [dx,dir] of [[-1,-1],[1,1],[-.2,0]]){ ctx.beginPath(); ctx.moveTo(x+dx*w*.6,y-k*.12); ctx.quadraticCurveTo(x+dx*w*1.1,y,x+dx*w*1.35+dir*k*.1,y+k*.1); ctx.lineTo(x+dx*w*.9,y+k*.02); ctx.closePath(); ctx.fillStyle="#6b4424"; ctx.fill(); ctx.stroke(); }
+  ctx.beginPath(); ctx.moveTo(x-w,top); ctx.lineTo(x-w,y-k*.08); ctx.ellipse(x,y-k*.08,w,w*.42,0,Math.PI,0,true); ctx.lineTo(x+w,top); ctx.closePath();
+  const sg=ctx.createLinearGradient(x-w,0,x+w,0); sg.addColorStop(0,"#8a5a30"); sg.addColorStop(.5,"#6e4322"); sg.addColorStop(1,"#4a2c15"); ctx.fillStyle=sg; ctx.fill(); ctx.stroke();
+  for(const f of [-.5,0,.45]){ ctx.strokeStyle="#3a2210aa"; ctx.lineWidth=LW()*.7; ctx.beginPath(); ctx.moveTo(x+f*w,top+w*.3); ctx.lineTo(x+f*w*1.05,y-k*.1); ctx.stroke(); }
+  ctx.strokeStyle=OUT; ctx.lineWidth=LW(); ctx.beginPath(); ctx.ellipse(x,top,w,w*.42,0,0,7); ctx.fillStyle="#e2bf86"; ctx.fill(); ctx.stroke();
+  ctx.strokeStyle="#a77b45"; ctx.lineWidth=LW()*.6; for(const f of [.7,.45,.2]){ ctx.beginPath(); ctx.ellipse(x,top,w*f,w*.42*f,0,0,7); ctx.stroke(); }
+  ctx.fillStyle="#4f9a3a"; ctx.beginPath(); ctx.arc(x+w*.55,top-k*.05,k*.09,0,7); ctx.arc(x+w*.7,top-k*.12,k*.07,0,7); ctx.fill();
+}
+// Small grey stones next to rocks
+function drawPebble(x,y,k){
+  ctx.fillStyle="#0003"; ctx.beginPath(); ctx.ellipse(x,y,k*.55,k*.22,0,0,7); ctx.fill();
+  for(const [dx,sz] of [[-.25,.32],[.22,.25]]){ ctx.strokeStyle=OUT; ctx.lineWidth=LW();
+    poly([[x+dx*k-sz*k,y],[x+dx*k-sz*k*.7,y-sz*k*.8],[x+dx*k+sz*k*.2,y-sz*k*1.05],[x+dx*k+sz*k,y-sz*k*.4],[x+dx*k+sz*k*.85,y]],grad([x,y-sz*k],[x,y],"#d6d1c7","#857f74")); }
+}
+
 function drawGround(){
   if(!deco) makeDeco();
   const [cx,cy]=P(N/2,N/2);

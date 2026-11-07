@@ -92,7 +92,7 @@ function updateHUD(force){
 
 function buildSelPanel(sp){
   const o=selected;
-  if(!BLD[o.t]){ sp.innerHTML=`<div class="title">${o.k==="rock"?"Rock":o.k==="bush"?"Bush":"Gum Tree"}</div><div class="acts"></div>`; addBtn(sp,"btn gold",`Clear<small>100 🥧</small>`,()=>removeObstacle(o)); return; }
+  if(!BLD[o.t]){ const d=obsInfo(o); sp.innerHTML=`<div class="title">${d.name}</div><div class="acts"></div>`; addBtn(sp,"btn gold",`Clear<small>${fmt(d.cost)} ${resIcon(d.res)}</small>`,()=>removeObstacle(o)); return; }
   const d=BLD[o.t];
   sp.innerHTML=`<div class="title">${d.name} <span style="color:var(--gold)">Lv ${o.lv}</span>${o.busy?` · <span class="timer"></span>`:""}</div><div class="acts"></div>`;
   addBtn(sp,"btn blue","ℹ️<small>Info</small>",()=>openInfo(o));
@@ -363,7 +363,7 @@ const toCanvas = e => [e.clientX*W/innerWidth, e.clientY*H/innerHeight];
 function hitHome(gx,gy){
   const x=Math.floor(gx), y=Math.floor(gy);
   for(const b of S.buildings){ const s=BLD[b.t].size; if(x>=b.x&&x<b.x+s&&y>=b.y&&y<b.y+s) return b; }
-  return S.obstacles.find(o=>o.x===x&&o.y===y)||null;
+  return S.obstacles.find(o=>{ const s=o.s||1; return x>=o.x&&x<o.x+s&&y>=o.y&&y<o.y+s; })||null;
 }
 cv.addEventListener("pointerdown",e=>{
   cv.setPointerCapture(e.pointerId); const [px,py]=toCanvas(e); ptrs.set(e.pointerId,{x:px,y:py,sx:px,sy:py});
@@ -372,7 +372,7 @@ cv.addEventListener("pointerdown",e=>{
   gesture={k:"tap",gx,gy};
   if(mode==="home"&&S){
     if(placing&&!placing.moving){ const s=BLD[placing.t].size; if(gx>=placing.x&&gx<placing.x+s&&gy>=placing.y&&gy<placing.y+s) gesture={k:"ghost",ox:gx-placing.x,oy:gy-placing.y}; }
-    else if(selected&&BLD[selected.t]&&hitHome(gx,gy)===selected) gesture={k:"maybeMove",b:selected,ox:gx-selected.x,oy:gy-selected.y};
+    else if(selected&&BLD[selected.t]&&hitHome(gx,gy)===selected) gesture={k:"maybeMove",b:selected,ox:gx-selected.x,oy:gy-selected.y,t0:performance.now()};
   }
   if(mode==="battle"){ gesture.hold=setTimeout(()=>{ if(gesture&&gesture.k==="tap"){ gesture.k="spam"; spamLoop(); } },280); }
 });
@@ -384,7 +384,9 @@ cv.addEventListener("pointermove",e=>{
   const moved=Math.hypot(px-p.sx,py-p.sy)>10*(W/innerWidth);
   if(gesture.k==="spam") return;
   if(gesture.k==="ghost"){ const [gx,gy]=unIso(px,py); placing.x=Math.round(gx-gesture.ox); placing.y=Math.round(gy-gesture.oy); return; }
-  if(gesture.k==="maybeMove"&&moved){ const b=gesture.b; placing={t:b.t,x:b.x,y:b.y,moving:b}; gesture.k="move"; refreshUI(); }
+  // A tap (even a wobbly one) never moves a building: it needs a proper drag, or a short hold then a drag.
+  const far=Math.hypot(px-p.sx,py-p.sy)>26*(W/innerWidth);
+  if(gesture.k==="maybeMove"&&(far||(moved&&performance.now()-gesture.t0>300))){ const b=gesture.b; placing={t:b.t,x:b.x,y:b.y,moving:b}; gesture.k="move"; refreshUI(); }
   if(gesture.k==="move"){ const [gx,gy]=unIso(px,py); placing.x=Math.round(gx-gesture.ox); placing.y=Math.round(gy-gesture.oy); return; }
   if(gesture.k==="tap"&&moved){ clearTimeout(gesture.hold); gesture.k="pan"; }
   if(gesture.k==="pan"){ cam.x+=dx; cam.y+=dy; clampCam(); }

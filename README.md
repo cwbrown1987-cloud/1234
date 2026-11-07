@@ -1,5 +1,3 @@
-# Neon Fever Dream
+# Footy Fortress
 
-Experimental Dungeon-keeper inspired project with a vaporwave synth-thetic vibe.
-
-Runs under Godot 3.2.1
+Clash cross Afl

@@ -11,7 +11,11 @@ function playerIcon(kind, club){
   club=club||myClub(); const key=kind+club.abbr;
   if(iconCache[key]) return iconCache[key];
   const c=document.createElement("canvas"); c.width=c.height=96;
-  const save={ctx,TW,TH}; ctx=c.getContext("2d"); TW=60; TH=30;
+  const role=kind==="hero:captain"?"captain":kind==="hero:coach"?"coach":kind;
+  const likeness=role==="captain" && namedHeroArt[club.abbr];
+  const icon=c.getContext("2d");
+  if ((likeness && drawArtIcon(likeness,icon,48,96,96,92)) || drawArtIcon("portrait-"+role,icon,48,96,96,92) || (UNITS[role]?.air && drawArtIcon(role,icon,48,83,90,76))) return iconCache[key]=c.toDataURL();
+  const save={ctx,TW,TH}; ctx=icon; TW=60; TH=30;
   if(kind==="seagulls"){ for(const [dx,dy] of [[0,0],[-14,10],[14,12],[-4,-14]]) gull(48+dx,52+dy,14,dx,1); }
   else if(kind==="blimp") blimp(48,50,{club,face:1,id:0});
   else { const hk=kind.startsWith("hero:")?kind.slice(5):null, pos=hk?HEROES[hk].pos(club):null;
@@ -23,7 +27,9 @@ const SPELL_ICON={oranges:"🍊",roar:"📣",freekick:"🟨",rain:"🌧️",sub:
 function spellIcon(sp){
   if(iconCache[sp]) return iconCache[sp];
   const c=document.createElement("canvas"); c.width=c.height=96; const g=c.getContext("2d");
-  g.font="56px serif"; g.textAlign="center"; g.textBaseline="middle"; g.fillText(SPELL_ICON[sp],48,52);
+  if (!drawArtIcon("icon-"+sp,g,48,91,90,87)) {
+    g.font="56px serif"; g.textAlign="center"; g.textBaseline="middle"; g.fillText(SPELL_ICON[sp],48,52);
+  }
   return iconCache[sp]=c.toDataURL();
 }
 // Player card art
@@ -34,9 +40,14 @@ function cardArt(card){
   const bg=g.createLinearGradient(0,0,0,240); bg.addColorStop(0,shade(club.a,1.35)); bg.addColorStop(1,shade(club.a,.7)); g.fillStyle=bg; g.fillRect(0,0,180,240);
   g.fillStyle=club.b; g.globalAlpha=.25; g.fillRect(66,0,48,240); g.globalAlpha=1;
   if(card.rarity==="legend"){ g.save(); g.globalAlpha=.25; for(let i=0;i<12;i++){ g.fillStyle="#fff"; g.beginPath(); g.moveTo(90,110); g.arc(90,110,200,i*Math.PI/6,i*Math.PI/6+.18); g.fill(); } g.restore(); }
-  const save={ctx,TW,TH}; ctx=g; TW=70; TH=35;
-  drawPlayer(90,190,46,club,{kind:card.pos==="ruck"?"ruck":null,hero:card.rarity==="legend",ranged:card.pos==="fwd",id:card.club});
-  ctx=save.ctx; TW=save.TW; TH=save.TH;
+  const role=card.rarity==="legend"?"captain":({mid:"rover",fwd:"forward",ruck:"ruck",def:"shepherd"})[card.pos];
+  const likeness=card.name===club.hero.name && namedHeroArt[club.abbr];
+  if (!(likeness && drawArtIcon(likeness,g,90,193,174,184)) && !drawArtIcon("portrait-"+role,g,90,193,174,184)) {
+    const save={ctx,TW,TH}; ctx=g; TW=70; TH=35;
+    drawPlayer(90,190,46,club,{kind:card.pos==="ruck"?"ruck":null,hero:card.rarity==="legend",ranged:card.pos==="fwd",id:card.club});
+    ctx=save.ctx; TW=save.TW; TH=save.TH;
+  }
+
   drawBadge(g,30,32,20,club);
   g.fillStyle="#000a"; g.fillRect(0,192,180,48);
   g.font='20px "Lilita One",sans-serif'; g.textAlign="center"; g.fillStyle="#fff"; g.textBaseline="middle";

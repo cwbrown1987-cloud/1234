@@ -28,3 +28,12 @@ A base-building strategy game with all 18 AFL clubs. Open `index.html` in a brow
 Edit captains/colours in `js/data.js`. Club names and colours only; no official logos.
 
 ![Home](mockups/home.png) ![Match Day](mockups/attack.png) ![Cards](mockups/cards.png) ![Defence log](mockups/defence-log.png)
+
+## Isometric art
+The browser art uses original generated sprite sheets with the same tile projection
+and game rules. Footy-inspired kits, a slate-and-gold trophy fortress, grandstands
+and sunlit turf follow the supplied concept image. Captain portraits and on-field
+poses for Nick Daicos, Max Gawn and Marcus Bontempelli reference
+[AFL Photos](https://www.afl.com.au/news/1275233/the-25-nick-daicos-marcus-bontempelli-and-the-afls-best-players-ranked-by-our-experts).
+The game also uses stylised role art for other players. The artwork is bundled for
+direct `index.html` play and static hosting.

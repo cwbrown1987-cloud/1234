@@ -256,22 +256,6 @@ function loadCaptainSheet(key,clubs,rowStops) {
   loadArtSheet(FOOTY_SHEETS[key],3,3,poses,0,rowStops);
 }
 
-function drawFenceArt(x,y,h,lv,joinX,joinY) {
-  const post = artSprites.get("fence-post");
-  if (!post) return false;
-  const slate = lv<3?"#56647b":lv<6?"#495b7b":"#3d5276";
-  const cap = lv<3?"#b2a486":lv<6?"#d4a43d":"#ffc954";
-  if (joinX) {
-    prism(x+.5,y+.33,.99,.34,0,h*.72,slate);
-    prism(x+.5,y+.31,.99,.38,h*.72,.1,cap);
-  }
-  if (joinY) {
-    prism(x+.33,y+.5,.34,.99,0,h*.72,slate);
-    prism(x+.31,y+.5,.38,.99,h*.72,.1,cap);
-  }
-  return paintArt(post,...P(x+.5,y+.5),TW*.68/post.w,.89);
-}
-
 function drawPitchMarkings() {
   const [cx,cy] = P(N/2,N/2);
   ctx.save();

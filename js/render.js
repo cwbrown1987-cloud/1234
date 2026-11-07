@@ -363,7 +363,7 @@ let deco=null, tufts=null, patches=[];
 function makeDeco(){
   const r=rng(42); deco=[]; tufts=[];
   for(let i=-10;i<N+10;i++) for(let j=-10;j<N+10;j++){
-    if(i>=-1&&j>=-1&&i<=N&&j<=N) continue;
+    if(i>=-2&&j>=-2&&i<=N+2&&j<=N+2) continue; // clear apron so border trees never hide the ground
     if(i>=-5&&j>=-5&&i<=N+1&&j<=N+1&&(i<0||j<0)) continue;
     if(r()<(i<-2||j<-2||i>N+2||j>N+2?.28:.09)) deco.push({x:i+.2+r()*.6,y:j+.2+r()*.6,k:r()<.72?"tree":r()<.6?"bush":"rock",s:.8+r()*.5,h:r()});
   }

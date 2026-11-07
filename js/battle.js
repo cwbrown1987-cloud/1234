@@ -361,7 +361,7 @@ function drawUnitB(u){
   if(u.air) return drawFlyer(u);
   const [x,y]=P(u.x,u.y);
   const k = TW*(u.hero?.5:u.kind==="ruck"?.42:u.kind==="trainer"?.4:u.kind==="tagger"?.3:.33);
-  drawPlayer(x,y,k,u.club,{id:u.id,moving:u.moving,face:u.face,atk:u.atk>0,kind:u.pos==="coach"?"coach":u.kind,hero:u.hero,heroKey:u.heroKey,ranged:u.ranged,rage:u.rage>0});
+  drawPlayer(x,y,k,u.club,{id:u.id,moving:u.moving,face:u.face,atk:u.atk>0,kind:u.pos==="coach"?"coach":u.kind,hero:u.hero,heroKey:u.heroKey,ranged:u.ranged,rage:u.rage>0,unit:u,ko:u.hp<=0});
   if(u.immune>0){ ctx.save(); ctx.globalAlpha=.35; ctx.fillStyle="#ffd34d"; ctx.beginPath(); ctx.ellipse(x,y-k*1.4,k*1.2,k*1.9,0,0,7); ctx.fill(); ctx.restore(); }
   if(u.shield>0){ ctx.save(); ctx.globalAlpha=.3; ctx.fillStyle="#7fd3ff"; ctx.beginPath(); ctx.ellipse(x,y-k*1.4,k*1.1,k*1.8,0,0,7); ctx.fill(); ctx.restore(); }
   if(u.hp<u.max||u.hero) bar(x,y-k*(u.hero?4:3.5),u.hp/u.max,u.hero?GOLD:"#5fd16b",u.hero?TW*1.3:TW*.8);

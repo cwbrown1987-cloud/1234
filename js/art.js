@@ -56,7 +56,7 @@ function paintArt(sprite, x, y, scale, anchor, face = 1, tilt = 0) {
 // The front of a building's base must stay inside the logical footprint.
 const artBuildings = {
   clubhouse: [.98,.81], pieshop: [.91,.82], drinktap: [.87,.83], piewarmer: [.91,.82],
-  esky: [.69,.81], oval: [.93,.54], kitroom: [.89,.82], bench: [.91,.78], physio: [.9,.8],
+  esky: [.69,.81], oval: [.93,.54], kitroom: [.89,.82], herohall: [.89,.82], bench: [.91,.78], physio: [.9,.8],
   coachbox: [.9,.84], locker: [.89,.82], office: [.89,.82], shed: [.95,.82],
   goalpost: [.85,.89], siren: [.87,.81], catapult: [.89,.83], floodlight: [.84,.92]
 };
@@ -68,7 +68,7 @@ function buildingArtScale(type,sprite) {
 }
 
 function drawBuildingArt(b, club, opts) {
-  const sprite = artSprites.get(b.t==="kitroom"?"office":b.t);
+  const sprite = artSprites.get(b.t==="kitroom"?"office":b.t==="herohall"?"locker":b.t);
   if (!sprite) return 0;
   const anchor = artBuildings[b.t][1];
   const s = BLD[b.t].size;
@@ -82,6 +82,12 @@ function drawBuildingArt(b, club, opts) {
   if (b.t==="clubhouse") {
     drawBadge(ctx,x-TW*.42,y-height*TH*.30,TW*.38,club);
     flag(x+TW*.93,y-height*TH*.28,club,.58);
+  }
+  if (b.t==="herohall") {
+    const ks=["vice","star","rleg"];
+    ks.forEach((hk,i)=>{ const hc=opts.heroes?.[hk]; const ox=b.x+s*(.35+i*.25), oy=b.y+s*(.85-i*.08);
+      if (hc) drawHeroStatue(ox,oy,.08,hc,hk,true); });
+    if (!ks.some(hk=>opts.heroes?.[hk])) txt(ks.some(hk=>opts.heroes?.busy?.[hk])?"🔧":"💤",x+TW*.54,y-TH*.35,TH*.7);
   }
   if (b.t==="locker" || b.t==="office") {
     const hero = b.t==="locker"?"captain":"coach";
@@ -155,13 +161,15 @@ function clubKit(key, club) {
   return tinted;
 }
 
+// Placeholder bodies for the Hero Hall heroes until their own sprites arrive (see ART_HANDOFF.md).
+const HERO_ART = {captain:"captain", vice:"rover", star:"forward", rleg:"ruck"};
 function drawPlayerArt(x,y,k,club,opts) {
-  const base = opts.kind==="coach"?"coach":opts.hero?"captain":opts.kind||"rover";
+  const base = opts.kind==="coach"?"coach":opts.hero?(HERO_ART[opts.heroKey]||"captain"):opts.kind||"rover";
   const phase = performance.now()/95+(opts.id||0);
   const stride = opts.moving && Math.sin(phase)>-.15;
   const action = opts.atk && artSprites.has(base+"-attack");
   const pose = action ? base+"-attack" : stride ? base+"-run" : base;
-  const named = base==="captain" && namedHeroArt[club.abbr];
+  const named = base==="captain" && (!opts.heroKey||opts.heroKey==="captain") && namedHeroArt[club.abbr];
   const sprite = (named && artSprites.get(named+(stride||opts.atk?"-run":"-body"))) || clubKit(pose,club) || clubKit(base,club);
   if (!sprite) return false;
   const bob = opts.moving ? Math.abs(Math.sin(phase))*k*.10 : 0;

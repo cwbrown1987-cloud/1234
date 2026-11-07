@@ -7,20 +7,24 @@ const badgeImg = (c,cls="") => `<img class="badgeimg ${cls}" src="${badgeURL(c,9
 
 // ---------- icons ----------
 const iconCache={};
+// Gold star in the corner so placeholder Hero Hall heroes stand out from normal players.
+function heroStarBadge(g,hk){ if(!hk||hk==="captain"||hk==="coach") return;
+  g.save(); g.font="bold 26px sans-serif"; g.textAlign="center"; g.textBaseline="middle"; g.lineWidth=4; g.strokeStyle="#000a"; g.strokeText("★",80,16); g.fillStyle="#ffd34d"; g.fillText("★",80,16); g.restore(); }
 function playerIcon(kind, club){
   club=club||myClub(); const key=kind+club.abbr;
   if(iconCache[key]) return iconCache[key];
   const c=document.createElement("canvas"); c.width=c.height=96;
-  const role=kind==="hero:captain"?"captain":kind==="hero:coach"?"coach":kind;
+  const hk0=kind.startsWith("hero:")?kind.slice(5):null;
+  const role=hk0==="coach"?"coach":hk0?HERO_ART[hk0]:kind;
   const likeness=role==="captain" && namedHeroArt[club.abbr];
   const icon=c.getContext("2d");
-  if ((likeness && drawArtIcon(likeness,icon,48,96,96,92)) || drawArtIcon("portrait-"+role,icon,48,96,96,92,club) || (UNITS[role]?.air && drawArtIcon(role,icon,48,83,90,76))) return iconCache[key]=c.toDataURL();
+  if ((likeness && drawArtIcon(likeness,icon,48,96,96,92)) || drawArtIcon("portrait-"+role,icon,48,96,96,92,club) || (UNITS[role]?.air && drawArtIcon(role,icon,48,83,90,76))){ heroStarBadge(icon,hk0); return iconCache[key]=c.toDataURL(); }
   const save={ctx,TW,TH}; ctx=icon; TW=60; TH=30;
   if(kind==="seagulls"){ for(const [dx,dy] of [[0,0],[-14,10],[14,12],[-4,-14]]) gull(48+dx,52+dy,14,dx,1); }
   else if(kind==="blimp") blimp(48,50,{club,face:1,id:0});
   else { const hk=kind.startsWith("hero:")?kind.slice(5):null, pos=hk?HEROES[hk].pos(club):null;
-    drawPlayer(48,90,hk?26:kind==="ruck"||kind==="trainer"?27:23,club,{kind:pos==="coach"?"coach":hk?null:kind,hero:!!hk,ranged:pos&&HERO_POS[pos].ranged,id:3}); }
-  ctx=save.ctx; TW=save.TW; TH=save.TH;
+    drawPlayer(48,90,hk?26:kind==="ruck"||kind==="trainer"?27:23,club,{kind:pos==="coach"?"coach":hk?null:kind,hero:!!hk,heroKey:hk,ranged:pos&&HERO_POS[pos].ranged,id:3}); }
+  ctx=save.ctx; TW=save.TW; TH=save.TH; heroStarBadge(icon,hk0);
   return iconCache[key]=c.toDataURL();
 }
 const SPELL_ICON={oranges:"🍊",roar:"📣",freekick:"🟨",rain:"🌧️",sub:"🔁"};
@@ -100,7 +104,7 @@ function buildSelPanel(sp){
   if(o.t==="oval"||o.t==="bench") addBtn(sp,"btn","🏉<small>Train</small>",()=>openSquad("Train"));
   if(o.t==="physio") addBtn(sp,"btn","🍊<small>Spells</small>",()=>openSquad("Spells"));
   if(o.t==="coachbox") addBtn(sp,"btn","📋<small>Research</small>",()=>openSquad("Coaching"));
-  if(o.t==="locker"||o.t==="office") addBtn(sp,"btn","⭐<small>Heroes</small>",()=>openSquad("Heroes"));
+  if(o.t==="locker"||o.t==="office"||o.t==="herohall") addBtn(sp,"btn","⭐<small>Heroes</small>",()=>openSquad("Heroes"));
 }
 function addBtn(sp,cls,html,fn,dis){ const b=document.createElement("button"); b.className=cls; b.innerHTML=html; b.onclick=e=>{e.stopPropagation(); sfx("tap",.4); fn();}; if(dis) b.setAttribute("disabled",""); sp.querySelector(".acts").append(b); return b; }
 
@@ -110,7 +114,7 @@ function buildCards(){
   const isSel=(k,v)=>BT.sel&&BT.sel.k===k&&BT.sel.v===v;
   for(const u of Object.keys(UNITS)){ const had=BT.had[u]||0; if(!had) continue; const n=BT.left[u]||0;
     card(UNITS[u].air?"air":"",playerIcon(u),"x"+n,UNITS[u].name,isSel("unit",u),()=>{BT.sel={k:"unit",v:u};buildCards();},!n); }
-  for(const h of Object.keys(HEROES)){ if(!heroHome(h)) continue; const st=heroStats(h);
+  for(const h of heroPicked()){ const st=heroStats(h);
     card("hero",playerIcon("hero:"+h),S.heroes[h].busy?"🔧":"",st.name.split(" ").pop(),isSel("hero",h),()=>{ if(BT.heroesLeft[h]){BT.sel={k:"hero",v:h};buildCards();} },!BT.heroesLeft[h]); }
   for(const sp of Object.keys(SPELLS)){ const had=BT.hadSpells[sp]||0; if(!had) continue; const n=BT.spellsLeft[sp]||0;
     card("spell",spellIcon(sp),"x"+n,SPELLS[sp].name.split(" ").pop(),isSel("spell",sp),()=>{BT.sel={k:"spell",v:sp};buildCards();},!n); }
@@ -187,17 +191,20 @@ function openSquad(tab){
     }
     if(squadTab==="Heroes"){
       if(typeof kitRoom==="function"&&kitRoom()) h+=oreBar();
+      const picked=heroPicked();
+      h+=`<div class="tiny">Pick up to <b>${HERO_SLOTS}</b> heroes to take into each match (${picked.length}/${HERO_SLOTS} picked).</div>`;
       for(const hk of Object.keys(HEROES)){
         const hs=heroStats(hk), c=myClub(), st=S.heroes[hk], H=HEROES[hk];
         h+=`<div class="herocard"><img src="${playerIcon("hero:"+hk)}" style="background:${jersey(c)}"><div>
           <div style="font-size:20px">${hs.name}</div><div class="tiny">${POS_NAME[hs.pos]} · Level <b>${st.lv}</b> / ${Math.max(1,heroMax(th(),hk))}</div>
           <div>❤️ ${hs.hp} · 💥 ${hs.dps}/s</div><div class="tiny">⚡ <b>${hs.ability}</b>: ${hs.desc}</div>`;
-        if(!heroHome(hk)) h+=`<div class="tiny bad">Build a ${BLD[H.building].name} (Clubhouse ${H.th}) to unlock.</div>`;
+        if(heroHome(hk)) h+=`<button class="btn ${picked.includes(hk)?"green":""}" data-hpick="${hk}">${picked.includes(hk)?"✅ In the team":"Pick for matches"}</button> `;
+        if(!heroHome(hk)) h+=`<div class="tiny bad">${H.hhLv>1?`Upgrade your ${BLD[H.building].name} to level ${H.hhLv}`:`Build a ${BLD[H.building].name}`} (Clubhouse ${H.th}) to unlock.</div>`;
         else if(st.busy) h+=`<div>Training… ${fmtTime((st.busy.end-Date.now())/1000)}</div><button class="btn green" data-hs="${hk}">Finish now · ${speedCost(st.busy.end)} 🏅</button>`;
         else if(st.lv>=heroMax(th(),hk)) h+=`<div class="tiny">Upgrade your Clubhouse to train further.</div>`;
         else h+=`<button class="btn gold" data-hu="${hk}">⬆ ${fmt(heroCost(st.lv))} 💧 · ${fmtTime(heroTime(st.lv))}</button>`;
         h+=`</div></div>`;
-        if(heroHome(hk)) h+=`<h3>${H.name(c).split(" ").pop()}'s gear <small class="tiny">(2 at a time)</small></h3>`+gearHTML(hk);
+        if(heroHome(hk)&&Object.values(GEAR).some(g=>g.hero===hk)) h+=`<h3>${H.name(c).split(" ").pop()}'s gear <small class="tiny">(2 at a time)</small></h3>`+gearHTML(hk);
       }
     }
     if(squadTab==="Coaching"){
@@ -220,6 +227,7 @@ function openSquad(tab){
     document.querySelectorAll("[data-r]").forEach(el=>el.onclick=()=>{ startResearch(el.dataset.r); render(); });
     if(typeof bindGear==="function") bindGear(render);
     document.querySelectorAll("[data-hu]").forEach(el=>el.onclick=()=>{ upgradeHero(el.dataset.hu); render(); });
+    document.querySelectorAll("[data-hpick]").forEach(el=>el.onclick=()=>{ toggleHeroPick(el.dataset.hpick); render(); });
     document.querySelectorAll("[data-hs]").forEach(el=>el.onclick=()=>{ const st=S.heroes[el.dataset.hs]; if(pay("medals",speedCost(st.busy.end))){ st.busy.end=Date.now(); processTimers(); } else toast("Not enough Brownlow votes 🏅"); render(); });
   };
   render();

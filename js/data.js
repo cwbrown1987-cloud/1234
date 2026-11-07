@@ -1,5 +1,5 @@
 // ---------- Game data ----------
-const VERSION = "2026.11.10.1";
+const VERSION = "2026.11.10.2";
 // Club names + colours. Logos: drop PNGs named <abbr>.png (e.g. coll.png) into the logos/ folder and they're used everywhere.
 // Player names checked against the 2026 trade period and retirements (lists for the 2027 season); edit freely.
 const CLUBS = [
@@ -29,12 +29,30 @@ const HERO_POS = {
   ruck:{hp:1700, dps:55, spd:1.6, range:1.0, ability:"Hit-Out", desc:"Smashes everything nearby and heals."},
   def: {hp:1400, dps:50, spd:1.9, range:0.9, ability:"Spoil", desc:"Big heal and takes half damage for a while."},
   coach:{hp:900, dps:40, spd:1.7, range:3.5, ranged:true, ability:"Three-Quarter Time Address", desc:"Everyone nearby heals 40% and fires up."},
+  vice:{hp:1300, dps:80, spd:2.3, range:0.9, ability:"Centre Clearance", desc:"Stuns nearby defences for 4 seconds and fires himself up."},
+  star:{hp:900, dps:75, spd:2.0, range:4.5, ranged:true, ability:"Bag of Goals", desc:"Kicks five bombs at the nearest buildings."},
+  rleg:{hp:2000, dps:45, spd:1.5, range:1.0, ability:"Ruck Wall", desc:"Nearby players take no damage for 4 seconds. Always: nearby players take 15% less damage."},
 };
 const HEROES = {
   captain:{building:"locker", th:2, name:c=>c.hero.name, pos:c=>c.hero.pos},
   coach:{building:"office", th:5, name:()=>"Head Coach", pos:()=>"coach"},
+  vice:{building:"herohall", hhLv:1, th:6, title:"Vice-Captain", name:c=>heroPlayer(c,"vice"), pos:()=>"vice"},
+  star:{building:"herohall", hhLv:2, th:7, title:"Star Forward", name:c=>heroPlayer(c,"star"), pos:()=>"star"},
+  rleg:{building:"herohall", hhLv:3, th:8, title:"Ruck Legend", name:c=>heroPlayer(c,"rleg"), pos:()=>"rleg"},
 };
-const heroMax = (th,h) => h==="coach" ? Math.max(0,(th-4)*4) : th*2;
+const HERO_SLOTS = 4; // heroes you can take into one match (Clash's Hero Hall)
+// The extra heroes are real players from the 2026 season: most disposals, most goals, most hit-outs (not the captain).
+const heroPlayerCache = {};
+function heroPlayer(club, key){
+  const i = CLUBS.indexOf(club), id = club.abbr+key;
+  if (heroPlayerCache[id]) return heroPlayerCache[id];
+  const list = (typeof CARD_SET!=="undefined" && CARD_SET[i]) || [];
+  const ps = list.filter(p=>p[0]!==club.hero.name), by=k=>[...ps].sort((a,b)=>b[3][k]-a[3][k]);
+  const v=by(1)[0], s2=by(2).find(p=>p!==v), r=by(5).find(p=>p!==v&&p!==s2);
+  const pick = {vice:v, star:s2, rleg:r}[key];
+  return heroPlayerCache[id] = pick ? pick[0] : ({vice:"Vice-Captain", star:"Star Forward", rleg:"Ruck Legend"})[key];
+}
+const heroMax = (th,h) => ({coach:Math.max(0,(th-4)*4), vice:Math.max(0,(th-5)*5), star:Math.max(0,(th-6)*6), rleg:Math.max(0,(th-7)*8)})[h] ?? th*2;
 const heroCost = lv => Math.round(1500*Math.pow(1.45,lv-1));
 const heroTime = lv => Math.min(7200, Math.round(20*Math.pow(1.5,lv-1)));
 
@@ -64,6 +82,7 @@ const BLD = {
   coachbox:{name:"Coaches Box", size:3, res:"drink", hp:geo(500,1.1,7), cost:nice(geo(2500,2.2,7)), time:[60,300,1200,2400,3600,5400,7200],
     desc:"Research better skills for your players."},
   locker:{name:"Captain's Locker", size:3, res:"pies", hp:[400], cost:[3000], time:[30], desc:"Home of your captain, the star of your club."},
+  herohall:{name:"Hero Hall", size:3, res:"pies", hp:[700,800,900], cost:[80000,150000,300000], time:[1800,3600,7200], desc:"Home of your Vice-Captain, Star Forward and Ruck Legend. Pick up to 4 heroes for each match (Clash's Hero Hall)."},
   kitroom:{name:"Kit Room", size:3, res:"drink", hp:[500,560,620,680,750], cost:[10000,25000,60000,120000,250000], time:[300,1200,2400,3600,7200], desc:"Unlocks and upgrades hero gear (Clash's Blacksmith). Higher levels unlock more gear and higher gear levels."},
   office:{name:"Coach's Office", size:3, res:"pies", hp:[600], cost:[60000], time:[600], desc:"Home of your Head Coach, your second hero."},
   shed:{name:"Groundskeeper Shed", size:2, res:"medals", hp:[250], cost:[0], time:[0], desc:"Each groundskeeper can work on one building at a time."},
@@ -82,21 +101,21 @@ const BLD = {
 // How many of each you can have, by clubhouse level 1..8
 const MAXC = {
   clubhouse:[1,1,1,1,1,1,1,1], pieshop:[1,2,3,4,5,6,6,7], drinktap:[1,2,3,4,5,6,6,7], piewarmer:[1,1,2,2,3,3,4,4], esky:[1,1,2,2,3,3,4,4],
-  oval:[1,1,2,2,3,3,4,4], bench:[1,1,2,2,3,3,4,4], physio:[0,0,1,1,1,1,1,1], coachbox:[0,0,1,1,1,1,1,1], locker:[0,1,1,1,1,1,1,1], office:[0,0,0,0,1,1,1,1], kitroom:[0,0,0,1,1,1,1,1],
+  oval:[1,1,2,2,3,3,4,4], bench:[1,1,2,2,3,3,4,4], physio:[0,0,1,1,1,1,1,1], coachbox:[0,0,1,1,1,1,1,1], locker:[0,1,1,1,1,1,1,1], office:[0,0,0,0,1,1,1,1], kitroom:[0,0,0,1,1,1,1,1], herohall:[0,0,0,0,0,1,1,1],
   shed:[6,6,6,6,6,6,6,6], goalpost:[1,1,2,3,4,5,5,6], siren:[1,2,2,3,3,4,5,5], catapult:[0,0,1,1,2,2,3,3], floodlight:[0,0,0,1,2,2,3,3],
   sprinkler:[0,2,4,6,6,8,8,10], fence:[25,50,75,100,125,150,175,200],
 };
 // What each building is called in Clash of Clans (shown in the shop for players who know Clash)
 const CLASH_NAME = {clubhouse:"Town Hall", pieshop:"Gold Mine", drinktap:"Elixir Collector", piewarmer:"Gold Storage", esky:"Elixir Storage",
   oval:"Barracks", bench:"Army Camp", physio:"Spell Factory", coachbox:"Laboratory", locker:"Hero Hall", office:"Hero Hall",
-  shed:"Builder's Hut", kitroom:"Blacksmith", goalpost:"Archer Tower", siren:"Cannon", catapult:"Mortar", floodlight:"Air Defense", sprinkler:"Bomb", fence:"Wall"};
+  shed:"Builder's Hut", kitroom:"Blacksmith", herohall:"Hero Hall", goalpost:"Archer Tower", siren:"Cannon", catapult:"Mortar", floodlight:"Air Defense", sprinkler:"Bomb", fence:"Wall"};
 const levels = t => BLD[t].hp.length;
-const maxLevel = (t, th) => t==="clubhouse" ? MAX_TH : t==="fence" ? Math.min(levels(t),th) : Math.min(levels(t), th+(th>=5?2:1));
+const maxLevel = (t, th) => t==="clubhouse" ? MAX_TH : t==="herohall" ? Math.max(0,Math.min(levels(t),th-5)) : t==="fence" ? Math.min(levels(t),th) : Math.min(levels(t), th+(th>=5?2:1));
 const SHED_COST = [0,250,500,1000,2000,2000]; // by sheds already owned: the 2nd costs 250 Brownlow votes, like Clash
 const SHOP_TABS = {
   "Resources":["pieshop","drinktap","piewarmer","esky","shed"],
   "Defence":["goalpost","siren","catapult","floodlight","sprinkler","fence"],
-  "Squad":["oval","bench","physio","coachbox","locker","office","kitroom"],
+  "Squad":["oval","bench","physio","coachbox","locker","office","kitroom","herohall"],
   "Deals":[],
 };
 
@@ -124,7 +143,7 @@ const SPELLS = {
   sub:     {name:"Late Sub",          cost:2500, time:30, radius:0,   desc:"Drops 6 fresh Rovers onto the spot."},
 };
 
-const POS_NAME = {mid:"Midfielder", fwd:"Forward", ruck:"Ruckman", def:"Defender", coach:"Coach"};
+const POS_NAME = {mid:"Midfielder", fwd:"Forward", ruck:"Ruckman", def:"Defender", coach:"Coach", vice:"Vice-Captain", star:"Star Forward", rleg:"Ruck Legend"};
 // Card packs (the card album itself is in js/cards.js and js/cardset.js)
 const PACKS = {footy:{name:"Footy Pack", n:7}, prize:{name:"Prize Pack", n:8}};
 // Daily tasks and weekly events

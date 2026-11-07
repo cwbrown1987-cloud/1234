@@ -218,8 +218,8 @@ function drawBuilding(b, club, list, opts={}){
       const [ax,ay]=P(x+.8,y+.8,2.58); ctx.strokeStyle=OUT; ctx.lineWidth=2; ctx.beginPath(); ctx.moveTo(ax,ay); ctx.lineTo(ax,ay-TH*1.2); ctx.stroke();
       ctx.beginPath(); ctx.arc(ax,ay-TH*1.2,TW*.06,0,7); ctx.fillStyle="#e8503a"; ctx.fill(); ctx.stroke();
       top=3.8; break;}
-    case "locker": case "office":{
-      const hk=b.t==="locker"?"captain":"coach", off=b.t==="office";
+    case "locker": case "office": case "herohall":{
+      const hk=b.t==="locker"?"captain":b.t==="herohall"?["vice","star","rleg"].find(k=>(opts.heroes||{})[k])||"vice":"coach", off=b.t==="office";
       prism(x+.45,y+.45,s-.9,s-.9,0,.5,off?"#5b4a3a":"#9c9285");
       prism(x+.75,y+.75,s-1.5,s-1.5,.5,.35,off?"#7a6a58":"#b8ad9f",tr||(off?"#8e7c66":"#cfc6b4"));
       onL(y+s-.45,x+.45,x+s-.45,.15,.35,club.a,null);
@@ -364,7 +364,7 @@ function drawPlayer(px,py,k,c,o={}){
 }
 function cylBottle(x,y,k){ ctx.lineWidth=Math.max(1,k*.08); rr(x-k*.1,y-k*.3,k*.2,k*.4,k*.06,"#36c9e8"); }
 function drawMini(x,y,club){ const [px,py]=P(x,y,.55); drawPlayer(px,py,TW*.13,club,{id:x*7}); }
-function drawHeroStatue(x,y,z,club,hk){ const H=HEROES[hk], pos=H.pos(club), [px,py]=P(x,y,z); drawPlayer(px,py,TW*.36,club,{hero:true,kind:pos==="coach"?"coach":null,ranged:HERO_POS[pos].ranged,id:hk==="coach"?5:1}); txt(H.name(club).split(" ").pop(),px,py+TH*.35,TH*.55,GOLD); }
+function drawHeroStatue(x,y,z,club,hk,noLabel){ const H=HEROES[hk], pos=H.pos(club), [px,py]=P(x,y,z); drawPlayer(px,py,TW*.36,club,{hero:true,heroKey:hk,kind:pos==="coach"?"coach":null,ranged:HERO_POS[pos].ranged,id:hk==="coach"?5:1}); if(!noLabel) txt(H.name(club).split(" ").pop(),px,py+TH*.35,TH*.55,GOLD); }
 
 // ---------- scenery ----------
 let deco=null, tufts=null, patches=[];

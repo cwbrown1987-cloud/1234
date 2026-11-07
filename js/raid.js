@@ -41,7 +41,7 @@ function raidBattle(raid, mode){
   return makeBattle({mode, club:S.club, atkClub:raid.club, buildings:raid.base.map(b=>({...b,loot:b.loot?{...b.loot}:undefined})),
     army:raid.army, spells:raid.spells||{}, heroes:Object.fromEntries(raid.plan.filter(p=>p.k==="hero").map(p=>[p.v,true])), plan:raid.plan.map(p=>({...p})),
     endT:raid.endT||0, lvOf:u=>typeof raid.lv==="object"?(raid.lv[u]||1):raid.lv, heroStat:h=>heroStats(h,CLUBS[raid.club],typeof raid.heroLv==="object"?(raid.heroLv[h]||1):raid.heroLv),
-    bonus:raid.bonus?(pos=>raid.bonus[pos]||0):null, homeHeroes:{captain:heroHome("captain")?CLUBS[S.club]:null, coach:heroHome("coach")?CLUBS[S.club]:null}});
+    bonus:raid.bonus?(pos=>raid.bonus[pos]||0):null, homeHeroes:Object.fromEntries(Object.keys(HEROES).map(h=>[h,heroHome(h)?CLUBS[S.club]:null]))});
 }
 function runRaid(){
   const r=rng(Date.now()%1e9), d=Math.max(1,Math.min(MAX_TH,th()+(r()<.3?1:0)-(r()<.3?1:0)));

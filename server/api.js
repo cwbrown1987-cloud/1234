@@ -114,12 +114,13 @@ export async function handleApi(req, env) {
     // ----- matchmaking: a real player near your trophies, or a bot -----
     if (path === "/match" && m === "GET") {
       const myP = await env.DB.prepare("SELECT * FROM profiles WHERE user_id = ?").bind(me.id).first();
+      const ranked = url.searchParams.get("mode") === "ranked";
       const tro = myP ? myP.trophies : 0, th = myP ? myP.th : 1, skip = (url.searchParams.get("skip") || "").split(",").filter(Boolean).slice(0, 20);
       const holes = skip.map(() => "?").join(",") || "''";
       const pick = async (range, real) => (await env.DB.prepare(
         `SELECT * FROM profiles WHERE user_id != ? AND user_id NOT IN (${holes}) AND bot = ? AND shield_until < ? AND base IS NOT NULL
-         AND ABS(trophies - ?) <= ? AND ABS(th - ?) <= 2 ${real ? "AND last_seen > ?" : ""} ORDER BY RANDOM() LIMIT 1`)
-        .bind(me.id, ...skip, real ? 0 : 1, now(), tro, range, th, ...(real ? [now() - 30 * 864e5] : [])).first());
+         AND ABS(trophies - ?) <= ? AND ABS(th - ?) <= ${ranked ? 2 : 1} ${real ? "AND last_seen > ?" : ""} ORDER BY RANDOM() LIMIT 1`)
+        .bind(me.id, ...skip, real ? 0 : 1, now(), tro, ranked ? range : 99999, th, ...(real ? [now() - 30 * 864e5] : [])).first());
       let opp = null;
       for (const range of [150, 400, 99999]) { opp = await pick(range, true); if (opp) break; }
       if (!opp || Math.random() < 0.35) { for (const range of [200, 600, 99999]) { const b = await pick(range, false); if (b) { opp = b; break; } } }
@@ -137,13 +138,14 @@ export async function handleApi(req, env) {
       const def = await env.DB.prepare("SELECT * FROM profiles WHERE user_id = ?").bind(String(b.defender || "")).first();
       if (!def || def.user_id === me.id) return fail("Opponent not found.", 404);
       const friendly = !!b.friendly, stars = Math.max(0, Math.min(3, Number(b.stars) || 0)), pct = Math.max(0, Math.min(100, Number(b.pct) || 0));
-      const defTro = friendly ? 0 : stars ? -Math.round(5 + stars * 5) : 8;
-      const shield = friendly ? 0 : pct >= 90 ? now() + 60 * 6e4 : pct >= 40 ? now() + 30 * 6e4 : 0;
+      const ranked = !!b.ranked && !friendly;
+      const defTro = !ranked ? 0 : stars ? -Math.round(5 + stars * 5) : 8;
+      const shield = !friendly && b.magicShield ? now() + 8 * 3600e3 : 0; // Magic Shield: 30%+ of the loot taken
       const data = JSON.stringify({attacker: me.name, ...b, defTro, stars, pct});
       if (data.length > 150000) return fail("Replay is too big.");
       const stmts = [env.DB.prepare("INSERT INTO attacks(attacker_id,defender_id,at,data,seen) VALUES(?,?,?,?,0)").bind(me.id, def.user_id, now(), data)];
       if (!friendly) stmts.push(env.DB.prepare("UPDATE profiles SET trophies = MAX(0, trophies + ?), shield_until = MAX(shield_until, ?) WHERE user_id = ?").bind(defTro, shield, def.user_id));
-      if (!friendly && Number.isFinite(Number(b.myTrophies))) stmts.push(env.DB.prepare("UPDATE profiles SET trophies = ?, shield_until = 0 WHERE user_id = ?").bind(Math.max(0, Number(b.myTrophies)), me.id));
+      if (ranked && Number.isFinite(Number(b.myTrophies))) stmts.push(env.DB.prepare("UPDATE profiles SET trophies = ?, shield_until = 0 WHERE user_id = ?").bind(Math.max(0, Number(b.myTrophies)), me.id));
       await env.DB.batch(stmts);
       return json({ok: true, defTro});
     }

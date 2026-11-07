@@ -97,7 +97,7 @@ async function checkInbox() {
   for (const a of r.attacks) {
     const lost = { pies: Math.min(S.pies, Math.floor(a.loot?.pies || 0)), drink: Math.min(S.drink, Math.floor(a.loot?.drink || 0)) };
     if (!a.friendly) { S.pies -= lost.pies; S.drink -= lost.drink; S.trophies = Math.max(0, S.trophies + (a.defTro || 0)); }
-    if (!a.friendly && a.pct >= 40) S.shield = Math.max(S.shield || 0, Date.now() + (a.pct >= 90 ? 60 : 30) * 60000);
+    if (!a.friendly && a.magicShield) S.shield = Math.max(S.shield || 0, a.at + MAGIC_SHIELD);
     if (!a.friendly && !a.stars) track("defend", 1);
     S.raids.unshift({ id: "p" + a.id, at: a.at, club: a.atkClub ?? a.club ?? 0, attacker: a.attacker, attackerId: a.attackerId, real: true, friendly: !!a.friendly,
       stars: a.stars, pct: a.pct, sc: a.sc, lost, tro: a.defTro, seen: false, revenged: false,
@@ -114,19 +114,19 @@ function oppBuildings(opp) {
   if (opp.base && opp.base.gen) return genBase(opp.th, opp.base.gen); // bot clubs
   return (opp.base || []).map((b, i) => ({ id: i + 1, t: b.t, x: b.x, y: b.y, lv: b.lv, hp: b.max || b.hp, max: b.max || b.hp, cd: 0, loot: b.loot ? { ...b.loot } : undefined, armed: BLD[b.t] && BLD[b.t].trap ? true : undefined }));
 }
-async function findOnlineMatch(skip = []) {
+async function findOnlineMatch(skip = [], ranked = false) {
   if (!Object.values(S.army).some(n => n > 0)) return toast("Train some players first!");
   const cost = 50 * th(); if (!pay("pies", cost)) return toast("Not enough 🥧");
   toast("Finding an opponent…");
   try {
     await pushSave();
-    const r = await api("/match" + (skip.length ? "?skip=" + skip.join(",") : ""));
+    const r = await api("/match?mode=" + (ranked ? "ranked" : "battle") + (skip.length ? "&skip=" + skip.join(",") : ""));
     const o = r.opponent; closeModal();
-    startBattle({ kind: "pvp", club: o.club, d: o.th, buildings: oppBuildings(o), opp: { id: o.id, name: o.name, bot: o.bot, trophies: o.trophies }, seen: skip.concat(o.id) });
+    startBattle({ kind: "pvp", ranked, club: o.club, d: o.th, buildings: oppBuildings(o), opp: { id: o.id, name: o.name, bot: o.bot, trophies: o.trophies }, seen: skip.concat(o.id) });
     BT.skip = skip.concat(o.id);
   } catch (e) { S.pies += cost; toast(e.message); }
 }
-function nextOpponent() { if (!BT || BT.started || BT.kind !== "pvp") return; const skip = BT.skip || []; leaveBattle(); findOnlineMatch(skip); }
+function nextOpponent() { if (!BT || BT.started || BT.kind !== "pvp") return; const skip = BT.skip || [], ranked = BT.ranked; leaveBattle(); findOnlineMatch(skip, ranked); }
 async function attackPlayer(id, kind) {
   if (!Object.values(S.army).some(n => n > 0)) return toast("Train some players first!");
   try {
@@ -139,7 +139,8 @@ async function attackPlayer(id, kind) {
 }
 function netReportAttack(bt, r) {
   if (!signedIn() || !bt.opp) return;
-  const body = { defender: bt.opp.id, friendly: !!r.friendly, stars: r.stars, pct: r.p, sc: r.sc, loot: { pies: Math.floor(bt.loot.pies), drink: Math.floor(bt.loot.drink) },
+  const avail = bt.lootTotal.pies + bt.lootTotal.drink, share = avail ? (bt.loot.pies + bt.loot.drink) / avail : 0;
+  const body = { defender: bt.opp.id, friendly: !!r.friendly, ranked: !!bt.ranked, magicShield: !r.friendly && share >= .3, stars: r.stars, pct: r.p, sc: r.sc, loot: { pies: Math.floor(bt.loot.pies), drink: Math.floor(bt.loot.drink) },
     plan: bt.rec || [], endT: Math.round(bt.elapsed * 1000) / 1000, army: bt.had, spells: bt.hadSpells, lv: { ...S.unitLv }, heroLv: { captain: S.heroes.captain.lv, coach: S.heroes.coach.lv },
     bonus: Object.fromEntries(["mid", "fwd", "ruck", "def"].map(p => [p, cardBonus(p)])), base: bt.opp.bot ? [] : (bt.origBase || []).map(b => ({ t: b.t, x: b.x, y: b.y, lv: b.lv, hp: b.max, max: b.max, loot: b.loot, armed: b.armed })),
     atkClub: S.club, myTrophies: S.trophies };

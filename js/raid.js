@@ -59,11 +59,12 @@ function runRaid(){
   for(const b of BT.buildings){ if(!b.loot) continue; const f=1-Math.max(0,b.hp)/b.max; const tp=Math.floor(b.loot.pies*f), td=Math.floor(b.loot.drink*f);
     const home=S.buildings.find(x=>x.id===b.id);
     if(home&&BLD[home.t].makes){ home.store=Math.max(0,home.store-(tp+td)); } else { lost.pies+=tp; lost.drink+=td; } }
+  const lootTotal=BT.lootTotal;
   BT=saved; shake=sm; simulating=false; floaters=[];
   S.pies=Math.max(0,S.pies-lost.pies); S.drink=Math.max(0,S.drink-lost.drink);
-  const tro = stars ? -(5+stars*5) : 8;
-  S.trophies=Math.max(0,S.trophies+tro);
-  if(p>=90) S.shield=Date.now()+60*60000; else if(p>=40) S.shield=Date.now()+30*60000;
+  const tro = 0; // raids are Battles: loot only, trophies are for Ranked
+  const avail=lootTotal.pies+lootTotal.drink, share=avail?(lost.pies+lost.drink)/avail:0;
+  if(share>=.3) S.shield=Math.max(S.shield||0,Date.now()+MAGIC_SHIELD);
   if(!stars) track("defend",1);
   Object.assign(raid,{stars,pct:p,sc,lost,tro,seen:false,revenged:false});
   S.raids.unshift(raid); S.raids=S.raids.slice(0,8);

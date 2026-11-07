@@ -73,7 +73,7 @@ button{font:inherit;color:#fff;text-shadow:0 2px 0 #000;cursor:pointer;border:no
 .modal{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:#000a;padding:10px;z-index:10}
 .modal.show{display:flex}
 .card{position:relative;background:linear-gradient(#efe2c6,#d9c7a2);color:#3a2a18;text-shadow:none;border:4px solid #000;border-radius:18px;width:min(96vw,560px);max-height:88vh;overflow:auto;padding:14px;box-shadow:0 8px 0 #000}
-.card h2{margin:0 0 8px;font-weight:400;font-size:24px;color:#fff;text-shadow:0 2px 0 #000,0 0 3px #000;text-align:center}
+.card h2{padding:0 34px;margin:0 0 8px;font-weight:400;font-size:24px;color:#fff;text-shadow:0 2px 0 #000,0 0 3px #000;text-align:center}
 .card h3{margin:12px 0 6px;font-weight:400;font-size:18px}
 .card .x{position:absolute;right:8px;top:8px;width:36px;height:36px;border-radius:10px;border:3px solid #000;background:linear-gradient(#ff7a62,#c8321e);font-size:16px;z-index:2}
 .tabs{display:flex;gap:6px;margin:4px 0 10px;flex-wrap:wrap}
@@ -107,8 +107,8 @@ button{font:inherit;color:#fff;text-shadow:0 2px 0 #000;cursor:pointer;border:no
 .fx .st{color:#e2a21e;font-size:18px;text-shadow:0 1px 0 #000}
 .fx.locked{opacity:.5}
 .result{text-align:center}
-.result .stars{font-size:56px;color:var(--gold);text-shadow:0 3px 0 #000;letter-spacing:4px}
-.stat{display:flex;justify-content:space-between;border-bottom:2px dashed #0002;padding:4px 0}
+.result .stars{font-size:36px;color:var(--gold);text-shadow:0 3px 0 #000;letter-spacing:4px}
+.stat{display:flex;gap:12px;justify-content:space-between;border-bottom:2px dashed #0002;padding:4px 0}
 #toast{position:fixed;left:50%;top:22%;transform:translateX(-50%);background:var(--panel);border:3px solid #000;border-radius:12px;padding:8px 14px;opacity:0;transition:opacity .25s;pointer-events:none;text-align:center;z-index:20;max-width:90vw}
 #toast.show{opacity:1}
 
@@ -163,7 +163,7 @@ button{font:inherit;color:#fff;text-shadow:0 2px 0 #000;cursor:pointer;border:no
 .clubs .badgeimg{width:36px;height:36px}
 .fx small{color:#6b5434}
 
-.stat{gap:12px}.stat b{text-align:right}
+.stat b{text-align:right}
 
 .tut{position:fixed;left:max(10px,env(safe-area-inset-left));right:max(10px,env(safe-area-inset-right));z-index:30;display:flex;gap:10px;align-items:flex-end;max-width:520px;margin:0 auto;pointer-events:none}
 .tut.atBottom{bottom:calc(128px + env(safe-area-inset-bottom))}
@@ -183,16 +183,14 @@ button{font:inherit;color:#fff;text-shadow:0 2px 0 #000;cursor:pointer;border:no
 .map .from{color:#7a6448}.map .arrow{color:#b08a52}.map .to{color:#3a2a18}
 .diffs{margin:0 0 12px;padding-left:20px;font-size:14px;line-height:1.4}
 .diffs li{margin-bottom:6px}
-.card h2{padding:0 34px}
 
-#bScore{font-size:15px;line-height:1.25;text-align:right}
+#bScore{font-size:14px;line-height:1.25;text-align:right;white-space:nowrap}
 #bScore div{opacity:.75}#bScore .lead{opacity:1;color:var(--gold)}
 #bStars{font-size:14px;color:var(--gold)}
 .board{display:flex;flex-direction:column;gap:4px;margin:10px auto;max-width:300px}
 .board div{display:flex;align-items:center;gap:8px;background:#2b2620;color:#fff;text-shadow:0 2px 0 #000;border:3px solid #000;border-radius:10px;padding:4px 10px;font-size:18px}
 .board div span{flex:1;text-align:left}.board div b{font-weight:400;font-variant-numeric:tabular-nums}
 .board .won{background:linear-gradient(#3fa83a,#2b7a28)}
-.result .stars{font-size:36px}
 .note{background:#ffe07a;border:3px solid #000;border-radius:10px;padding:6px;margin:6px 0}
 .seasonbar{display:flex;flex-wrap:wrap;gap:6px 12px;align-items:center;justify-content:space-between;font-size:14px;margin-bottom:8px}
 .fx.next{background:#fff;border-color:#000}
@@ -261,7 +259,7 @@ button{text-shadow:0 2px 0 #14202a}
   #bEnd{font-size:20px}
 }
 
-#battleTop .br{min-width:0;flex:0 1 auto}#bScore{font-size:14px;white-space:nowrap}
+#battleTop .br{min-width:0;flex:0 1 auto}
 
 #installPrompt{position:fixed;inset:0;z-index:50;background:#000b;display:flex;align-items:center;justify-content:center;padding:16px}
 #installPrompt.hide{display:none}

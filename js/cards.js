@@ -148,12 +148,22 @@ function cardFace(c, t) {
   const frame = sp ? (c.kind === "PZ" ? ["#fff7c8", "#e0a91a", "#fff0a0", "#9c6a08"] : sp.col.concat(sp.col[0])) : R.frame;
   const accent = sp ? (c.kind === "PZ" ? "#e0a91a" : sp.col[0] === "#1b1b1b" ? "#ffd34d" : sp.col[0]) : R.frame[1];
   const gfx = cardImg(`art/cards/frame-${sp ? ({SW:"star-wildcard", BF:"best-fairest", GK:"goal-kicker", FL:"future-legend", PZ:"24k-gold"})[c.kind] : R.name.toLowerCase()}.webp`);
-  // 1. glowing frame
+  // 1. glowing frame: thick bevelled metal band with corner ornaments (like the reference cards)
   if (!gfx) {
-    g.save(); g.shadowColor = sp ? accent : R.glow; g.shadowBlur = t === "c" && !sp ? 4 : 12;
-    g.fillStyle = frameFill(g, frame, W, H); g.beginPath(); g.roundRect(6, 6, W - 12, H - 12, 18); g.fill(); g.restore();
-    g.lineWidth = 3; g.strokeStyle = "#000"; g.stroke();
-    g.lineWidth = 2; g.strokeStyle = "#ffffff88"; g.beginPath(); g.roundRect(10, 10, W - 20, H - 20, 15); g.stroke();
+    const [hi, mid, lite, dark] = [frame[0], frame[1], frame[2] || frame[0], frame[3] || frame[1]];
+    g.save(); g.shadowColor = sp ? accent : R.glow; g.shadowBlur = t === "c" && !sp ? 6 : 18;
+    g.fillStyle = "#0b0d12"; g.beginPath(); g.roundRect(4, 4, W - 8, H - 8, 20); g.fill(); g.restore();
+    const band = g.createLinearGradient(0, 0, W * .35, H);
+    [[0, lite], [.12, mid], [.28, dark], [.42, hi], [.55, mid], [.7, dark], [.85, lite], [1, mid]].forEach(([o, col]) => band.addColorStop(o, col));
+    g.fillStyle = band; g.beginPath(); g.roundRect(7, 7, W - 14, H - 14, 17); g.roundRect(16, 16, W - 32, H - 32, 11); g.fill("evenodd");
+    g.lineWidth = 2; g.strokeStyle = "#ffffffaa"; g.beginPath(); g.roundRect(8.5, 8.5, W - 17, H - 17, 16); g.stroke();   // outer highlight
+    g.strokeStyle = "#00000099"; g.beginPath(); g.roundRect(15, 15, W - 30, H - 30, 12); g.stroke();                       // inner shadow line
+    g.strokeStyle = "#000"; g.lineWidth = 2.5; g.beginPath(); g.roundRect(4, 4, W - 8, H - 8, 20); g.stroke();
+    // corner ornaments: metal caps with a gem
+    const gem = (x, y, r) => { g.save(); g.translate(x, y); g.rotate(Math.PI / 4);
+      g.fillStyle = band; g.strokeStyle = "#000"; g.lineWidth = 2; g.beginPath(); g.roundRect(-r, -r, r * 2, r * 2, 3); g.fill(); g.stroke();
+      g.fillStyle = sp ? accent : R.tag; g.beginPath(); g.roundRect(-r * .5, -r * .5, r, r, 2); g.fill(); g.fillStyle = "#ffffffb0"; g.fillRect(-r * .45, -r * .45, r * .35, r * .35); g.restore(); };
+    gem(W - 12, H - 12, 7); gem(12, H - 12, 7);
   }
   // 2. window: club colours with a burst of rays
   const ix = 17, iy = 17, iw = W - 34, ih = H - 34;
@@ -177,7 +187,8 @@ function cardFace(c, t) {
   g.restore();
   if (gfx) g.drawImage(gfx, 0, 0, W, H);
   // 4. small club sticker top-left
-  drawBadge(g, 40, 42, 17, club);
+  g.save(); g.fillStyle = "#0b0d12"; g.strokeStyle = accent; g.lineWidth = 3; g.beginPath(); g.moveTo(16, 16); g.lineTo(66, 16); g.lineTo(66, 52); g.quadraticCurveTo(41, 72, 16, 52); g.closePath(); g.fill(); g.stroke(); g.restore();
+  drawBadge(g, 41, 40, 15, club);
   // 5. rating + rarity tag top-right
   const ovr = cardRatings(c).ovr;
   g.fillStyle = "#16181f"; g.strokeStyle = accent; g.lineWidth = 3; g.beginPath(); g.roundRect(W - 78, 22, 56, 44, 9); g.fill(); g.stroke();
@@ -190,11 +201,12 @@ function cardFace(c, t) {
   if (sp) { g.fillStyle = sp.col[1]; g.strokeStyle = "#000"; g.lineWidth = 2; g.beginPath(); g.roundRect(64, 92, W - 128, 22, 6); g.fill(); g.stroke();
     g.fillStyle = isLight(sp.col[1]) ? (isLight(sp.col[0]) ? "#111" : sp.col[0]) : "#fff"; fitText(g, sp.name.toUpperCase(), W - 140, 13); g.fillText(sp.name.toUpperCase(), W / 2, 104); }
   // 7. big club badge, bottom-left over the portrait
-  drawBadge(g, 50, H - 104, 25, club);
+  g.save(); g.fillStyle = "#0b0d12cc"; g.strokeStyle = "#ffffffcc"; g.lineWidth = 2.5; g.beginPath(); g.roundRect(22, H - 150, 64, 64, 12); g.fill(); g.stroke(); g.restore();
+  drawBadge(g, 54, H - 118, 27, club);
   // 8. name plate + position strip
   const pl = g.createLinearGradient(0, H - 88, 0, H - 44); pl.addColorStop(0, "#343843"); pl.addColorStop(1, "#14161c");
   g.fillStyle = pl; g.strokeStyle = accent; g.lineWidth = 2.5; g.beginPath(); g.roundRect(22, H - 88, W - 44, 42, 9); g.fill(); g.stroke();
-  const nm = c.name.toUpperCase(); g.fillStyle = "#fff"; fitText(g, nm, W - 62, 22, 11);
+  const nm = c.name.toUpperCase(); g.fillStyle = "#fff"; fitText(g, nm, W - 60, 25, 11);
   g.strokeStyle = "#000"; g.lineWidth = 3; g.strokeText(nm, W / 2, H - 66); g.fillText(nm, W / 2, H - 66);
   g.fillStyle = "#0c0d11"; g.strokeStyle = accent; g.lineWidth = 1.5; g.beginPath(); g.roundRect(W / 2 - 44, H - 46, 88, 20, 6); g.fill(); g.stroke();
   g.fillStyle = "#e9e3cf"; g.font = '13px "Lilita One",sans-serif'; g.fillText(POS_SHORT[c.pos] || "", W / 2, H - 35);

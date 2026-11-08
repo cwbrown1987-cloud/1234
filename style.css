@@ -571,3 +571,7 @@ p.clash{color:#8a6d45;font-size:13px;margin:-4px 0 6px}
 #rotateMsg{position:fixed;inset:0;z-index:999;background:#141d33;display:flex;align-items:center;justify-content:center;text-align:center;font-size:60px}
 #rotateMsg b{display:block;font-size:22px;margin-top:10px}
 #rotateMsg.hide{display:none}
+/* a free groundskeeper: the 👷 pill glows so you put them to work (like Clash's idle builder) */
+#builders.free{border-color:#7fe36a;box-shadow:0 0 0 2px #2f9a24,0 0 10px #7fe36a;animation:bpulse 1.6s ease-in-out infinite}
+@keyframes bpulse{50%{box-shadow:0 0 0 2px #2f9a24,0 0 18px #b9ff9e}}
+@media (prefers-reduced-motion:reduce){#builders.free{animation:none}}

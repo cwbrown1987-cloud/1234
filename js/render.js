@@ -501,6 +501,7 @@ const OBS_LAYOUT = {
   tree:   [["tree",.85,.8,1.2],["bush",1.45,1.5,.6]],
   bigtree:[["tree",.85,.75,.95],["bush",.55,2.1,.6],["tree",1.6,1.55,1.8],["bush",2.4,2.25,.65]],
   rock:   [["rock",1.0,1.0,2.1],["rock",1.65,1.6,.8]],
+  kitbag: [["kitbag",1,1.15,2.1]],
   bigrock:[["rock",.6,2.3,.9],["rock",1.45,1.4,3.1],["rock",2.35,2.3,1.0]],
 };
 function drawObstacle(o){
@@ -516,6 +517,7 @@ function drawObstacle(o){
     if(k==="bush") drawBush(x,y,kk,v+dx);
     else if(k==="stump") drawStump(x,y,kk);
     else if(k==="pebble") drawPebble(x,y,kk);
+    else if(k==="kitbag") drawKitBag(x,y,kk,o);
     else drawDeco({x:o.x+dx,y:o.y+dy,k,s:z,h:v});
   }
   if(o.busy){ ctx.restore(); const left=Math.max(0,(o.busy.end-Date.now())/1000), [bx,by]=P(o.x+s/2,o.y+s/2,s+1.2);
@@ -544,6 +546,17 @@ function drawStump(x,y,k){
   ctx.strokeStyle=OUT; ctx.lineWidth=LW(); ctx.beginPath(); ctx.ellipse(x,top,w,w*.42,0,0,7); ctx.fillStyle="#e2bf86"; ctx.fill(); ctx.stroke();
   ctx.strokeStyle="#a77b45"; ctx.lineWidth=LW()*.6; for(const f of [.7,.45,.2]){ ctx.beginPath(); ctx.ellipse(x,top,w*f,w*.42*f,0,0,7); ctx.stroke(); }
   ctx.fillStyle="#4f9a3a"; ctx.beginPath(); ctx.arc(x+w*.55,top-k*.05,k*.09,0,7); ctx.arc(x+w*.7,top-k*.12,k*.07,0,7); ctx.fill();
+}
+// Lost Kit Bag: a club-coloured duffel with a footy poking out and a sparkle so it stands out
+function drawKitBag(x,y,k,o){
+  const c=myClub(), t=performance.now()/500;
+  ctx.fillStyle="#0004"; ctx.beginPath(); ctx.ellipse(x,y,k*1.1,k*.4,0,0,7); ctx.fill();
+  ctx.lineWidth=LW()*1.3; ctx.strokeStyle=OUT;
+  rr(x-k*.95,y-k*.95,k*1.9,k*.95,k*.4,c.a); ctx.stroke();
+  ctx.fillStyle=c.b; ctx.fillRect(x-k*.95,y-k*.62,k*1.9,k*.14);
+  ctx.strokeStyle="#222"; ctx.lineWidth=LW(); ctx.beginPath(); ctx.arc(x,y-k*.95,k*.45,Math.PI,0); ctx.stroke();
+  footy(x+k*.6,y-k*1.05,k*.42,-.5);
+  const s=Math.abs(Math.sin(t)); ctx.fillStyle="#fffbd0"; ctx.globalAlpha=.6+.4*s; ctx.font=`${k*.8}px sans-serif`; ctx.textAlign="center"; ctx.fillText("✦",x-k*.7,y-k*1.25-s*k*.2); ctx.globalAlpha=1;
 }
 // Small grey stones next to rocks
 function drawPebble(x,y,k){

@@ -39,7 +39,8 @@ function genBase(d, seed){
     R.forEach(([i,j],n)=>{ const gapHere = take<R.length && ((n-start+R.length)%R.length)>=take;
       if(!gapHere && !occ.has("b"+key(i,j))){ const lv=Math.max(1,Math.min(maxLevel("fence",d),d-(r()<.3?1:0))), hp=BLD.fence.hp[lv-1]; list.push({id:list.length+1,t:"fence",x:i,y:j,lv,hp,max:hp}); occ.add("b"+key(i,j)); } }); }
   for(let n=0;n<cnt("sprinkler");n++) for(let k=0;k<200;k++){ const i=C0-9+(r()*19|0), j=C0-9+(r()*19|0); if(zone(i,j)==="mid"&&!occ.has(key(i,j))&&!occ.has("b"+key(i,j))){ occ.add("b"+key(i,j)); list.push({id:list.length+1,t:"sprinkler",x:i,y:j,lv:Math.max(1,Math.min(5,d-2)),hp:1,max:1,armed:true}); break; } }
-  const total={pies:Math.round((600+1100*d*d)*(.7+r()*.6)), drink:Math.round((600+1100*d*d)*(.7+r()*.6))};
+  // Loot on offer grows with Clubhouse level like Clash (a few thousand at level 1, a few hundred thousand at 8)
+  const total={pies:Math.round((800+600*d*d*d)*(.7+r()*.6)), drink:Math.round((800+600*d*d*d)*(.7+r()*.6))};
   const share=(res,types,frac)=>{ const bs=list.filter(b=>types.includes(b.t)); bs.forEach(b=>{ b.loot=b.loot||{pies:0,drink:0}; b.loot[res]+=Math.round(total[res]*frac/bs.length); }); };
   share("pies",["piewarmer"],.6); share("drink",["esky"],.6); share("pies",["pieshop"],.25); share("drink",["drinktap"],.25);
   share("pies",["clubhouse"],.15); share("drink",["clubhouse"],.15);

@@ -19,6 +19,14 @@ for root, _, names in os.walk('.'):
         if p.startswith(('/mockups', '/.', '/server')) or n.endswith(('.md', '.sh')): continue
         data = open('.' + p, 'rb').read()
         if p.endswith(('.html', '.css', '.js')): files[p] = data.decode('utf-8')
+        if p == '/index.html':
+            import hashlib, re as _re
+            def bust(m):
+                ref = m.group(2)
+                try: h = hashlib.sha1(open('./' + ref, 'rb').read()).hexdigest()[:10]
+                except OSError: return m.group(0)
+                return f'{m.group(1)}{ref}?v={h}"'
+            files[p] = _re.sub(r'((?:src|href)=")((?:js|art)/[^"?]+\.js|style\.css)"', bust, files[p])
         else: binary[p] = base64.b64encode(data).decode()
 types = {'html':'text/html; charset=utf-8','css':'text/css; charset=utf-8','js':'text/javascript; charset=utf-8','png':'image/png','jpg':'image/jpeg','svg':'image/svg+xml','webmanifest':'application/manifest+json','webp':'image/webp','json':'application/json'}
 api = open('server/api.js').read().replace('export async function handleApi', 'async function handleApi')

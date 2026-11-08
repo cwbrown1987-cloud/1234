@@ -350,6 +350,7 @@ $("btnCards").onclick=()=>openAlbum();
 $("btnTasks").onclick=openTasks;
 $("btnLog").onclick=openLog;
 $("btnSocial").onclick=()=>openSocial();
+// (buttons below are optional: a missing one must never stop touch controls from loading)
 
 $("cardsIco").src=cardsButtonIcon();
 $("bNext").onclick=()=>{ if(BT&&BT.visit){ const id=BT.opp.id; leaveBattle(); attackPlayer(id,"friend"); } else nextOpponent(); };

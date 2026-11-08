@@ -325,7 +325,8 @@ function frame(now){
   requestAnimationFrame(frame);
 }
 function boot(){
-  resize(); addEventListener("resize",resize);
+  resize(); addEventListener("resize",resize); addEventListener("orientationchange",()=>setTimeout(resize,250));
+  if(window.visualViewport) visualViewport.addEventListener("resize",resize);
   S=load();
   if(S){ const away=Math.min(24*3600,(Date.now()-S.last)/1000); produce(away); ensureDaily(); processTimers(); if(away>60&&!S.raids.some(r=>!r.seen)) toast(`Welcome back! You were away ${fmtTime(away)}.`); }
   else showClubPicker();

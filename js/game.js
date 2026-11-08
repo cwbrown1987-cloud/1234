@@ -76,6 +76,32 @@ function occupiedHome(x,y,s,ignore){
 }
 function findSpot(s){ const c=N/2-s/2|0; for(let r=0;r<N;r++) for(let dx=-r;dx<=r;dx++) for(let dy=-r;dy<=r;dy++){ if(Math.max(Math.abs(dx),Math.abs(dy))!==r) continue; if(footprintFree(c+dx,c+dy,s)) return [c+dx,c+dy]; } return null; }
 
+// ---------- base layouts (like Clash's Copy Layout): a list of [type, x, y] ----------
+const layoutOf = list => list.filter(b=>BLD[b.t]).map(b=>[b.t,b.x,b.y]);
+function applyLayout(L){
+  if(lockedToast()) return false;
+  const want={}; for(const [t,x,y] of L||[]) if(BLD[t]) (want[t]=want[t]||[]).push([x,y]);
+  const mine=S.buildings.slice(), was=new Map(mine.map(b=>[b,[b.x,b.y]]));
+  S.layoutUndo=mine.map(b=>[b.id,b.x,b.y]);
+  for(const b of mine){ b.x=-99; b.y=-99; }
+  let placed=0; const left=[];
+  for(const b of mine.sort((a,c)=>BLD[c.t].size-BLD[a.t].size)){ const s=BLD[b.t].size, spots=want[b.t]||[]; let ok=false;
+    while(spots.length&&!ok){ const [x,y]=spots.shift(); if(footprintFree(x,y,s,b)){ b.x=x; b.y=y; ok=true; placed++; } }
+    if(!ok) left.push(b); }
+  // anything their ground doesn't have room for goes back where it was, or the nearest free spot
+  // spare fences get stacked in tidy rows in the back corner, ready to drag into place
+  const spare=left.filter(b=>b.t==="fence"); let k=0;
+  for(const b of spare){ for(;k<N*N;k++){ const x=1+k%(N-2), y=1+Math.floor(k/(N-2)); if(footprintFree(x,y,1,b)){ b.x=x; b.y=y; k++; break; } } }
+  for(const b of left){ if(b.t==="fence"&&b.x>=0) continue; const [ox,oy]=was.get(b), s=BLD[b.t].size; const sp=footprintFree(ox,oy,s,b)?[ox,oy]:findSpot(s); [b.x,b.y]=sp||[ox,oy]; }
+  selected=null; placing=null; save(); refreshUI();
+  return {placed, left:left.length};
+}
+function undoLayout(){
+  if(!S.layoutUndo||lockedToast()) return;
+  const byId=new Map(S.buildings.map(b=>[b.id,b])); for(const [id,x,y] of S.layoutUndo){ const b=byId.get(id); if(b){ b.x=x; b.y=y; } }
+  S.layoutUndo=null; selected=null; save(); refreshUI(); toast("Layout put back");
+}
+
 // ---------- shop / build / upgrade ----------
 // Your first Pie Shop and Drink Tap are free, so spending everything can never leave you with no income.
 const FREE_FIRST = ["pieshop","drinktap"];

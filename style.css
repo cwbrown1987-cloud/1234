@@ -816,3 +816,4 @@ body:not(.ffui) .albummode .rwd{background:linear-gradient(#2a2e37,#16181e);bord
 #searchFx .sdots::after{content:"";animation:sfDots 1.2s steps(4) infinite}
 @keyframes sfDots{0%{content:""}25%{content:"."}50%{content:".."}75%{content:"..."}}
 #searchFx .btn{min-width:140px}
+.lycode{font:900 34px/1.1 inherit;letter-spacing:6px;margin:10px 0 4px;color:#2b1d10}

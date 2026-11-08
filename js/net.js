@@ -277,6 +277,26 @@ async function renderFriends(soc) {
     document.querySelectorAll("[data-unf]").forEach(b => b.onclick = async () => { if (b.dataset.sure) { await api("/friends/" + b.dataset.unf, { method: "DELETE" }).catch(e => toast(e.message)); openFriends(); } else { b.dataset.sure = 1; b.textContent = "Sure?"; } });
   } catch (e) { if(soc===$("soc")) $("frList").innerHTML = `<p class="center err">${esc(e.message)}</p>`; }
 }
+// ---------- layouts: use a copied layout, share yours with a code, load a code ----------
+function openLayouts() {
+  const sv = S.savedLayout;
+  modal(`<h2>📋 Layouts</h2>
+    <p class="tiny center">Copy a mate's ground (Online → Friends → 👀 → 📋 Copy layout), or swap layouts with a share code. You keep your own buildings and levels; anything that won't fit stays where it is.</p>
+    <div class="fixture">${sv ? `<div class="fx"><span class="nm"><b>${esc(sv.from)}'s layout</b><br><small>${sv.L.length} pieces · copied ${fmtTime((Date.now() - sv.at) / 1000)} ago</small></span><button class="btn green" id="lyUse">Use it</button></div>` : `<p class="center">No copied layout yet.</p>`}</div>
+    <h3>Share yours</h3><div class="center"><button class="btn gold" id="lyShare">📤 Get a share code</button><div id="lyCode"></div></div>
+    <h3>Load a code</h3><form id="lyLoad" class="fradd"><input id="lyIn" placeholder="e.g. K7PX2Q" maxlength="8" autocomplete="off" style="text-transform:uppercase"><button class="btn green" type="submit">Load</button></form>
+    ${S.layoutUndo ? `<div class="center"><button class="btn" id="lyUndo">↩️ Undo last layout</button></div>` : ""}`);
+  const use = () => { const r = applyLayout(S.savedLayout.L); if (r) { closeModal(); toast(`Layout used: ${r.placed} pieces moved${r.left ? `, ${r.left} kept where they were` : ""}`); } };
+  if ($("lyUse")) $("lyUse").onclick = use;
+  if ($("lyUndo")) $("lyUndo").onclick = () => { undoLayout(); closeModal(); };
+  $("lyShare").onclick = async () => { if (!signedIn()) return toast("Sign in (Online) to share layouts");
+    try { const r = await api("/layout", { method: "POST", body: { layout: layoutOf(S.buildings) } });
+      $("lyCode").innerHTML = `<p class="lycode">${esc(r.code)}</p><p class="tiny">Send this to a mate. They tap Build → Buildings → 📋 and load it.</p>`;
+      try { await navigator.clipboard.writeText(r.code); toast("Code copied"); } catch (e) {} } catch (e) { toast(e.message); } };
+  $("lyLoad").onsubmit = async e => { e.preventDefault(); const code = $("lyIn").value.trim().toUpperCase(); if (!code) return;
+    if (!signedIn()) return toast("Sign in (Online) to load layouts");
+    try { const r = await api("/layout/" + encodeURIComponent(code)); S.savedLayout = { from: r.name || code, L: r.layout, at: Date.now() }; save(); openLayouts(); toast(`Loaded ${r.name || code}'s layout. Tap Use it`); } catch (err) { toast(err.message); } };
+}
 async function visitPlayer(id) {
   try {
     const p = (await api("/player/" + id)).player;

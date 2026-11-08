@@ -231,6 +231,23 @@ export async function handleApi(req, env) {
       await env.DB.batch(stmts);
       return json({ok: true, defTro, lootShield});
     }
+    // ----- layouts: share yours as a short code, load someone else's -----
+    if (path === "/layout" && m === "POST") {
+      const b = await body(req), L = Array.isArray(b.layout) ? b.layout.slice(0, 600) : [];
+      const data = JSON.stringify(L.filter(e => Array.isArray(e) && typeof e[0] === "string").map(([t, x, y]) => [t.slice(0, 20), x | 0, y | 0]));
+      await env.DB.prepare("CREATE TABLE IF NOT EXISTS layouts (code TEXT PRIMARY KEY, user_id TEXT NOT NULL, name TEXT, data TEXT NOT NULL, created INTEGER NOT NULL)").run();
+      const abc = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+      for (let i = 0; i < 5; i++) { const code = [...crypto.getRandomValues(new Uint8Array(6))].map(n => abc[n % abc.length]).join("");
+        const r = await env.DB.prepare("INSERT OR IGNORE INTO layouts(code,user_id,name,data,created) VALUES(?,?,?,?,?)").bind(code, me.id, me.name, data, now()).run();
+        if (r.meta ? r.meta.changes : r.changes) return json({code}); }
+      return fail("Couldn't make a code. Try again.");
+    }
+    if (path.startsWith("/layout/") && m === "GET") {
+      await env.DB.prepare("CREATE TABLE IF NOT EXISTS layouts (code TEXT PRIMARY KEY, user_id TEXT NOT NULL, name TEXT, data TEXT NOT NULL, created INTEGER NOT NULL)").run();
+      const r = await env.DB.prepare("SELECT name, data FROM layouts WHERE code = ?").bind(path.slice(8).toUpperCase()).first();
+      if (!r) return fail("No layout with that code.", 404);
+      return json({name: r.name, layout: JSON.parse(r.data)});
+    }
     // ----- friends: add by player name, visit their ground, play a friendly -----
     // ----- friends: requests (add + add back), suggestions, visit, attack -----
     if (path.startsWith("/friends")) {

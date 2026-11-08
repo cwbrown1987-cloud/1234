@@ -449,4 +449,6 @@ function boot(){
   if(typeof netStart==="function") setTimeout(netStart,800);
   refreshUI(); requestAnimationFrame(frame);
   addEventListener("visibilitychange",()=>{ if(document.hidden&&mode==="home") save(); });
+  addEventListener("pagehide",()=>{ if(mode==="home") save(); });
+  setInterval(()=>{ if(S&&mode==="home"&&!document.hidden) save(); },20000); // keep the saved copy fresh while you play
 }

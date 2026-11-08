@@ -49,7 +49,7 @@ async function pullNewer(bootLast) {
     return true;
   } catch (e) { return false; } finally { NET.pulling = false; }
 }
-function scheduleSync() { if (!signedIn()) return; clearTimeout(NET.syncT); NET.syncT = setTimeout(pushSave, 15000); }
+function scheduleSync() { if (!signedIn() || NET.syncT) return; NET.syncT = setTimeout(() => { NET.syncT = null; pushSave(); }, 15000); } // at most every 15 s, even while you keep playing
 addEventListener("visibilitychange", async () => { if (!signedIn() || !S) return;
   if (document.hidden) pushSave({ keepalive: true }); else if (!(await pullNewer())) pushSave(); });
 

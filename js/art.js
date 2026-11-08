@@ -478,9 +478,9 @@ function refreshArtHUD() {
   for (const [selector,key] of [
     ['.res[data-r="pies"] i',"icon-pies"], ['.res[data-r="drink"] i',"icon-drink"],
     ['.res[data-r="medals"] i',"icon-medals"], ["#btnAttack b","footy"],
-    ["#btnSquad b","portrait-rover"], ["#btnShop b","icon-pies"]
   ]) {
     const node = document.querySelector(selector);
+    if (!node) continue;
     const canvas = document.createElement("canvas");
     canvas.width = canvas.height = 64;
     const club = typeof S!=="undefined" && S ? CLUBS[S.club] : null;

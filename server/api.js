@@ -139,7 +139,8 @@ export async function handleApi(req, env) {
       if (!def || def.user_id === me.id) return fail("Opponent not found.", 404);
       const friendly = !!b.friendly, stars = Math.max(0, Math.min(3, Number(b.stars) || 0)), pct = Math.max(0, Math.min(100, Number(b.pct) || 0));
       const ranked = !!b.ranked && !friendly;
-      const defTro = !ranked ? 0 : stars ? -Math.round(5 + stars * 5) : 8;
+      const atkTro = stars >= 3 ? 40 : stars === 2 ? Math.min(32, 16 + Math.max(0, Math.floor((pct - 50) / 3))) : stars === 1 ? Math.min(15, 5 + Math.floor(pct / 9)) : pct >= 10 ? Math.min(4, Math.floor(pct / 10)) : 0;
+      const defTro = !ranked ? 0 : stars ? 40 - atkTro : 40; // Clash Ranked Battles: defenders only gain
       const shield = !friendly && b.magicShield ? now() + 8 * 3600e3 : 0; // Magic Shield: 30%+ of the loot taken
       const data = JSON.stringify({attacker: me.name, ...b, defTro, stars, pct});
       if (data.length > 150000) return fail("Replay is too big.");

@@ -96,10 +96,11 @@ async function checkInbox() {
   if (!r.attacks.length) return;
   for (const a of r.attacks) {
     const lost = { pies: Math.min(S.pies, Math.floor(a.loot?.pies || 0)), drink: Math.min(S.drink, Math.floor(a.loot?.drink || 0)) };
+    if (a.ranked) { lost.pies = 0; lost.drink = 0; }
     if (!a.friendly) { S.pies -= lost.pies; S.drink -= lost.drink; S.trophies = Math.max(0, S.trophies + (a.defTro || 0)); }
     if (!a.friendly && a.magicShield) S.shield = Math.max(S.shield || 0, a.at + MAGIC_SHIELD);
     if (!a.friendly && !a.stars) track("defend", 1);
-    S.raids.unshift({ id: "p" + a.id, at: a.at, club: a.atkClub ?? a.club ?? 0, attacker: a.attacker, attackerId: a.attackerId, real: true, friendly: !!a.friendly, friend: !!a.friend,
+    S.raids.unshift({ id: "p" + a.id, at: a.at, club: a.atkClub ?? a.club ?? 0, attacker: a.attacker, attackerId: a.attackerId, real: true, friendly: !!a.friendly, friend: !!a.friend, ranked: !!a.ranked,
       stars: a.stars, pct: a.pct, sc: a.sc, lost, tro: a.defTro, seen: false, revenged: false,
       base: a.base || [], plan: a.plan || [], endT: a.endT || 0, army: a.army || {}, spells: a.spells || {}, lv: a.lv || 1, heroLv: a.heroLv || 1, bonus: a.bonus || null, d: th() });
   }
@@ -140,7 +141,7 @@ async function attackPlayer(id, kind) {
 function netReportAttack(bt, r) {
   if (!signedIn() || !bt.opp) return;
   const avail = bt.lootTotal.pies + bt.lootTotal.drink, share = avail ? (bt.loot.pies + bt.loot.drink) / avail : 0;
-  const body = { defender: bt.opp.id, friendly: !!r.friendly, friend: bt.kind === "friend", ranked: !!bt.ranked, magicShield: !r.friendly && bt.kind !== "friend" && share >= .3, stars: r.stars, pct: r.p, sc: r.sc, loot: { pies: Math.floor(bt.loot.pies * Math.min(1, bt.lootMul ?? 1)), drink: Math.floor(bt.loot.drink * Math.min(1, bt.lootMul ?? 1)) },
+  const body = { defender: bt.opp.id, friendly: !!r.friendly, friend: bt.kind === "friend", ranked: !!bt.ranked, magicShield: !r.friendly && !bt.ranked && bt.kind !== "friend" && share >= .3, stars: r.stars, pct: r.p, sc: r.sc, loot: { pies: Math.floor(bt.loot.pies * Math.min(1, bt.lootMul ?? 1)), drink: Math.floor(bt.loot.drink * Math.min(1, bt.lootMul ?? 1)) },
     plan: bt.rec || [], endT: Math.round(bt.elapsed * 1000) / 1000, army: bt.had, spells: bt.hadSpells, lv: { ...S.unitLv }, heroLv: Object.fromEntries(Object.keys(HEROES).map(h => [h, S.heroes[h].lv])),
     bonus: Object.fromEntries(["mid", "fwd", "ruck", "def"].map(p => [p, cardBonus(p)])), base: bt.opp.bot ? [] : (bt.origBase || []).map(b => ({ t: b.t, x: b.x, y: b.y, lv: b.lv, hp: b.max, max: b.max, loot: b.loot, armed: b.armed })),
     atkClub: S.club, myTrophies: S.trophies };
@@ -230,6 +231,7 @@ async function renderSquad() {
   chatLast = 0; chatMembers = r.members;
   $("soc").innerHTML = `<div class="sqhead">${badgeImg(CLUBS[r.squad.club] || CLUBS[0], "sm")}<b>${esc(r.squad.name)}</b><span class="tiny">${r.members.length}/30</span><button class="btn red" id="sqLeave">Leave</button></div>
     <div class="chat" id="chat"></div><form id="chatForm" class="chatform"><input id="chatIn" maxlength="200" placeholder="Say something…" autocomplete="off" enterkeyhint="send"><button class="btn green" type="submit">➤</button></form>
+    <div class="soonrow"><div class="soon">${uiArt("squad-war","⚔️")}<b>Squad War</b><small>Coming soon</small></div><div class="soon">${uiArt("squad-games","🎯")}<b>Squad Games</b><small>Coming soon</small></div><div class="soon">${uiArt("squad-donate","🤝")}<b>Lend Players</b><small>Coming soon</small></div></div>
     <h3>Members</h3><div class="fixture">${r.members.map(m => `<div class="fx">${badgeImg(CLUBS[m.club] || CLUBS[0], "sm")}<span class="nm">${esc(m.name)}${m.id === NET.user.id ? " (you)" : ""}<br><small>Clubhouse ${m.th} · 🏆 ${m.trophies}</small></span>${m.id !== NET.user.id ? `<button class="btn blue" data-friendly="${m.id}">Friendly</button>` : ""}</div>`).join("")}</div>
     <p class="tiny center">Friendlies don't cost loot or trophies on either side.</p>`;
   addMessages(r.messages);

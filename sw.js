@@ -1,7 +1,7 @@
 // Offline support: keep the game files cached so it opens like an app.
-const CACHE = "footy-fortress-v28";
+const CACHE = "footy-fortress-v29";
 const SHELL = ["./","index.html","style.css","manifest.webmanifest","art/sheets.js",
-  "js/data.js","js/render.js","js/art.js","js/stadium.js","js/game.js","js/battle.js","js/season.js","js/raid.js","js/audio.js","js/ui.js","js/cardset.js","js/cards.js","js/gear.js","js/tutorial.js","js/net.js","js/install.js",
+  "js/data.js","js/render.js","js/art.js","js/stadium.js","js/game.js","js/battle.js","js/season.js","js/raid.js","js/audio.js","js/ui.js","js/cardset.js","js/cards.js","js/gear.js","js/hubs.js","js/tutorial.js","js/net.js","js/install.js",
   "icons/icon-192.png","icons/icon-512.png"];
 self.addEventListener("install", e => { e.waitUntil(caches.open(CACHE).then(c => c.addAll(SHELL)).then(() => self.skipWaiting())); });
 self.addEventListener("activate", e => { e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k !== CACHE).map(k => caches.delete(k)))).then(() => self.clients.claim())); });

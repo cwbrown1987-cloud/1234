@@ -157,8 +157,10 @@ function refreshVisibleCardFaces(path) {
     if (c && (!path || cardPortraitPath(c) === path)) img.src = cardFace(c, img.dataset.cardTier);
   }
 }
-const cardFaceImage = (c, t, className = "") =>
-  `<img class="${className}" data-card-id="${c.id}" data-card-tier="${t}" src="${cardFace(c, t)}" alt="${c.name}">`;
+function cardFaceImage(c, t, className = "") {
+  const finish = isFritschTribute(c) ? "foil tribute" : c.special || t !== "c" ? "foil" : "";
+  return `<span class="card-print ${className}"><img data-card-id="${c.id}" data-card-tier="${t}" src="${cardFace(c, t)}" alt="${c.name}"><span class="card-finish ${finish}" aria-hidden="true"></span></span>`;
+}
 const isFritschTribute = c => c.name === "Bayley Fritsch" && CLUBS[c.club].abbr === "melb";
 
 // ---------- card artwork (layout from docs/card-style-reference.png) ----------
@@ -212,10 +214,6 @@ function cardFace(c, t) {
   else if (!(likeness && drawArtIcon(likeness, g, W / 2, H - 70, 220, 236)) && !drawArtIcon("portrait-" + roleFor(c.pos), g, W / 2, H - 70, 220, 236, club)) {
     const sv = {ctx, TW, TH}; ctx = g; TW = 90; TH = 45; drawPlayer(W / 2, H - 80, 58, club, {kind:c.pos === "ruck" ? "ruck" : null, ranged:c.pos === "fwd", id:c.no}); ctx = sv.ctx; TW = sv.TW; TH = sv.TH;
   }
-  // foil sheen on Rare and up, sparkles on Legendary and 24K
-  if (sp || t !== "c") { const sh = g.createLinearGradient(0, 0, W, H); sh.addColorStop(.3, "#ffffff00"); sh.addColorStop(.46, "#ffffff40"); sh.addColorStop(.6, "#ffffff00"); g.fillStyle = sh; g.fillRect(ix, iy, iw, ih); }
-  if (t === "p" || c.kind === "PZ") { const r = rng(c.num || 7); g.fillStyle = "#fffbe0";
-    for (let k = 0; k < 12; k++) { const x = ix + r() * iw, y = iy + r() * (ih - 90), z = 2 + r() * 4; g.beginPath(); g.moveTo(x, y - z); g.lineTo(x + z * .3, y - z * .3); g.lineTo(x + z, y); g.lineTo(x + z * .3, y + z * .3); g.lineTo(x, y + z); g.lineTo(x - z * .3, y + z * .3); g.lineTo(x - z, y); g.lineTo(x - z * .3, y - z * .3); g.fill(); } }
   g.restore();
   drawCollectorBorder(g,club,sp?c.kind:TIERS[t]?t:"c");
   if (!photo) {
@@ -375,15 +373,16 @@ function bindCardTilt(card) {
     const y=Math.max(-1,Math.min(1,dy/(drag.h*.38)));
     card.style.setProperty("--card-rx",`${-y*19}deg`);
     card.style.setProperty("--card-ry",`${x*24}deg`);
-    card.style.setProperty("--foil-x",`${50+x*62}%`);
-    card.style.setProperty("--foil-y",`${50+y*62}%`);
-    card.style.setProperty("--foil-opacity",String(.25+Math.min(1,Math.hypot(x,y))*.65));
+    card.style.setProperty("--light-x",`${50+x*49}%`);
+    card.style.setProperty("--light-y",`${50+y*49}%`);
+    card.style.setProperty("--foil-angle",`${116+x*24-y*12}deg`);
+    card.style.setProperty("--foil-opacity",String(.62+Math.min(1,Math.hypot(x,y))*.35));
   };
   const finish=e=>{
     if(!drag || e.pointerId!==drag.id) return;
     drag=null;
     card.classList.remove("tilting");
-    for(const prop of ["--card-rx","--card-ry","--foil-x","--foil-y","--foil-opacity"]) card.style.removeProperty(prop);
+    for(const prop of ["--card-rx","--card-ry","--light-x","--light-y","--foil-angle","--foil-opacity"]) card.style.removeProperty(prop);
   };
   card.onpointerup=card.onpointercancel=card.onlostpointercapture=finish;
   card.onclick=()=>{ if(!didDrag) flip(); };
@@ -395,10 +394,10 @@ function showAlbumCard(c, t, back) {
   t = t || bestTier(c);
   if (!t) return toast(c.special ? `${SPECIALS[c.kind].name}: comes from the special slot in packs` : `Not collected yet. Keep opening packs!`);
   const r = cardRatings(c);
-  const tribute=isFritschTribute(c), foil=tribute||c.special||t!=="c";
+  const tribute=isFritschTribute(c);
   const ups = c.special ? `<p class="center tiny">${SPECIALS[c.kind].name} cards can't be upgraded.</p>` : TIER_ORDER.filter(x => have(c.id, x)).map(x => `<div class="stat"><span>${TIERS[x].name}</span><b>×${have(c.id, x)} ${canUpgrade(c, x) ? `<button class="btn gold" data-up="${x}">Upgrade to ${TIERS[TIERS[x].next].name}</button>` : TIERS[x].next ? `<small>${Math.max(0, UPGRADE_COST + 1 - have(c.id, x))} more to upgrade</small>` : ""}</b></div>`).join("");
   menuBack = back ? null : () => openAlbum(c.special ? "sp" : c.club);
-  modal(`<div class="cardview"><div class="cardview-main"><div class="cardview-front"><div class="flipcard${foil?" foil":""}${tribute?" fritsch-tribute":""}" id="flipc" role="button" tabindex="0" aria-label="Flip ${c.name}'s card" aria-pressed="false"><div class="ff">${cardFaceImage(c, t)}</div><div class="fb">${cardBack(c)}</div></div>
+  modal(`<div class="cardview"><div class="cardview-main"><div class="cardview-front"><div class="flipcard" id="flipc" role="button" tabindex="0" aria-label="Flip ${c.name}'s card" aria-pressed="false"><div class="ff">${cardFaceImage(c, t)}</div><div class="fb">${cardBack(c)}</div></div>
     <p class="tiny center">Drag to tilt · Tap to flip</p>${tribute?'<p class="card-tribute-label center">No. 31 Tribute</p>':""}</div>
     <div class="spinfo wide"><h4>Card stats · ${r.ovr} overall</h4>${r.bars.map(b => `<div class="sbar"><span><i class="si">${b.icon}</i>${b.label}</span><i><b style="width:${b.v}%;background:${b.col}"></b></i><em>${b.v}</em></div>`).join("")}</div>
     </div>

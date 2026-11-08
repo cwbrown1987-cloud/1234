@@ -339,6 +339,12 @@ p.clash{color:#8a6d45;font-size:13px;margin:-4px 0 6px}
 .acard.t-s img{box-shadow:0 0 8px #cfe3ff,0 3px 0 #0005}.acard.t-g img{box-shadow:0 0 10px #ffd34d,0 3px 0 #0005}.acard.t-p img{box-shadow:0 0 12px #f2c9ff,0 3px 0 #0005}
 .acard .dup{position:absolute;top:4px;right:4px;background:#e8503a;color:#fff;border:2px solid #000;border-radius:8px;font-size:11px;padding:0 4px}
 .cardview{display:flex;flex-direction:column;align-items:center}
+.cardview-main{display:grid;justify-items:center;align-items:center;gap:8px;width:100%}
+.cardview-front .flipcard{width:clamp(150px,45vw,200px)}
+.cardview-front p{margin:4px 0}
+@media (min-width:600px) and (orientation:landscape){
+  .cardview-main{grid-template-columns:auto minmax(0,1fr);gap:14px;padding:0 36px 0 0}
+}
 .flipcard{width:200px;aspect-ratio:180/252;position:relative;perspective:900px;cursor:pointer}
 .flipcard .ff,.flipcard .fb{position:absolute;inset:0;backface-visibility:hidden;-webkit-backface-visibility:hidden;transition:transform .5s}
 .flipcard .ff img{width:100%;height:100%;border-radius:10px}
@@ -405,24 +411,16 @@ p.clash{color:#8a6d45;font-size:13px;margin:-4px 0 6px}
 .aslot.empty span{font-size:14px;color:#d6caa8}.aslot.empty small{font-size:10px;opacity:.8}
 .aslot img{width:100%;height:100%;display:block;border-radius:8px}
 .acard{position:relative;cursor:pointer}
-.acard.sel img{outline:3px solid #fff;outline-offset:1px}
 .acard.t-c img{box-shadow:0 3px 0 #0008}.acard.t-s img{box-shadow:0 0 10px #5fb2ff,0 3px 0 #0008}.acard.t-g img{box-shadow:0 0 11px #ff5a5a,0 3px 0 #0008}.acard.t-p img{box-shadow:0 0 14px #ffd34d,0 3px 0 #0008}
 .acard .dup{position:absolute;top:4px;right:4px;background:#e8503a;color:#fff;border:2px solid #000;border-radius:8px;font-size:11px;padding:0 4px}
 .pager{display:flex;align-items:center;justify-content:center;gap:14px;font-size:15px}
 .pg{width:40px;height:34px;border-radius:10px;border:3px solid #000;background:linear-gradient(#ffd96a,#e0a10e);color:#3a2408;font-size:24px;line-height:1;text-shadow:none;box-shadow:0 3px 0 #000}
 .pg:disabled{filter:grayscale(1) brightness(.6)}
-/* card stats panel: dark slate with a steel rim */
-.statpanel{display:grid;grid-template-columns:116px 1fr;gap:10px;padding:10px;border-radius:14px;border:3px solid #0b0b0d;color:#e9e3cf;text-shadow:none;
-  background:linear-gradient(#2a2e37,#16181e);box-shadow:inset 0 0 0 2px #5d646e,inset 0 2px 0 3px #ffffff14,0 4px 0 #000}
-.statpanel.emptyp{display:block;text-align:center;color:#cbbf9f}
-.spcard{cursor:pointer;text-align:center}.spcard img{width:100%;display:block;border-radius:8px;box-shadow:0 0 12px #000}.spcard small{font-size:10px;opacity:.7}
 .spinfo h4{margin:0 0 6px;color:#ffcf4a;text-transform:uppercase;font-size:16px;text-shadow:0 2px 0 #000}
 .sbar{display:grid;grid-template-columns:86px 1fr 24px;align-items:center;gap:5px;font-size:12px;margin:4px 0}
 .sbar .si{font-style:normal;margin-right:3px}
 .sbar i:not(.si){height:10px;border-radius:5px;background:#0009;overflow:hidden;border:1px solid #000;box-shadow:inset 0 1px 2px #000}.sbar i b{display:block;height:100%;border-radius:5px;box-shadow:inset 0 2px 0 #ffffff44}
 .sbar em{font-style:normal;text-align:right;font-size:13px}
-.spblurb{margin-top:8px;padding:6px 8px;border-radius:8px;border:2px solid #4b515b;background:#0c0d11;display:flex;flex-direction:column}
-.spblurb b{color:#ffcf4a;font-size:15px}.spblurb span{font-size:12px}
 .spinfo.wide{width:min(100%,320px);padding:10px;border-radius:12px;background:linear-gradient(#262a33,#15171d);color:#e9e3cf;text-shadow:none;margin:6px 0}
 /* wooden bottom bar: club badges, sets, open pack */
 .woodbar{display:flex;align-items:center;gap:6px;padding:6px;border-radius:12px;border:3px solid #120b05;
@@ -740,7 +738,7 @@ body:not(.ffui) .match-day #modalActions{
 .album-head .atab.on{background:linear-gradient(#af8044,#5a391d);border-color:#e3bb75;box-shadow:inset 0 1px 0 #fff6,0 2px 0 #150b05}
 .album-head .atab.soon{opacity:.72}
 .albummode #modalBody{padding:2px 5px 10px;touch-action:pan-y}
-.fcc-main,.fcc-spread{display:grid;min-width:0;gap:8px}
+.fcc-spread{display:grid;min-width:0;width:min(100%,640px);margin-inline:auto;gap:8px}
 .fcc-spread .pagehead{min-width:0}
 .fcc-spread .pagehead>span{font-size:clamp(14px,4vw,19px);min-width:0}
 .fcc-spread .pager{margin-left:auto;gap:4px;white-space:nowrap}
@@ -752,7 +750,10 @@ body:not(.ffui) .match-day #modalActions{
 .albummode button.aslot.empty{display:flex;border:1px dashed #9496a36b;background:linear-gradient(145deg,#333945,#181b25);box-shadow:inset 0 2px 0 #eef2ff19,inset 0 -3px 7px #0008}
 .albummode .aslot.empty small{font-size:clamp(8px,2.6vw,12px);overflow-wrap:anywhere}
 .albummode .aslot.empty span{font-size:clamp(10px,3vw,14px)}
-.albummode .acard.sel img{outline:2px solid #f1cf83;outline-offset:0}
+.album-progress{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:8px;padding:6px 8px;
+  border:1px solid #776144;border-radius:8px;background:#1a1717;color:#f0e1c4;font-size:12px;line-height:1.2}
+.album-progress b{color:#f3ce82}
+.album-progress progress{width:100%;height:8px;accent-color:#75c449}
 .albummode #modalActions{display:block;margin:0;padding:0;border:0;box-shadow:none;background:transparent}
 .albummode .fccfoot{grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:6px}
 .albummode .fccfoot .sets,.albummode .fccfoot .openpack{min-height:44px}
@@ -765,14 +766,10 @@ body:not(.ffui) .match-day #modalActions{
 .albummode .clubstrip{min-width:0;position:relative;gap:4px;scroll-snap-type:x proximity}
 .albummode .clubstrip button{width:42px;height:42px;border-width:2px;scroll-snap-align:start}
 .albummode .stripnext{height:44px;width:25px}
-.albummode .statpanel{grid-template-columns:minmax(56px,.42fr) minmax(0,1fr);padding:8px}
-.albummode .sbar{grid-template-columns:minmax(58px,auto) minmax(20px,1fr) 20px}
 .albummode .setrow{grid-template-columns:auto minmax(0,1fr) minmax(25px,20%) 34px;gap:5px}
 body:not(.ffui) .albummode .rwd{background:linear-gradient(#2a2e37,#16181e);border-color:#69563e;box-shadow:0 3px 0 #0b0806}
 @media (min-width:740px) and (orientation:landscape){
-  .card.pinned.albummode{width:min(96vw,990px)}
-  .fcc-main{grid-template-columns:minmax(0,1.9fr) minmax(0,1fr);align-items:start;gap:12px}
-  .fcc-detail{padding-top:40px}
+  .card.pinned.albummode{width:min(96vw,760px)}
   .albummode .fccfoot{grid-template-columns:140px minmax(0,1fr) 155px}
   .albummode .woodbar{grid-row:auto;grid-column:auto}
 }

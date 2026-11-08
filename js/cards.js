@@ -130,6 +130,7 @@ const cardArt = {files:new Set(), imgs:{}, ready:false};
     cardArt.ready = true;
     ["art/cards/back.webp", "art/packs/footy.webp", "art/packs/prize.webp"].forEach(cardImg);
     for (const k of Object.keys(iconCache)) if (k.startsWith("cf")) delete iconCache[k];
+    refreshVisibleCardFaces();
   });
 })();
 // Returns a loaded image for a file in the manifest, or null (and starts loading it).
@@ -137,10 +138,27 @@ function cardImg(path) {
   if (!cardArt.files.has(path)) return null;
   const e = cardArt.imgs[path]; if (e) return e.ok ? e.img : null;
   const img = new Image(), rec = cardArt.imgs[path] = {img, ok:false};
-  img.onload = () => { rec.ok = true; for (const k of Object.keys(iconCache)) if (k.startsWith("cf")) delete iconCache[k]; uiDirty = true; };
+  img.onload = () => {
+    rec.ok = true;
+    for (const k of Object.keys(iconCache)) if (k.startsWith("cf")) delete iconCache[k];
+    if (path.startsWith("art/players/")) refreshVisibleCardFaces(path);
+    uiDirty = true;
+  };
   img.src = path; return null;
 }
 const pad3 = n => String(n).padStart(3, "0");
+function cardPortraitPath(c) {
+  const num = c.num || BASE_CARDS.find(b => b.club === c.club && b.name === c.name)?.num;
+  return num ? `art/players/${pad3(num)}.webp` : "";
+}
+function refreshVisibleCardFaces(path) {
+  for (const img of document.querySelectorAll("img[data-card-id]")) {
+    const c = CARD_BY_ID[img.dataset.cardId];
+    if (c && (!path || cardPortraitPath(c) === path)) img.src = cardFace(c, img.dataset.cardTier);
+  }
+}
+const cardFaceImage = (c, t, className = "") =>
+  `<img class="${className}" data-card-id="${c.id}" data-card-tier="${t}" src="${cardFace(c, t)}" alt="${c.name}">`;
 
 // ---------- card artwork (layout from docs/card-style-reference.png) ----------
 const roleFor = pos => ({mid:"rover", fwd:"forward", ruck:"ruck", def:"shepherd"})[pos] || "rover";
@@ -179,8 +197,7 @@ function cardFace(c, t) {
   for (let k = 0; k < 18; k++) { const a = k * Math.PI / 9; g.beginPath(); g.moveTo(W / 2, 130); g.arc(W / 2, 130, 320, a, a + .1); g.fill(); }
   g.globalAlpha = 1;
   // 3. player portrait: GPT's card portrait when it arrives, else the captain likeness or role art in the club guernsey
-  const artNum = c.num || (BASE_CARDS.find(b => b.club === c.club && b.name === c.name) || {}).num;
-  const photo = artNum && cardImg(`art/players/${pad3(artNum)}.webp`);
+  const photo = cardImg(cardPortraitPath(c));
   const isHero = club.hero.name === c.name, likeness = isHero && namedHeroArt[club.abbr];
   if (photo) { const s = Math.min(iw / photo.width, 250 / photo.height); g.drawImage(photo, W / 2 - photo.width * s / 2, H - 78 - photo.height * s, photo.width * s, photo.height * s); }
   else if (!(likeness && drawArtIcon(likeness, g, W / 2, H - 70, 220, 236)) && !drawArtIcon("portrait-" + roleFor(c.pos), g, W / 2, H - 70, 220, 236, club)) {
@@ -192,6 +209,24 @@ function cardFace(c, t) {
     for (let k = 0; k < 12; k++) { const x = ix + r() * iw, y = iy + r() * (ih - 90), z = 2 + r() * 4; g.beginPath(); g.moveTo(x, y - z); g.lineTo(x + z * .3, y - z * .3); g.lineTo(x + z, y); g.lineTo(x + z * .3, y + z * .3); g.lineTo(x, y + z); g.lineTo(x - z * .3, y + z * .3); g.lineTo(x - z, y); g.lineTo(x - z * .3, y - z * .3); g.fill(); } }
   g.restore();
   if (gfx) g.drawImage(gfx, 0, 0, W, H);
+  if (!photo) {
+    g.save();
+    g.translate(W / 2, 148);
+    g.rotate(-.19);
+    g.fillStyle = "#471f19e8";
+    g.strokeStyle = "#ffdb9c";
+    g.lineWidth = 3;
+    g.beginPath();
+    g.roundRect(-91, -17, 182, 34, 4);
+    g.fill();
+    g.stroke();
+    g.font = '22px "Lilita One",sans-serif';
+    g.textAlign = "center";
+    g.textBaseline = "middle";
+    g.fillStyle = "#fff0cb";
+    g.fillText("PLACEHOLDER", 0, 1, 166);
+    g.restore();
+  }
   // 4. small club sticker top-left
   g.save(); g.fillStyle = "#0b0d12"; g.strokeStyle = accent; g.lineWidth = 3; g.beginPath(); g.moveTo(16, 16); g.lineTo(66, 16); g.lineTo(66, 52); g.quadraticCurveTo(41, 72, 16, 52); g.closePath(); g.fill(); g.stroke(); g.restore();
   drawBadge(g, 41, 40, 15, club);
@@ -228,44 +263,34 @@ function cardBack(c) {
     ${row("Games", GM, cr[0])}${row("Goals", GL, cr[1])}${row("Disposals", DI, cr[2])}${row("Marks", MK, cr[3])}${row("Tackles", TK, cr[4])}${row("Hit-outs", HO, null)}${row("Clearances", CL, null)}${row("Brownlow votes", BR, cr[5])}</table>
     <div class="tiny">Stats: AFL Tables, 2026 season${c.num ? ` · Card #${pad3(c.num)}` : ""}</div></div>`;
 }
-// The "CARD STATS" panel from the mock-up: rating bars from real 2026 stats.
-const RARITY_BLURB = {c:"A solid squad player.", s:"A Rare foil. Getting harder to find.", g:"Epic! A star of the competition.", p:"One of the best in the league."};
-function statsPanel(c, t) {
-  const r = cardRatings(c), sp = c.special && SPECIALS[c.kind];
-  const title = sp ? `${sp.name}!` : `${TIERS[t].name} card${t === "p" ? "!" : ""}`, blurb = sp ? (c.kind === "PZ" ? "Solid gold. The rarest card in the set." : "A special card from the 7th slot of a pack.") : RARITY_BLURB[t];
-  return `<div class="statpanel"><div class="spcard" data-view="${c.id}"><img src="${cardFace(c, t)}" alt=""><small>Tap to flip</small></div>
-    <div class="spinfo"><h4>Card stats</h4>${r.bars.map(b => `<div class="sbar"><span><i class="si">${b.icon}</i>${b.label}</span><i><b style="width:${b.v}%;background:${b.col}"></b></i><em>${b.v}</em></div>`).join("")}
-    <div class="spblurb"><b>${title}</b><span>${blurb}</span></div></div></div>`;
-}
-
 // ---------- album: a leather binder like the mock-up ----------
-let albumClub = null, albumSel = null, albumPage = 0, albumTab = "album";
+let albumClub = null, albumPage = 0, albumTab = "album";
 const ALBUM_SPREAD_SIZE = 8; // Two facing pages of four cards each.
-function openAlbum(club, keepScroll=false) { menuBack = null; hubCtx=null;
-  if (club !== undefined && club !== albumClub) { albumSel = null; albumPage = 0; }
+function openAlbum(club) { menuBack = null; hubCtx=null;
+  if (club !== undefined && club !== albumClub) albumPage = 0;
   albumClub = club ?? albumClub ?? S.club;
   const tokens = S.tokens || 0, canOpen = tokens >= PACK_COST;
   const list = albumClub === "sp" ? ALL_CARDS.filter(c => c.special) : ALL_CARDS.filter(c => c.club === albumClub && !c.special);
   const spreads = Math.max(1, Math.ceil(list.length / ALBUM_SPREAD_SIZE)); albumPage = Math.min(albumPage, spreads - 1);
   const spread = list.slice(albumPage * ALBUM_SPREAD_SIZE, (albumPage + 1) * ALBUM_SPREAD_SIZE);
-  const ownedOnSpread = spread.filter(c => bestTier(c));
-  const sel = ownedOnSpread.find(c => c.id === albumSel) || ownedOnSpread[0];
+  const owned = list.filter(c => bestTier(c)).length;
   const sets = CLUBS.filter((c, i) => { const [o, t] = albumCount(x => x.club === i && !x.special); return t && o === t; }).length;
   const slot = c => { if (!c) return `<div class="aslot blank"></div>`; const t = bestTier(c);
-    return t ? `<button type="button" class="aslot acard t-${t}${sel === c ? " sel" : ""}${isNewCard(c) ? " isnew" : ""}" data-ac="${c.id}" aria-pressed="${sel === c}"><img src="${cardFace(c, t)}" alt="${c.name}">${dupInfo(c)}${isNewCard(c) ? '<span class="newrib">NEW</span>' : ""}</button>`
+    return t ? `<button type="button" class="aslot acard t-${t}${isNewCard(c) ? " isnew" : ""}" data-ac="${c.id}">${cardFaceImage(c, t)}${dupInfo(c)}${isNewCard(c) ? '<span class="newrib">NEW</span>' : ""}</button>`
       : `<button type="button" class="aslot acard empty" data-ac="${c.id}"><span>${c.special ? SPECIALS[c.kind].name : "#" + pad3(c.num)}</span><small>${c.name}</small></button>`; };
   while (spread.length < ALBUM_SPREAD_SIZE) spread.push(null);
   const clubName = albumClub === "sp" ? "Specials" : CLUBS[albumClub].name;
   const tab = (k, icon, label) => `<button class="atab${albumTab === k ? " on" : ""}" data-tab="${k}" aria-pressed="${albumTab === k}"><b>${icon}</b>${label}${k === "rewards" && (dailyReady() || S.prizePacks) ? '<i class="bang">!</i>' : ""}</button>`;
   let body = "";
   if (albumTab === "album") {
-    body = `<div class="fcc-main"><div class="fcc-spread">
-      <div class="pagehead">${albumClub === "sp" ? "<b class='spstar'>⭐</b>" : badgeImg(CLUBS[albumClub], "sm")}<span>${clubName}<small>${albumClub === "sp" ? "Special cards" : "2026 season"} · ${albumCount(c => list.includes(c))[0]}/${list.length}</small></span>
+    body = `<div class="fcc-spread">
+      <div class="pagehead">${albumClub === "sp" ? "<b class='spstar'>⭐</b>" : badgeImg(CLUBS[albumClub], "sm")}<span>${clubName}<small>${albumClub === "sp" ? "Special cards" : "2026 season"}</small></span>
         ${spreads > 1 ? `<div class="pager"><button class="pg" id="pgPrev" aria-label="Previous spread" ${albumPage ? "" : "disabled"}>‹</button><span>${albumPage + 1}/${spreads}</span><button class="pg" id="pgNext" aria-label="Next spread" ${albumPage < spreads - 1 ? "" : "disabled"}>›</button></div>` : ""}</div>
       <div class="binder"><div class="bpage">${spread.slice(0, ALBUM_SPREAD_SIZE / 2).map(slot).join("")}</div>
         <div class="rings" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
         <div class="bpage">${spread.slice(ALBUM_SPREAD_SIZE / 2).map(slot).join("")}</div></div>
-      </div><div class="fcc-detail">${sel ? statsPanel(sel, bestTier(sel)) : '<div class="statpanel emptyp">No cards on this spread yet. Open packs to find them!</div>'}</div></div>`;
+      <div class="album-progress"><b>${owned}/${list.length} collected</b><progress value="${owned}" max="${list.length || 1}" aria-label="Collection progress"></progress><span>${owned === list.length ? "Set complete" : `${list.length - owned} to go`}</span></div>
+    </div>`;
   } else if (albumTab === "sets") {
     body = `<div class="setlist">${CLUBS.map((c, i) => { const [o, t] = albumCount(x => x.club === i && !x.special); return `<button class="setrow${o === t ? " done" : ""}" data-set="${i}">${badgeImg(c, "xs")}<span>${c.name}</span><i><b style="width:${o / t * 100}%"></b></i><em>${o}/${t}</em></button>`; }).join("")}
       <button class="setrow" data-set="sp"><b class="spstar">⭐</b><span>Specials</span><i><b style="width:${albumCount(x => x.special)[0] / albumCount(x => x.special)[1] * 100}%"></b></i><em>${albumCount(x => x.special)[0]}/${albumCount(x => x.special)[1]}</em></button></div>`;
@@ -285,15 +310,15 @@ function openAlbum(club, keepScroll=false) { menuBack = null; hubCtx=null;
       ${clubRail}
       <button class="btn green openpack" id="openPackBtn" ${canOpen ? "" : "disabled"}><b class="packicon"><span class="cicon"><i></i><i></i></span></b>Open Pack<small>${PACK_COST} 🎟️ · you have ${tokens}</small>${canOpen ? '<span class="bang">!</span>' : ""}</button>
     </div>`;
-  modal(`<div class="fcc">${body}</div>`,{header,actions,album:true,keepScroll}); tut("cards");
+  modal(`<div class="fcc">${body}</div>`,{header,actions,album:true}); tut("cards");
   if (albumTab === "album" && S.albumNew) { for (const c of spread) if (c && S.albumNew[c.id]) delete S.albumNew[c.id]; save(); }
   document.querySelectorAll("[data-club]").forEach(b => b.onclick = () => { const v = b.dataset.club; albumTab = "album"; openAlbum(v === "sp" ? "sp" : +v); });
   document.querySelectorAll("[data-set]").forEach(b => b.onclick = () => { const v = b.dataset.set; albumTab = "album"; openAlbum(v === "sp" ? "sp" : +v); });
   document.querySelectorAll("[data-tab]").forEach(b => b.onclick = () => { if (b.dataset.tab === "trade") return toast("Trading cards with other players is coming soon!"); albumTab = b.dataset.tab; openAlbum(); });
   document.querySelectorAll("[data-ac]").forEach(el => el.onclick = () => { const c = CARD_BY_ID[el.dataset.ac];
     if (!bestTier(c)) return toast(c.special ? `${SPECIALS[c.kind].name}: comes from the special slot in packs` : `#${pad3(c.num)} ${c.name}: not collected yet. Keep opening packs!`);
-    albumSel = c.id; openAlbum(undefined,true); });
-  document.querySelectorAll("[data-view]").forEach(el => el.onclick = () => showAlbumCard(CARD_BY_ID[el.dataset.view]));
+    showAlbumCard(c);
+  });
   const pp = $("pgPrev"), pn = $("pgNext"); if (pp) pp.onclick = () => { albumPage--; openAlbum(); }; if (pn) pn.onclick = () => { albumPage++; openAlbum(); };
   const strip = document.querySelector(".clubstrip"), sc = strip.querySelector(".on"); if (sc) strip.scrollLeft = sc.offsetLeft - strip.clientWidth / 2 + sc.clientWidth / 2;
   $("stripPrev").onclick = () => strip.scrollBy({left:-strip.clientWidth * .7, behavior:"smooth"});
@@ -310,13 +335,15 @@ function showAlbumCard(c, t, back) {
   if (!t) return toast(c.special ? `${SPECIALS[c.kind].name}: comes from the special slot in packs` : `Not collected yet. Keep opening packs!`);
   const r = cardRatings(c);
   const ups = c.special ? `<p class="center tiny">${SPECIALS[c.kind].name} cards can't be upgraded.</p>` : TIER_ORDER.filter(x => have(c.id, x)).map(x => `<div class="stat"><span>${TIERS[x].name}</span><b>×${have(c.id, x)} ${canUpgrade(c, x) ? `<button class="btn gold" data-up="${x}">Upgrade to ${TIERS[TIERS[x].next].name}</button>` : TIERS[x].next ? `<small>${Math.max(0, UPGRADE_COST + 1 - have(c.id, x))} more to upgrade</small>` : ""}</b></div>`).join("");
-  modal(`<div class="cardview"><div class="flipcard" id="flipc"><div class="ff"><img src="${cardFace(c, t)}" alt=""></div><div class="fb">${cardBack(c)}</div></div>
-    <p class="tiny center">Tap the card to flip it</p>
+  menuBack = back ? null : () => openAlbum(c.special ? "sp" : c.club);
+  modal(`<div class="cardview"><div class="cardview-main"><div class="cardview-front"><div class="flipcard" id="flipc"><div class="ff">${cardFaceImage(c, t)}</div><div class="fb">${cardBack(c)}</div></div>
+    <p class="tiny center">Tap the card to flip it</p></div>
     <div class="spinfo wide"><h4>Card stats · ${r.ovr} overall</h4>${r.bars.map(b => `<div class="sbar"><span><i class="si">${b.icon}</i>${b.label}</span><i><b style="width:${b.v}%;background:${b.col}"></b></i><em>${b.v}</em></div>`).join("")}</div>
+    </div>
     ${back ? "" : ups}
     <div class="center"><button class="btn" id="backAlb">${back ? "Back to pack" : "Back to album"}</button></div></div>`, {noClose:!!back});
   $("flipc").onclick = () => $("flipc").classList.toggle("flipped");
-  $("backAlb").onclick = back || (() => { albumSel = c.id; openAlbum(c.special ? "sp" : c.club); });
+  $("backAlb").onclick = back || goBack;
   document.querySelectorAll("[data-up]").forEach(b => b.onclick = () => { if (upgradeCard(c, b.dataset.up)) { toast(`Upgraded to ${TIERS[TIERS[b.dataset.up].next].name}!`); showAlbumCard(c); } });
 }
 // ---------- opening a pack: slide your finger across the top to tear it open ----------
@@ -338,11 +365,11 @@ function packTear(got, name, kind) {
 }
 function packReveal(got, name, quiet) {
   const back = !quiet && cardImg("art/cards/back.webp");
-  modal(`<h2>${name}</h2><div class="reveal">${got.map((o, i) => `<div class="flip ${back ? "flipb" : ""} ${o.special ? "spec" : ""}" data-pc="${i}" style="${quiet ? "animation:none" : `animation-delay:${i * .3}s;--d:${i * .3}s`}">${back ? `<img class="cbk" src="${back.src}" alt="">` : ""}<img class="cfr" src="${cardFace(o.c, o.t)}" alt=""><div class="newtag ${o.isNew ? "" : "dupe"}">${o.isNew ? "NEW!" : "Dupe"}</div></div>`).join("")}</div>
+  modal(`<h2>${name}</h2><div class="reveal">${got.map((o, i) => `<div class="flip ${back ? "flipb" : ""} ${o.special ? "spec" : ""}" data-pc="${i}" style="${quiet ? "animation:none" : `animation-delay:${i * .3}s;--d:${i * .3}s`}">${back ? `<img class="cbk" src="${back.src}" alt="">` : ""}${cardFaceImage(o.c, o.t, "cfr")}<div class="newtag ${o.isNew ? "" : "dupe"}">${o.isNew ? "NEW!" : "Dupe"}</div></div>`).join("")}</div>
     <p class="tiny center">Tap a card to see its stats</p>
     <div class="center"><button class="btn green" id="pk">Done</button></div>`, {noClose:true});
   if (!quiet) got.forEach((o, i) => setTimeout(() => sfx(o.special || o.t !== "c" ? "cheer" : "card", .6), i * 300));
   document.querySelectorAll("[data-pc]").forEach(el => el.onclick = () => { const o = got[+el.dataset.pc]; showAlbumCard(o.c, o.t, () => packReveal(got, name, true)); });
-  $("pk").onclick = () => { albumSel = null; albumTab = "album"; const base = got.filter(o => !o.special), mine = base.find(o => o.c.club === S.club) || base[0];
+  $("pk").onclick = () => { albumTab = "album"; const base = got.filter(o => !o.special), mine = base.find(o => o.c.club === S.club) || base[0];
     openAlbum(mine ? mine.c.club : "sp"); tut("album"); };
 }

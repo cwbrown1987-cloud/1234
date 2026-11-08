@@ -337,11 +337,13 @@ function openSettings(){
     : `<div class="stat"><span>Save online · play real people</span><button class="btn green" id="signIn">Sign in / Sign up</button></div>`;
   modal(`<h2>Settings</h2><p>Your club: <b>${myClub().name}</b></p>${acct}
     <div class="stat"><span>Sound effects</span><button class="btn ${S.sound?"green":""}" id="snd">${S.sound?"On":"Off"}</button></div>
+    <div class="stat"><span>Look</span><span><button class="btn ${typeof getTheme==="function"&&getTheme()==="light"?"gold":""}" id="thLight">☀️ Light</button> <button class="btn ${typeof getTheme==="function"&&getTheme()==="dark"?"gold":""}" id="thDark">🌙 Dark</button></span></div>
     <p class="tiny">Club logos: put PNG files named after each club (for example <code>coll.png</code> or <code>wb.png</code>) in the <code>logos</code> folder next to the game and they replace the badges.</p>
     <div class="stat"><span>Tutorials</span><span><button class="btn green" id="tutAgain">Walkthrough</button> <button class="btn gold" id="clashG">Clash guide</button></span></div>
     <div class="stat"><span>Play it like an app</span><button class="btn blue" id="instBtn">Install</button></div>
     <div class="stat"><span>Version ${VERSION}</span><button class="btn gold" id="updBtn">Check for updates</button></div>
-    <p class="tiny">Progress saves on this device automatically.</p><button class="btn red" id="reset">Start over (new club)</button>`);
+    <p class="tiny">Progress saves on this device automatically.</p><button class="btn red" id="reset">Start over (new club)</button>
+    <p class="madefor">Made for Jaxon and Jake 💙</p>`);
   const so=$("signOut"); if(so) so.onclick=async()=>{ await signOut(); reopenSettings(); };
   const back=$("modalBody").querySelector('[data-tab="Achievements"]')?()=>openProfile("Settings"):openSettings;
   const si=$("signIn"); if(si) si.onclick=sub(()=>openAccount(),back);
@@ -349,6 +351,8 @@ function openSettings(){
   $("instBtn").onclick=()=>{ closeModal(); if(isStandalone()) return toast("Already installed!"); showInstall(true); };
   $("tutAgain").onclick=()=>{ closeModal(); TUT.forEach(s=>delete s._prepped); startTutorial(); };
   $("clashG").onclick=sub(()=>showClashGuide(false),back);
+  $("thLight").onclick=()=>{ setTheme("light"); sfx("tap"); setTimeout(reopenSettings); };
+  $("thDark").onclick=()=>{ setTheme("dark"); sfx("tap"); setTimeout(reopenSettings); };
   $("snd").onclick=()=>{ S.sound=!S.sound; save(); audioCtx(); sfx("collect"); setTimeout(reopenSettings); };
   $("reset").onclick=()=>{ const b=$("reset"); if(!b.dataset.sure){ b.dataset.sure="1"; b.textContent="Tap again to wipe everything"; return; }
     try{localStorage.removeItem(SAVE_KEY);}catch(e){} S=null; selected=null; closeModal(); showClubPicker(); };

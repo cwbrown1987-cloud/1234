@@ -23,7 +23,8 @@ function applyUiArt(root = document) {
   fetch("art/manifest.json").then(r => r.ok ? r.json() : null).then(m => {
     for (const f of (m && m.files) || []) if (typeof f === "string" && f.startsWith("art/ui/")) uiArtFiles.add(f);
     // Codex's "Scoreboard" menu style: dark teal panels, gold main buttons, navy secondary buttons
-    if (uiArtFiles.has("art/ui/ff-panel-tile.webp")) document.body.classList.add("ffui");
+    // Dark "Scoreboard" panels are off: bright Clash-style panels keep the colour pop. (Set FF_DARK_UI = true to try them.)
+    if (window.FF_DARK_UI && uiArtFiles.has("art/ui/ff-panel-tile.webp")) document.body.classList.add("ffui");
     applyUiArt();
     new MutationObserver(() => applyUiArt()).observe(document.body, { childList: true, subtree: true });
   }).catch(() => {});

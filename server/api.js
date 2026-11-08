@@ -134,15 +134,21 @@ export async function handleApi(req, env) {
       const myP = await env.DB.prepare("SELECT * FROM profiles WHERE user_id = ?").bind(me.id).first();
       const ranked = url.searchParams.get("mode") === "ranked";
       const tro = myP ? myP.trophies : 0, th = myP ? myP.th : 1, skip = (url.searchParams.get("skip") || "").split(",").filter(Boolean).slice(0, 20);
-      const holes = skip.map(() => "?").join(",") || "''";
-      const pick = async (range, real) => (await env.DB.prepare(
-        `SELECT * FROM profiles WHERE user_id != ? AND user_id NOT IN (${holes}) AND bot = ? AND shield_until < ? AND base IS NOT NULL
-         AND ABS(trophies - ?) <= ? AND ABS(th - ?) <= ${ranked ? 2 : 1} ${real ? "AND last_seen > ?" : ""} ORDER BY RANDOM() LIMIT 1`)
-        .bind(me.id, ...skip, real ? 0 : 1, now(), tro, ranked ? range : 99999, th, ...(real ? [now() - 30 * 864e5] : [])).first());
+      // Don't serve anyone you've been matched with in the last 30 minutes (unless there's no one else).
+      await env.DB.prepare("CREATE TABLE IF NOT EXISTS recent_opps (user_id TEXT NOT NULL, opp_id TEXT NOT NULL, at INTEGER NOT NULL, PRIMARY KEY(user_id, opp_id))").run();
+      const recent = (await env.DB.prepare("SELECT opp_id FROM recent_opps WHERE user_id = ? AND at > ? ORDER BY at DESC LIMIT 40").bind(me.id, now() - 30 * 60e3).all()).results.map(x => x.opp_id);
+      // kind: "real" players, "easy" bots, or "hard" boss bots. Bots never have shields.
+      const pick = async (kind, range, avoid) => { const ex = [...new Set([...skip, ...avoid])], holes = ex.map(() => "?").join(",") || "''";
+        const who = kind === "real" ? "bot = 0 AND shield_until < ? AND last_seen > ?" : `bot = 1 AND ${kind === "hard" ? "" : "NOT "}COALESCE(json_extract(base, '$.tier') = 'hard', 0)`;
+        return env.DB.prepare(`SELECT * FROM profiles WHERE user_id != ? AND user_id NOT IN (${holes}) AND ${who} AND base IS NOT NULL
+          AND ABS(trophies - ?) <= ? AND ABS(th - ?) <= ${ranked ? 2 : 1} ORDER BY RANDOM() LIMIT 1`)
+          .bind(me.id, ...ex, ...(kind === "real" ? [now(), now() - 30 * 864e5] : []), tro, ranked ? range : 99999, th).first(); };
+      const roll = Math.random(), first = roll < 0.35 ? "real" : roll < 0.45 ? "hard" : "easy";
+      const order = [first, ...["easy", "real", "hard"].filter(k => k !== first)];
       let opp = null;
-      for (const range of [150, 400, 99999]) { opp = await pick(range, true); if (opp) break; }
-      if (!opp || Math.random() < 0.35) { for (const range of [200, 600, 99999]) { const b = await pick(range, false); if (b) { opp = b; break; } } }
+      for (const avoid of [recent, recent.slice(0, 3), []]) { for (const kind of order) { for (const range of [150, 400, 99999]) { opp = await pick(kind, range, avoid); if (opp) break; } if (opp) break; } if (opp) break; }
       if (!opp) return fail("No one to play right now. Try again soon.", 404);
+      await env.DB.prepare("INSERT INTO recent_opps(user_id,opp_id,at) VALUES(?,?,?) ON CONFLICT(user_id,opp_id) DO UPDATE SET at=excluded.at").bind(me.id, opp.user_id, now()).run();
       return json({opponent: {...profileOut(opp), base: JSON.parse(opp.base)}});
     }
     if (path.startsWith("/player/") && m === "GET") {
@@ -218,7 +224,7 @@ export async function handleApi(req, env) {
         stmts.push(env.DB.prepare("UPDATE attack_notices SET active=0 WHERE attacker_id=? AND defender_id=?").bind(me.id, def.user_id));
         stmts.push(env.DB.prepare("UPDATE live_moves SET done=1, plan=?, updated=? WHERE attacker_id=? AND defender_id=?").bind(JSON.stringify(b.plan || []), now(), me.id, def.user_id));
       }
-      if (!friendly) stmts.push(env.DB.prepare("UPDATE profiles SET trophies = MAX(0, trophies + ?), shield_until = MAX(shield_until, ?) WHERE user_id = ?").bind(defTro, shield, def.user_id));
+      if (!friendly) stmts.push(env.DB.prepare("UPDATE profiles SET trophies = MAX(0, trophies + ?), shield_until = CASE WHEN bot = 1 THEN 0 ELSE MAX(shield_until, ?) END WHERE user_id = ?").bind(defTro, shield, def.user_id));
       if (ranked && Number.isFinite(Number(b.myTrophies))) stmts.push(env.DB.prepare("UPDATE profiles SET trophies = ?, shield_until = 0 WHERE user_id = ?").bind(Math.max(0, Number(b.myTrophies)), me.id));
       await env.DB.batch(stmts);
       return json({ok: true, defTro, lootShield});

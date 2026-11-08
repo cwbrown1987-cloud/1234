@@ -154,7 +154,7 @@ const liveAttackText=()=> (NET.liveAttacks||[]).map(a=>a.name+" is attacking you
 
 // ---------- real-player matches ----------
 function oppBuildings(opp) {
-  if (opp.base && opp.base.gen) return genBase(opp.th, opp.base.gen); // bot clubs
+  if (opp.base && opp.base.gen) return genBase(opp.th, opp.base.gen, opp.base.tier); // bot clubs
   return (opp.base || []).map((b, i) => ({ id: i + 1, t: b.t, x: b.x, y: b.y, lv: b.lv, hp: b.max || b.hp, max: b.max || b.hp, cd: 0, loot: b.loot ? { ...b.loot } : undefined, armed: BLD[b.t] && BLD[b.t].trap ? true : undefined }));
 }
 async function findOnlineMatch(skip = [], ranked = false) {
@@ -167,6 +167,7 @@ async function findOnlineMatch(skip = [], ranked = false) {
     const o = r.opponent; closeModal();
     startBattle({ kind: "pvp", ranked, club: o.club, d: o.th, buildings: oppBuildings(o), opp: { id: o.id, name: o.name, bot: o.bot, trophies: o.trophies }, seen: skip.concat(o.id) });
     BT.skip = skip.concat(o.id);
+    if (o.base && o.base.tier === "hard") toast("💀 Boss ground! Maxed defences, double loot");
   } catch (e) { S.pies += cost; toast(e.message); }
 }
 function nextOpponent() { if (!BT || BT.started || BT.kind !== "pvp") return; const skip = BT.skip || [], ranked = BT.ranked; leaveBattle(); findOnlineMatch(skip, ranked); }

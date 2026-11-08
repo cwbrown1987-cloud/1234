@@ -6,7 +6,9 @@ const counts = b => b.t!=="fence" && !BLD[b.t].trap;
 const C0 = Math.floor(N/2); // map centre
 
 // AI base layout for clubhouse level d. Fence rings around a core, defences in the middle band, collectors outside.
-function genBase(d, seed){
+// tier: "easy" (online bots: lower levels, fewer defences and fences) or "hard" (boss bots: next Clubhouse's defences, maxed, double loot).
+function genBase(d, seed, tier){
+  const dd = tier==="hard" ? Math.min(MAX_TH,d+1) : d;
   const r=rng(seed), list=[], occ=new Set(), key=(i,j)=>i+","+j;
   const ring=(lo,hi)=>{ const c=[]; for(let i=lo;i<=hi;i++) c.push([i,lo]); for(let j=lo+1;j<=hi;j++) c.push([hi,j]); for(let i=hi-1;i>=lo;i--) c.push([i,hi]); for(let j=hi-1;j>lo;j--) c.push([lo,j]); return c; };
   const R1=ring(C0-6,C0+6), R2=ring(C0-10,C0+10), R3=ring(C0-14,C0+14);
@@ -17,13 +19,13 @@ function genBase(d, seed){
     for(let i=x;i<x+s;i++) for(let j=y;j<y+s;j++){ if(occ.has(key(i,j))||zone(i,j)!==z) return false; }
     if(gap) for(let i=x-1;i<=x+s;i++) for(let j=y-1;j<=y+s;j++) if(occ.has("b"+key(i,j))) return false;
     return true; };
-  const lvOf=t=>Math.max(1,Math.min(maxLevel(t,d), maxLevel(t,d)-(r()<.5?1:0)-(r()<.2?1:0)));
+  const lvOf=t=>tier==="hard" ? maxLevel(t,dd) : Math.max(1,Math.min(maxLevel(t,d), maxLevel(t,d)-(r()<.5?1:0)-(r()<.2?1:0)-(tier==="easy"?1:0)));
   const put=(t,x,y)=>{ const s=BLD[t].size, lv=t==="clubhouse"?d:lvOf(t), hp=BLD[t].hp[lv-1];
     for(let i=x;i<x+s;i++) for(let j=y;j<y+s;j++){ occ.add(key(i,j)); occ.add("b"+key(i,j)); }
     const b={id:list.length+1,t,x,y,lv,hp,max:hp,cd:r()}; list.push(b); return b; };
   const place=(t,zones)=>{ const s=BLD[t].size; for(const z of zones) for(let k=0;k<400;k++){ const x=1+(r()*(N-2-s))|0, y=1+(r()*(N-2-s))|0; if(fits(x,y,s,z,z!=="core")) return put(t,x,y); } return null; };
   put("clubhouse",C0-2,C0-2);
-  const cnt=t=>MAXC[t][d-1];
+  const cnt=t=>{ const n=MAXC[t][dd-1]; return tier==="easy"&&n>1&&(isDef(t)||t==="fence") ? Math.ceil(n*(t==="fence"?.5:.65)) : n; };
   for(const t of ["piewarmer","esky"]) for(let i=0;i<cnt(t);i++) place(t,["core","mid"]);
   if(cnt("catapult")) place("catapult",["core","mid"]);
   if(cnt("floodlight")) place("floodlight",["core","mid"]);
@@ -37,10 +39,11 @@ function genBase(d, seed){
     // a part ring is built as one unbroken stretch, like a Clash wall still being finished (never scattered posts)
     const start=Math.floor(r()*R.length);
     R.forEach(([i,j],n)=>{ const gapHere = take<R.length && ((n-start+R.length)%R.length)>=take;
-      if(!gapHere && !occ.has("b"+key(i,j))){ const lv=Math.max(1,Math.min(maxLevel("fence",d),d-(r()<.3?1:0))), hp=BLD.fence.hp[lv-1]; list.push({id:list.length+1,t:"fence",x:i,y:j,lv,hp,max:hp}); occ.add("b"+key(i,j)); } }); }
+      if(!gapHere && !occ.has("b"+key(i,j))){ const lv=tier==="hard"?maxLevel("fence",dd):Math.max(1,Math.min(maxLevel("fence",d),d-(r()<.3?1:0))-(tier==="easy"?1:0)), hp=BLD.fence.hp[lv-1]; list.push({id:list.length+1,t:"fence",x:i,y:j,lv,hp,max:hp}); occ.add("b"+key(i,j)); } }); }
   for(let n=0;n<cnt("sprinkler");n++) for(let k=0;k<200;k++){ const i=C0-9+(r()*19|0), j=C0-9+(r()*19|0); if(zone(i,j)==="mid"&&!occ.has(key(i,j))&&!occ.has("b"+key(i,j))){ occ.add("b"+key(i,j)); list.push({id:list.length+1,t:"sprinkler",x:i,y:j,lv:Math.max(1,Math.min(5,d-2)),hp:1,max:1,armed:true}); break; } }
   // Loot on offer grows with Clubhouse level like Clash (a few thousand at level 1, a few hundred thousand at 8)
-  const total={pies:Math.round((800+600*d*d*d)*(.7+r()*.6)), drink:Math.round((800+600*d*d*d)*(.7+r()*.6))};
+  const lm=tier==="hard"?2:1;
+  const total={pies:Math.round((800+600*d*d*d)*(.7+r()*.6)*lm), drink:Math.round((800+600*d*d*d)*(.7+r()*.6)*lm)};
   const share=(res,types,frac)=>{ const bs=list.filter(b=>types.includes(b.t)); bs.forEach(b=>{ b.loot=b.loot||{pies:0,drink:0}; b.loot[res]+=Math.round(total[res]*frac/bs.length); }); };
   share("pies",["piewarmer"],.6); share("drink",["esky"],.6); share("pies",["pieshop"],.25); share("drink",["drinktap"],.25);
   share("pies",["clubhouse"],.15); share("drink",["clubhouse"],.15);

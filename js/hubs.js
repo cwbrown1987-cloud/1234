@@ -218,7 +218,7 @@ const PASS_PTS = { win: 10, destroy: 1, upgrade: 5, pack: 5, defend: 5, clear: 2
 function ensurePass() { if (!S.pass || S.pass.id !== passId()) S.pass = { id: passId(), pts: 0, got: [] }; return S.pass; }
 function passReward(i) {
   const k = i % 5, m = 1 + Math.floor(i / 5) * .5;
-  return [{ pies: Math.round(1500 * m * th()) }, { drink: Math.round(1500 * m * th()) }, { tokens: 1 + (i >= 20 ? 1 : 0) }, { tape: Math.round(60 * m) }, { medals: i === PASS_TIERS - 1 ? 50 : 5 }][k];
+  return [{ pies: Math.round(400 * m * th() * th() * th() + 1000) }, { drink: Math.round(400 * m * th() * th() * th() + 1000) }, { tokens: 1 + (i >= 20 ? 1 : 0) }, { tape: Math.round(60 * m) }, { medals: i === PASS_TIERS - 1 ? 50 : 5 }][k];
 }
 const rewardText = r => r.pies ? `${fmt(r.pies)} 🥧` : r.drink ? `${fmt(r.drink)} 💧` : r.tokens ? `${r.tokens} 🎟️` : r.tape ? `${r.tape} 🩹` : `${r.medals} 🏅`;
 function giveReward(r) { if (r.pies) addRes("pies", r.pies); if (r.drink) addRes("drink", r.drink); if (r.tokens) earnTokens(r.tokens); if (r.tape) addOre({ tape: r.tape }); if (r.medals) S.medals += r.medals; }

@@ -73,7 +73,7 @@ function updateHUD(force){
       el.querySelector(".v").textContent=fmt(v);
       if(r!=="medals"){ const cap=capOf(r); el.querySelector(".fill").style.width=Math.min(100,100*v/Math.max(1,cap))+"%"; el.querySelector(".cap").textContent="Max: "+fmt(cap); } }
     $("tro").textContent=S.trophies; $("lg").textContent=rkName(ensureRanked().tier);
-    $("builders").textContent=`👷 ${sheds()-busyBuilders()}/${sheds()}`;
+    $("builders").textContent=`👷 ${sheds()-busyBuilders()}/${sheds()}`; $("builders").classList.toggle("free",sheds()>busyBuilders()&&!(typeof tutActive==="function"&&tutActive()));
     $("seasonCd").textContent=seasonCountdown();
     const sh=S.shield-Date.now(); $("shield").classList.toggle("hide",sh<=0); if(sh>0) $("shield").textContent="🛡️ "+fmtTime(sh/1000);
     const tm=document.querySelector("#selPanel .timer"); if(tm&&selected&&selected.busy){ tm.textContent=fmtTime((selected.busy.end-Date.now())/1000); const sb=document.querySelector("#selPanel .speed small"); if(sb) sb.textContent=speedCost(selected.busy.end)+" 🏅"; }
@@ -163,7 +163,7 @@ function openShop(tab){
 }
 function shopDeals(g){
   for(const r of ["pies","drink"]){
-    const it=document.createElement("div"); it.className="item"; const room=Math.max(0,capOf(r)-S[r]), amt=Math.floor(room*.25), cost=Math.max(15,Math.ceil(amt/120));
+    const it=document.createElement("div"); it.className="item"; const room=Math.max(0,capOf(r)-S[r]), amt=Math.floor(room*.25), cost=resVotes(amt);
     it.innerHTML=`<div class="pack" style="--pc:${r==="pies"?"#e9a92a":"#1aa3d6"}">${resIcon(r)}</div><div class="nm">Top up ${r==="pies"?"pies":"drink"}</div><div class="meta">+${fmt(amt)} (a quarter of your free space)</div><div class="cost ${S.medals>=cost?"":"bad"}">${cost} 🏅</div>`;
     it.onclick=()=>{ if(amt<1) return toast("Storage is already full"); if(!pay("medals",cost)) return toast("Not enough Brownlow votes 🏅"); addRes(r,amt); sfx("collect"); save(); openShop("Deals"); };
     g.append(it);
@@ -272,7 +272,7 @@ function showReplayEnd(){
 function openMatch(){
   const rk=ensureRanked();
   let h=`${rk.last?`<div class="banner">Last week: ${ordinal(rk.last.pos)} of ${rk.last.n}. ${rk.last.to>rk.last.from?"⬆ Promoted to ":rk.last.to<rk.last.from?"⬇ Moved down to ":"Staying in "}<b>${rkName(rk.last.to)}</b></div>`:""}<div class="center">🏆 ${S.trophies} · <b>${rkName(rk.tier)}</b> · ${rkAttacks(rk.tier)-rk.attacks}/${rkAttacks(rk.tier)} ranked attacks left${S.shield>Date.now()?` · <span class="tiny">attacking ends your shield</span>`:""}</div>`;
-  const cost=50*th();
+  const cost=10*th()*th(); // match search cost, like Clash
   const online=typeof signedIn==="function"&&signedIn();
   const sb=S.starBonus||{stars:0,until:0}, sbWait=sb.until>Date.now();
   h+=`<div class="starbonus"><span>⭐ Star Bonus</span><div class="bar"><div style="width:${Math.min(100,100*sb.stars/STAR_GOAL)}%"></div></div><span>${Math.min(sb.stars,STAR_GOAL)}/${STAR_GOAL}${sbWait?` · ready in ${fmtTime((sb.until-Date.now())/1000)}`:""}</span></div>

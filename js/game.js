@@ -119,7 +119,13 @@ function startUpgrade(b){
   track("upgrade",1); sfx("build"); save(); refreshUI();
 }
 // Speed-ups are pricey, like Clash gems: about 2 votes a minute, more for long jobs
-const speedCost = endMs => { const m=(endMs-Date.now())/60000; return Math.max(2, Math.ceil(2*m+Math.pow(Math.max(0,m),1.15)*.25)); };
+// Clash's gem price for resources: 100 = 1, 1k = 5, 10k = 25, 100k = 125, 1M = 600, 10M = 3000
+function resVotes(n){ const pts=[[100,1],[1000,5],[10000,25],[100000,125],[1000000,600],[10000000,3000]]; if(n<=100) return 1;
+  for(let i=1;i<pts.length;i++){ const [a,ga]=pts[i-1],[b,gb]=pts[i]; if(n<=b){ const f=Math.log(n/a)/Math.log(b/a); return Math.ceil(ga*Math.pow(gb/ga,f)); } } return 3000; }
+// Clash's gem curve: 1 at a minute, 20 at an hour, 260 at a day, 1000 at a week
+const speedCost = endMs => { const t=Math.max(0,(endMs-Date.now())/1000);
+  const v = t<=60 ? 1 : t<=3600 ? 1+19*(t-60)/3540 : t<=86400 ? 20+240*(t-3600)/82800 : 260+740*(t-86400)/518400;
+  return Math.max(1, Math.ceil(v)); };
 function speedUp(b){ const c=speedCost(b.busy.end); if(!pay("medals",c)) return toast("Not enough Brownlow votes 🏅"); b.busy.end=Date.now(); processTimers(); refreshUI(); }
 // Like Clash: clearing needs a free groundskeeper and takes a few seconds.
 function removeObstacle(o){
@@ -151,6 +157,11 @@ function growObstacles(){
   if(!S.obsV){ S.obsV=2; S.obsAt=now+OBSTACLE_EVERY; for(let i=0;i<8;i++) spawnObstacle(Math.random,5); uiDirty=true; save(); }
   let n=0; while(now>=S.obsAt&&n++<3){ S.obsAt+=OBSTACLE_EVERY; if(S.obstacles.length<OBSTACLE_MAX) spawnObstacle(); uiDirty=true; }
   if(now>=S.obsAt) S.obsAt=now+OBSTACLE_EVERY;
+  // the Lost Kit Bag (Clash's Gem Box) appears about once a week
+  if(!S.bagAt) S.bagAt=now+2*864e5;
+  if(now>=S.bagAt&&!S.obstacles.some(o=>o.k==="kitbag")){ for(let t=0;t<80;t++){ const x=2+(Math.random()*(N-6)|0), y=2+(Math.random()*(N-6)|0);
+      if(footprintFree(x-1,y-1,4)){ S.obstacles.push({id:S.nextId++,x,y,k:"kitbag",s:2}); toast("🎒 Someone left a kit bag on your ground!"); uiDirty=true; break; } }
+    S.bagAt=now+(6+Math.random()*2)*864e5; }
 }
 function collect(b){
   const d=BLD[b.t]; const n=Math.floor(b.store); if(n<1) return;
@@ -240,7 +251,7 @@ const today = () => new Date().toDateString();
 function ensureDaily(){
   if(S.daily&&S.daily.day===today()) return;
   const r=rng([...today()].reduce((a,c)=>a*31+c.charCodeAt(0)|0,7)); const pool=[...TASKS], tasks=[];
-  while(tasks.length<3){ const t=pool.splice(r()*pool.length|0,1)[0]; const goal=Math.round(t.goal*(1+(th()-1)*.4)); tasks.push({k:t.k,goal,n:0,claimed:false}); }
+  while(tasks.length<3){ const t=pool.splice(r()*pool.length|0,1)[0]; const goal=t.k==="pies"||t.k==="drink"?Math.round(t.goal*Math.pow(th(),1.7)/100)*100:Math.round(t.goal*(1+(th()-1)*.4)); tasks.push({k:t.k,goal,n:0,claimed:false}); }
   S.daily={day:today(),tasks,bonus:false};
 }
 function track(k,n){ if(!S) return; if(typeof bumpStat==="function"){ bumpStat(k,n); passPoints(k,n); } ensureDaily(); for(const t of S.daily.tasks) if(t.k===k&&!t.claimed) t.n=Math.min(t.goal,t.n+n); uiDirty=true; }
@@ -272,7 +283,7 @@ function produce(sec){
 }
 // Star Bonus (like Clash): earn 5 stars in Battles or Ranked, collect bonus pies and drink, then it resets 24 hours later.
 const STAR_GOAL = 5;
-const starBonusLoot = () => ({pies:1500*th(), drink:1500*th()});
+const starBonusLoot = () => ({pies:1000*th()*th()*th()+2000, drink:1000*th()*th()*th()+2000});
 function addStars(n){
   S.starBonus=S.starBonus||{stars:0,until:0};
   S.starBonus.stars=Math.min(STAR_GOAL*2,S.starBonus.stars+n); // up to two bonuses can bank, like Clash

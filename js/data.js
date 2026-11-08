@@ -1,5 +1,5 @@
 // ---------- Game data ----------
-const VERSION = "2026.11.10.20";
+const VERSION = "2026.11.10.21";
 // Club names + colours. Logos: drop PNGs named <abbr>.png (e.g. coll.png) into the logos/ folder and they're used everywhere.
 // Player names checked against the 2026 trade period and retirements (lists for the 2027 season); edit freely.
 const CLUBS = [
@@ -48,6 +48,7 @@ const OBSTACLES = {
   tree:   {name:"Gum Tree",      s:2, res:"drink", cost:200, time:15, w:5, votes:[0,2]},
   bigtree:{name:"River Red Gum", s:3, res:"drink", cost:450, time:30, w:2, votes:[1,4]},
   rock:   {name:"Rock",          s:2, res:"pies",  cost:200, time:20, w:4, votes:[0,2]},
+  kitbag: {name:"Lost Kit Bag",  s:2, res:"pies",  cost:0,   time:10, w:0, votes:[25,25]}, // Clash's Gem Box: turns up about once a week
   bigrock:{name:"Boulder",       s:3, res:"pies",  cost:450, time:30, w:2, votes:[1,4]},
 };
 const OBSTACLE_MAX = 30, OBSTACLE_EVERY = 8*3600e3;
@@ -66,48 +67,48 @@ function heroPlayer(club, key){
   return heroPlayerCache[id] = pick ? pick[0] : ({vice:"Vice-Captain", star:"Star Forward", rleg:"Ruck Legend"})[key];
 }
 const heroMax = (th,h) => ({coach:Math.max(0,(th-4)*4), vice:Math.max(0,(th-5)*5), star:Math.max(0,(th-6)*6), rleg:Math.max(0,(th-7)*8)})[h] ?? th*2;
-const heroCost = lv => Math.round(1500*Math.pow(1.45,lv-1));
-const heroTime = lv => Math.min(7200, Math.round(20*Math.pow(1.5,lv-1)));
+const heroCost = lv => Math.round(5000*Math.pow(1.4,lv-1)/100)*100;
+const heroTime = lv => Math.min(86400, Math.round(1800*Math.pow(1.35,lv-1)/60)*60); // 30 min rising to a day, like Clash heroes
 
 const N = 34;      // map size
 const MAX_TH = 8;
 const geo = (a,r,n,cap) => Array.from({length:n},(_,i)=>{ const v=Math.round(a*Math.pow(r,i)); return cap?Math.min(cap,v):v; });
 const nice = arr => arr.map(v => v<1000?Math.round(v/10)*10 : v<10000?Math.round(v/100)*100 : Math.round(v/1000)*1000);
-const T = n => geo(10,2.1,n,7200);   // build times in seconds, capped at 2 hours
+const T = n => geo(10,2.1,n,7200);   // build times in seconds (most buildings now use Clash of Clans level tables below)
 
 const BLD = {
-  clubhouse:{name:"Clubhouse", size:4, res:"pies", hp:geo(1500,1.28,8), cost:[0,1000,4000,15000,50000,150000,350000,700000], time:[0,60,300,900,1800,3600,5400,7200],
+  clubhouse:{name:"Clubhouse", size:4, res:"pies", hp:geo(1500,1.28,8), cost:[0,1000,4000,25000,150000,500000,1000000,2000000], time:[0,10,1800,10800,21600,43200,64800,86400],
     store:geo(1000,1.8,8), desc:"The heart of your club. Upgrade it to unlock new buildings and higher levels."},
-  pieshop:{name:"Pie Shop", size:3, res:"drink", hp:geo(400,1.12,10), cost:nice(geo(150,2.0,10)), time:T(10),
-    rate:geo(20,1.4,10), cap:nice(geo(300,1.6,10)), makes:"pies", desc:"Bakes pies. Tap it to collect."},
-  drinktap:{name:"Drink Tap", size:3, res:"pies", hp:geo(400,1.12,10), cost:nice(geo(150,2.0,10)), time:T(10),
-    rate:geo(20,1.4,10), cap:nice(geo(300,1.6,10)), makes:"drink", desc:"Brews sports drink. Tap it to collect."},
-  piewarmer:{name:"Pie Warmer", size:3, res:"drink", hp:geo(600,1.15,10), cost:nice(geo(300,2.0,10)), time:T(10),
-    cap:nice(geo(1500,1.75,10)), stores:"pies", desc:"Keeps your pies hot. Raises how many you can hold."},
-  esky:{name:"Esky", size:3, res:"pies", hp:geo(600,1.15,10), cost:nice(geo(300,2.0,10)), time:T(10),
-    cap:nice(geo(1500,1.75,10)), stores:"drink", desc:"Keeps the drinks cold. Raises how much you can hold."},
-  oval:{name:"Training Oval", size:3, res:"drink", hp:geo(250,1.15,8), cost:nice(geo(200,2.3,8)), time:T(8),
+  pieshop:{name:"Pie Shop", size:3, res:"drink", hp:geo(400,1.12,10), cost:[150,300,700,1400,3000,7000,14000,28000,56000,75000], time:[5,15,60,120,300,900,1800,3600,5400,7200],
+    rate:[3.33,6.67,10.0,13.33,16.67,21.67,26.67,31.67,36.67,46.67], cap:[1000,2000,3000,5000,10000,20000,30000,50000,75000,100000], makes:"pies", desc:"Bakes pies. Tap it to collect."},
+  drinktap:{name:"Drink Tap", size:3, res:"pies", hp:geo(400,1.12,10), cost:[150,300,700,1400,3000,7000,14000,28000,56000,75000], time:[5,15,60,120,300,900,1800,3600,5400,7200],
+    rate:[3.33,6.67,10.0,13.33,16.67,21.67,26.67,31.67,36.67,46.67], cap:[1000,2000,3000,5000,10000,20000,30000,50000,75000,100000], makes:"drink", desc:"Brews sports drink. Tap it to collect."},
+  piewarmer:{name:"Pie Warmer", size:3, res:"drink", hp:geo(600,1.15,10), cost:[300,750,1500,3000,6000,12000,25000,50000,100000,250000], time:[10,120,300,900,1800,3600,7200,10800,14400,18000],
+    cap:[1500,3000,6000,12000,25000,45000,100000,225000,450000,850000], stores:"pies", desc:"Keeps your pies hot. Raises how many you can hold."},
+  esky:{name:"Esky", size:3, res:"pies", hp:geo(600,1.15,10), cost:[300,750,1500,3000,6000,12000,25000,50000,100000,250000], time:[10,120,300,900,1800,3600,7200,10800,14400,18000],
+    cap:[1500,3000,6000,12000,25000,45000,100000,225000,450000,850000], stores:"drink", desc:"Keeps the drinks cold. Raises how much you can hold."},
+  oval:{name:"Training Oval", size:3, res:"drink", hp:geo(250,1.15,8), cost:[100,500,2500,5000,20000,120000,270000,600000], time:[10,15,120,1800,7200,14400,21600,43200],
     unlock:["rover","forward","ruck","tagger","shepherd","seagulls","trainer","blimp"], desc:"Trains players. Each level unlocks a new position."},
-  bench:{name:"Interchange Bench", size:3, res:"drink", hp:geo(250,1.1,8), cost:nice(geo(250,2.4,8)), time:T(8),
+  bench:{name:"Interchange Bench", size:3, res:"drink", hp:geo(250,1.1,8), cost:[200,2000,10000,100000,250000,500000,1500000,2500000], time:[60,300,1800,7200,21600,43200,172800,259200],
     space:[20,30,40,50,60,70,80,90], desc:"Where your trained players wait. More benches, bigger squad."},
-  physio:{name:"Physio Room", size:3, res:"drink", hp:geo(425,1.12,5), cost:nice(geo(5000,2.4,5)), time:[60,600,1800,3600,7200],
+  physio:{name:"Physio Room", size:3, res:"drink", hp:geo(425,1.12,5), cost:[15000,50000,150000,400000,900000], time:[1800,10800,28800,57600,86400],
     unlock:["oranges","roar","freekick","rain","sub"], slots:[2,3,4,5,6], desc:"Brews match-day spells."},
-  coachbox:{name:"Coaches Box", size:3, res:"drink", hp:geo(500,1.1,7), cost:nice(geo(2500,2.2,7)), time:[60,300,1200,2400,3600,5400,7200],
+  coachbox:{name:"Coaches Box", size:3, res:"drink", hp:geo(500,1.1,7), cost:[5000,25000,50000,100000,200000,400000,800000], time:[60,1800,7200,14400,28800,57600,86400],
     desc:"Research better skills for your players."},
-  locker:{name:"Captain's Locker", size:3, res:"pies", hp:[400], cost:[3000], time:[30], desc:"Home of your captain, the star of your club."},
-  herohall:{name:"Hero Hall", size:3, res:"pies", hp:[700,800,900], cost:[80000,150000,300000], time:[1800,3600,7200], desc:"Home of your Vice-Captain, Star Forward and Ruck Legend. Pick up to 4 heroes for each match (Clash's Hero Hall)."},
-  kitroom:{name:"Kit Room", size:3, res:"drink", hp:[500,560,620,680,750], cost:[10000,25000,60000,120000,250000], time:[300,1200,2400,3600,7200], desc:"Unlocks and upgrades hero gear (Clash's Blacksmith). Higher levels unlock more gear and higher gear levels."},
-  office:{name:"Coach's Office", size:3, res:"pies", hp:[600], cost:[60000], time:[600], desc:"Home of your Head Coach, your second hero."},
+  locker:{name:"Captain's Locker", size:3, res:"pies", hp:[400], cost:[5000], time:[300], desc:"Home of your captain, the star of your club."},
+  herohall:{name:"Hero Hall", size:3, res:"pies", hp:[700,800,900], cost:[400000,900000,1800000], time:[28800,57600,86400], desc:"Home of your Vice-Captain, Star Forward and Ruck Legend. Pick up to 4 heroes for each match (Clash's Hero Hall)."},
+  kitroom:{name:"Kit Room", size:3, res:"drink", hp:[500,560,620,680,750], cost:[50000,150000,400000,800000,1500000], time:[3600,14400,36000,57600,86400], desc:"Unlocks and upgrades hero gear (Clash's Blacksmith). Higher levels unlock more gear and higher gear levels."},
+  office:{name:"Coach's Office", size:3, res:"pies", hp:[600], cost:[150000], time:[14400], desc:"Home of your Head Coach, your second hero."},
   shed:{name:"Groundskeeper Shed", size:2, res:"medals", hp:[250], cost:[0], time:[0], desc:"Each groundskeeper can work on one building at a time."},
-  goalpost:{name:"Goal Tower", size:3, res:"pies", hp:geo(380,1.12,10), cost:nice(geo(1000,2.0,10)), time:T(10),
+  goalpost:{name:"Goal Tower", size:3, res:"pies", hp:geo(380,1.12,10), cost:[1000,2000,5000,20000,70000,80000,150000,200000,400000,460000], time:[15,120,1200,3600,5400,7200,10800,14400,18000,21600],
     dps:geo(16,1.22,10), range:7, rate:0.8, shot:"footy", def:true, ground:true, air:true, desc:"Kicks footies at attackers on the ground and in the air."},
-  siren:{name:"Siren Cannon", size:3, res:"pies", hp:geo(420,1.12,10), cost:nice(geo(250,2.3,10)), time:T(10),
+  siren:{name:"Siren Cannon", size:3, res:"pies", hp:geo(420,1.12,10), cost:[250,1000,4000,16000,50000,60000,100000,160000,250000,330000], time:[5,30,120,1200,1800,3600,7200,10800,12600,14400],
     dps:geo(14,1.25,10), range:6, rate:0.8, shot:"siren", def:true, ground:true, desc:"Blasts ground attackers with sound. Hits hard, can't hit air."},
-  catapult:{name:"Kick-Out Catapult", size:3, res:"pies", hp:geo(400,1.12,7), cost:nice(geo(8000,2.0,7)), time:T(7).map(t=>Math.max(t,300)),
+  catapult:{name:"Kick-Out Catapult", size:3, res:"pies", hp:geo(400,1.12,7), cost:[5000,25000,90000,180000,300000,500000,900000], time:[1800,3600,7200,10800,21600,28800,43200],
     dps:geo(30,1.2,7), range:11, minr:4, rate:5, splash:1.6, shot:"bomb", def:true, ground:true, desc:"Lobs huge kicks that splash groups. Can't hit up close."},
-  floodlight:{name:"Floodlight Tower", size:3, res:"pies", hp:geo(500,1.12,7), cost:nice(geo(12000,1.9,7)), time:T(7).map(t=>Math.max(t,300)),
+  floodlight:{name:"Floodlight Tower", size:3, res:"pies", hp:geo(500,1.12,7), cost:[22000,90000,210000,500000,800000,1000000,1750000], time:[3600,7200,21600,43200,64800,86400,172800],
     dps:geo(80,1.22,7), range:9, rate:1, shot:"beam", def:true, air:true, desc:"Blinding lights that knock flyers out of the sky. Air only."},
-  sprinkler:{name:"Sprinkler Trap", size:1, res:"pies", hp:[1,1,1,1,1], cost:[400,1000,3000,8000,20000], time:[0,30,120,600,1800], dmg:geo(60,1.3,5), trap:true,
+  sprinkler:{name:"Sprinkler Trap", size:1, res:"pies", hp:[1,1,1,1,1], cost:[400,1000,10000,100000,500000], time:[0,900,7200,28800,86400], dmg:geo(60,1.3,5), trap:true,
     desc:"Hidden from attackers. Soaks anyone who runs over it."},
   fence:{name:"Fence", size:1, res:"pies", hp:geo(300,1.5,8), cost:[50,1000,5000,10000,20000,50000,100000,200000], time:[0,0,0,0,0,0,0,0], desc:"Slows attackers down."},
 };
@@ -145,8 +146,8 @@ const UNITS = {
 };
 const unitMul = lv => 1 + 0.22*(lv-1);
 const UNIT_MAX = 7;
-const RESEARCH_COST = [0, 5000, 20000, 60000, 150000, 300000, 600000];
-const RESEARCH_TIME = [0, 60, 300, 900, 1800, 3600, 7200];
+const RESEARCH_COST = [0, 20000, 60000, 150000, 350000, 800000, 1500000]; // like Clash Laboratory research
+const RESEARCH_TIME = [0, 3600, 4*3600, 8*3600, 12*3600, 18*3600, 24*3600];
 
 const SPELLS = {
   oranges: {name:"Half-time Oranges", cost:1500, time:20, radius:3.5, dur:3, desc:"Heals your players in the zone."},
@@ -163,8 +164,8 @@ const PACKS = {footy:{name:"Footy Pack", n:7}, prize:{name:"Prize Pack", n:8}};
 const TASKS = [
   {k:"win",     goal:2,    text:n=>`Win ${n} matches`},
   {k:"destroy", goal:15,   text:n=>`Knock down ${n} buildings`},
-  {k:"pies",    goal:2000, text:n=>`Collect ${n} pies`},
-  {k:"drink",   goal:2000, text:n=>`Collect ${n} sports drink`},
+  {k:"pies",    goal:600, text:n=>`Collect ${n} pies`},
+  {k:"drink",   goal:600, text:n=>`Collect ${n} sports drink`},
   {k:"train",   goal:20,   text:n=>`Train ${n} players`},
   {k:"upgrade", goal:1,    text:n=>`Start ${n} upgrade${n>1?"s":""}`},
   {k:"pack",    goal:1,    text:n=>`Open ${n} pack${n>1?"s":""}`},

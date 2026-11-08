@@ -46,10 +46,11 @@ function refreshUI(){
   $("battleTop").style.display=bat?"flex":"none";
   $("battleBottom").style.display=bat&&!replay?"flex":"none";
   $("replayBar").style.display=replay?"flex":"none";
+  if(replay){ const lbl=$("replayBar").querySelector(".panel"); if(lbl) lbl.textContent=BT.live?`🔴 LIVE · ${BT.live.name}`:"▶ Replay"; }
   if(S){ const c=myClub(); $("clubName").textContent=c.name; $("g").src=badgeURL(c,96); if(refreshUI.hudClub!==S.club&&typeof refreshArtHUD==="function"&&artSprites.size){ refreshUI.hudClub=S.club; refreshArtHUD(); } }
   // weekly events live under Tasks; the banner spot only nags when you have no way to earn pies or drink
   const miss=S&&home&&!placing&&!(typeof tutActive==="function"&&tutActive())?missingIncome():[];
-  $("eventBanner").classList.toggle("hide",!miss.length);
+  $("eventBanner").classList.toggle("hide",!miss.length||!!selected); // hide behind a selected building's panel
   if(miss.length){ $("eventBanner").innerHTML=`⚠️ Build your first <b>${miss.map(t=>BLD[t].name).join(" and ")}</b>, it's free! Tap here`; $("eventBanner").onclick=()=>openShop("Resources"); }
   $("placePanel").style.display=home&&placing&&!placing.moving?"flex":"none";
   $("placePanel").classList.toggle("moving-row",!!placing?.row);
@@ -83,7 +84,7 @@ function updateLogBadge(){
   const link=$("unreadLog");
   if(link){
     link.classList.toggle("hide",!n&&!live);
-    link.textContent=live?"Your ground is under attack ›":`${n} new in the battle log ›`;
+    link.textContent=live?"🔴 Your ground is under attack · Watch live ›":`${n} new in the battle log ›`;
   }
 }
 let seenEvent="";
@@ -125,7 +126,7 @@ function updateHUD(force){
     $("bEnd").textContent=BT.visit?"🏠 Home":$("bEnd").dataset.sure?"Tap to confirm":"End Match";
     $("cards").style.display=BT.visit?"none":"";
     const clk=document.querySelector(".battleClock"); if(clk) clk.style.visibility=BT.visit?"hidden":"";
-    $("bLoot").textContent=BT.visit?"Visiting · tap Attack to take on your mate (¼ loot)":replay?"Replay":(BT.ranked&&BT.fixture?"🏆 "+BT.fixture+" · ":BT.kind==="revenge"?"Revenge! · ":"")+`🥧 ${fmt(Math.max(0,BT.lootTotal.pies-BT.loot.pies)*(BT.lootMul||1))}  💧 ${fmt(Math.max(0,BT.lootTotal.drink-BT.loot.drink)*(BT.lootMul||1))}`;
+    $("bLoot").textContent=BT.visit?"Visiting · tap Attack to take on your mate (¼ loot)":replay?(BT.live?"🔴 LIVE · attacking your ground":"Replay"):(BT.ranked&&BT.fixture?"🏆 "+BT.fixture+" · ":BT.kind==="revenge"?"Revenge! · ":"")+`🥧 ${fmt(Math.max(0,BT.lootTotal.pies-BT.loot.pies)*(BT.lootMul||1))}  💧 ${fmt(Math.max(0,BT.lootTotal.drink-BT.loot.drink)*(BT.lootMul||1))}`;
     const s=starsNow(), sc=scoreNow(), A=CLUBS[BT.atkClub], Hm=CLUBS[BT.club];
     $("bScore").innerHTML=`<div class="${sc.a.p>sc.h.p?"lead":""}">${A.short} <b>${fmtScore(sc.a)}</b></div><div class="${sc.h.p>=sc.a.p?"lead":""}">${Hm.short} <b>${fmtScore(sc.h)}</b></div>`;
     $("bStars").innerHTML="★".repeat(s)+`<span class="dim">${"★".repeat(3-s)}</span>`;
@@ -348,22 +349,26 @@ function openTasks(header){
 }
 function openLog(){
   let h=`<h2>Home Games</h2><p class="center tiny">Clubs that came to your ground while you were away.</p>`;
-  h+=`<div class="live-attacks" id="liveAttacks" aria-live="polite">${esc(liveAttackText())}</div>`;
+  h+=`<div class="live-attacks" id="liveAttacks" aria-live="polite">${(typeof NET!=="undefined"&&NET.liveAttacks||[]).map(a=>`<div class="liverow">🔴 <b>${esc(a.name)}</b> is attacking your ground <button class="btn red" data-live="${esc(a.attackerId)}">👀 Watch</button></div>`).join("")}</div>`;
   if(!S.raids.length) h+=`<p class="center">No visitors yet. They will come…</p>`;
   for(const r of S.raids){ const c=CLUBS[r.club]||CLUBS[0], ago=fmtTime((Date.now()-r.at)/1000);
     const who=r.attacker?`${esc(r.attacker)}${r.real?"":' <span class="tag bot">BOT</span>'} <small>${c.short}</small>`:c.name;
     h+=`<div class="raid ${r.stars?"lost":"won"}">${badgeImg(c)}<div class="grow"><div><b>${who}</b> ${r.friendly?'<span class="tag fr">FRIENDLY</span>':r.friend?'<span class="tag fr">FRIEND</span>':""} ${r.seen?"":'<span class="tag">NEW</span>'}</div>
       <div class="tiny">${ago} ago · ${r.sc?`${c.short} ${fmtScore(r.sc.a)} v ${myClub().short} ${fmtScore(r.sc.h)}`:r.pct+"% destroyed"} · <span class="stars">${"★".repeat(r.stars)}<span class="dim">${"★".repeat(3-r.stars)}</span></span></div>
       <div class="tiny">${r.stars?`Lost 🥧 ${fmt(r.lost.pies)} 💧 ${fmt(r.lost.drink)}`:"Defence win!"} · ${r.tro>0?"+":""}${r.tro} 🏆</div></div>
-      <div class="col"><button class="btn blue" data-replay="${r.id}">▶ Replay</button>${r.stars&&!r.revenged&&!r.friendly&&!r.friend&&!r.ranked?`<button class="btn red" data-rev="${r.id}">Revenge</button>`:""}</div></div>`; }
+      <div class="col"><button class="btn blue" data-replay="${r.id}">▶ Replay</button>${canRevenge(r)?`<button class="btn red" data-rev="${r.id}">⚔️ Revenge</button>`:""}</div></div>`; }
   modal(h);
   S.raids.forEach(r=>r.seen=true); save(); updateLogBadge();
+  document.querySelectorAll("[data-live]").forEach(b=>b.onclick=()=>watchLive(b.dataset.live));
   document.querySelector('[data-hub="Log"] .dot')?.remove();
   document.querySelector('[data-hub="Log"]')?.removeAttribute("aria-label");
   document.querySelectorAll("[data-replay]").forEach(b=>b.onclick=()=>watchReplay(S.raids.find(r=>r.id==b.dataset.replay)));
   document.querySelectorAll("[data-rev]").forEach(b=>b.onclick=()=>{ if(!Object.values(S.army).some(n=>n>0)) return toast("Train some players first!"); revenge(S.raids.find(r=>r.id==b.dataset.rev)); });
 }
 function showReplayEnd(){
+  if(BT.live){ const nm=BT.live.name; if(BT.live.poll) clearInterval(BT.live.poll);
+    modal(`<div class="result"><h2>Attack over</h2><p class="center">${esc(nm)} has finished. The full result and replay arrive in your battle log in a moment.</p><button class="btn green" id="goHome">Battle Log</button></div>`,{noClose:true});
+    $("goHome").onclick=()=>{ closeModal(); leaveBattle(); if(typeof checkInbox==="function") checkInbox(); openHub("battle","Log"); }; return; }
   const r=BT.raid; modal(`<div class="result"><h2>${r.stars?"They got you":"You held them off"}</h2><div class="stars">${"★".repeat(r.stars)}<span class="dim">${"★".repeat(3-r.stars)}</span></div><div>${CLUBS[r.club].name} · ${r.pct}% destroyed</div><br>${r.stars&&!r.revenged?`<button class="btn red" id="rv2">Get Revenge</button> `:""}<button class="btn green" id="goHome">Back Home</button></div>`,{noClose:true});
   $("goHome").onclick=()=>{ closeModal(); leaveBattle(); openHub("battle","Log"); };
   const rv=$("rv2"); if(rv) rv.onclick=()=>{ closeModal(); leaveBattle(); revenge(r); };
@@ -374,6 +379,9 @@ function openMatch(){
     ${rk.last?`<div class="banner">Last week: ${ordinal(rk.last.pos)} of ${rk.last.n}. ${rk.last.to>rk.last.from?"⬆ Promoted to ":rk.last.to<rk.last.from?"⬇ Moved down to ":"Staying in "}<b>${rkName(rk.last.to)}</b></div>`:""}
     <div class="center tiny">🏆 ${S.trophies} · ${left}/${rkAttacks(rk.tier)} ranked attacks left${S.shield>Date.now()?" · Attacking ends your shield":""}</div>
     <button class="btn blue match-log-link hide" id="unreadLog"></button>`;
+  const revs=revengeList();
+  if(revs.length) h+=`<section class="revenge-box"><h3>⚔️ Revenge</h3>${revs.slice(0,3).map(r=>{ const c=CLUBS[r.club]||CLUBS[0];
+    return `<div class="fx">${badgeImg(c,"sm")}<span class="nm"><b>${esc(r.attacker||c.name)}</b>${r.friend?' <span class="tag fr">FRIEND</span>':""}<br><small>${fmtTime((Date.now()-r.at)/1000)} ago · ${r.stars?"took "+"★".repeat(r.stars):"no stars"}${r.lost&&(r.lost.pies||r.lost.drink)?` · 🥧 ${fmt(r.lost.pies)} 💧 ${fmt(r.lost.drink)}`:""}</small></span><button class="btn red" data-rev="${r.id}">⚔️ Revenge</button></div>`; }).join("")}</section>`;
   const online=typeof signedIn==="function"&&signedIn(), tutorial=tutActive();
   const cost=online?50*th():tutorial?0:10*th()*th();
   const matchLock=!Object.values(S.army).some(n=>n>0)?"Train players first":!canPay("pies",cost)?`Need ${fmt(cost)} pies`:"";
@@ -393,7 +401,7 @@ function openMatch(){
   if(typeof NET!=="undefined"&&NET.online) h+= online?`<div class="center tiny">Playing online as <b>${esc(NET.user.name)}</b> · <a href="#" id="lbLink">Leaderboard</a></div>`:`<div class="banner">Play real people and climb the leaderboard. <button class="btn green" id="goOnline">Play online</button></div>`;
   if(s.results.length) h+=`<h3>Recent results</h3><div class="fixture">${[...s.results].reverse().slice(0,6).map(r=>`<div class="fx"><span class="wl ${r.res}">${r.res}</span>${badgeImg(CLUBS[r.club],"sm")}<span class="nm"><small>${r.name}</small><br>${fmtScore(r.my)} – ${fmtScore(r.their)}</span></div>`).join("")}</div>`;
   modal(h,{actions,matchDay:true}); tut("match");
-  $("unreadLog").onclick=()=>openHub("battle","Log");
+  $("unreadLog").onclick=()=>{ const l=typeof NET!=="undefined"&&NET.liveAttacks; if(l&&l.length) watchLive(l[0].attackerId); else openHub("battle","Log"); };
   updateLogBadge();
   const lb=$("lbLink"); if(lb) lb.onclick=e=>{ e.preventDefault(); openSocial("Leaderboard"); };
   const go=$("goOnline"); if(go) go.onclick=sub(()=>{ hubCtx=null; openAccount(); },()=>openHub("battle","Play"));
@@ -401,6 +409,7 @@ function openMatch(){
     if(!Object.values(S.army).some(n=>n>0)) return toast("Train some players first!"); if(!tutActive()&&!pay("pies",cost)) return toast("Not enough 🥧");
     let c; do{ c=Math.random()*18|0; }while(c===S.club); const d=Math.max(1,Math.min(MAX_TH,th()+(tutActive()?-1:ranked?(Math.random()*3|0)-1:0)));
     closeModal(); startBattle({kind:"match",ranked,club:c,d,seed:Math.random()*1e9|0}); };
+  document.querySelectorAll("[data-rev]").forEach(b=>b.onclick=()=>{ if(!Object.values(S.army).some(n=>n>0)) return toast("Train some players first!"); revenge(S.raids.find(r=>r.id==b.dataset.rev)); });
   $("findMatch").onclick=()=>find(false); $("findRanked").onclick=sub(()=>rankedConfirm(()=>find(true)),()=>openHub("battle","Play"));
   $("rkTable").onclick=sub(openRankedTable,openMatch); if(rk.last){ delete rk.last; save(); }
   const pr=$("playRound"); if(pr) pr.onclick=()=>tutActive()?find(true):sub(()=>rankedConfirm(()=>find(true)),()=>openHub("battle","Play"))();
@@ -490,7 +499,7 @@ $("bEnd").onclick=()=>{ const b=$("bEnd"); if(BT&&BT.visit){ leaveBattle(); open
   if(BT.started&&!b.dataset.sure){ b.dataset.sure="1"; b.textContent="Tap to confirm"; setTimeout(()=>{ delete b.dataset.sure; b.textContent="End Match"; },2500); return; }
   delete b.dataset.sure; b.textContent="End Match"; endBattle(); };
 $("rSpeed").onclick=()=>{ BT.speed=BT.speed>=4?1:BT.speed*2; $("rSpeed").textContent=BT.speed+"×"; };
-$("rExit").onclick=()=>{ leaveBattle(); openHub("battle","Log"); };
+$("rExit").onclick=()=>{ if(BT&&BT.live&&BT.live.poll) clearInterval(BT.live.poll); leaveBattle(); openHub("battle","Log"); };
 
 // ---------- touch / mouse ----------
 const ptrs=new Map(); let gesture=null;

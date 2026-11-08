@@ -62,6 +62,9 @@ function capOf(res){
 }
 function addRes(res,amt){ if(res==="medals"){ S.medals+=amt; return amt; } const room=Math.max(0,capOf(res)-S[res]); const got=Math.min(room,Math.max(0,amt)); S[res]+=got; return got; }
 const canPay = (res,amt) => (res==="medals"?S.medals:S[res])>=amt;
+// Like Clash: while a real player is attacking your ground, you can't build, upgrade, collect or spend at home.
+const groundLocked = () => typeof NET!=="undefined" && NET.liveAttacks && NET.liveAttacks.length>0 && typeof signedIn==="function" && signedIn();
+function lockedToast(){ if(!groundLocked()) return false; toast(`🔒 ${NET.liveAttacks[0].name} is attacking your ground. Watch live from Battle → Log.`); return true; }
 function pay(res,amt){ if(!canPay(res,amt)) return false; S[res]-=amt; return true; }
 const resIcon = r => r==="pies"?"🥧":r==="drink"?"💧":"🏅";
 
@@ -84,14 +87,14 @@ function shopStatus(t){
   const cost=buildCost(t), res=BLD[t].res;
   return {ok:true, cost, res, have, lim, afford:canPay(res,cost)};
 }
-function startPlacing(t){
+function startPlacing(t){ if(lockedToast()) return;
   const st=shopStatus(t); if(!st.ok) return toast(st.why);
   if(!st.afford) return toast(`Not enough ${resIcon(st.res)}`);
   if(BLD[t].time[0]>0&&!freeBuilder()) return toast("All groundskeepers are busy");
   const s=BLD[t].size; const spot=findSpot(s); if(!spot) return toast("No room left!");
   placing={t,x:spot[0],y:spot[1]}; selected=null; centreOn(spot[0]+s/2,spot[1]+s/2); refreshUI(); tut("placing");
 }
-function confirmPlace(){
+function confirmPlace(){ if(lockedToast()) return;
   if(!placing) return;
   if(placing.row){
     if(!wallRowFits(placing)) return toast("Can't move the row there");
@@ -142,7 +145,7 @@ function upgradeInfo(b){
   if(b.lv>=mx){ let need=1; while(need<=MAX_TH&&maxLevel(b.t,need)<=b.lv) need++; return {ok:false, why:`Needs Clubhouse ${need}`}; }
   return {ok:true, cost:d.cost[b.lv], res:d.res, time:d.time[b.lv]};
 }
-function startUpgrade(b){
+function startUpgrade(b){ if(lockedToast()) return;
   const u=upgradeInfo(b); if(!u.ok) return toast(u.why);
   if(u.time>0 && !freeBuilder()) return toast("All groundskeepers are busy");
   if(!pay(u.res,u.cost)) return toast(`Not enough ${resIcon(u.res)}`);
@@ -157,9 +160,9 @@ function resVotes(n){ const pts=[[100,1],[1000,5],[10000,25],[100000,125],[10000
 const speedCost = endMs => { const t=Math.max(0,(endMs-Date.now())/1000);
   const v = t<=60 ? 1 : t<=3600 ? 1+19*(t-60)/3540 : t<=86400 ? 20+240*(t-3600)/82800 : 260+740*(t-86400)/518400;
   return Math.max(1, Math.ceil(v)); };
-function speedUp(b){ const c=speedCost(b.busy.end); if(!pay("medals",c)) return toast("Not enough Brownlow votes 🏅"); b.busy.end=Date.now(); processTimers(); refreshUI(); }
+function speedUp(b){ if(lockedToast()) return; const c=speedCost(b.busy.end); if(!pay("medals",c)) return toast("Not enough Brownlow votes 🏅"); b.busy.end=Date.now(); processTimers(); refreshUI(); }
 // Like Clash: clearing needs a free groundskeeper and takes a few seconds.
-function removeObstacle(o){
+function removeObstacle(o){ if(lockedToast()) return;
   const d=obsInfo(o);
   if(o.busy) return;
   if(!freeBuilder()) return toast("All groundskeepers are busy");
@@ -194,7 +197,7 @@ function growObstacles(){
       if(footprintFree(x-1,y-1,4)){ S.obstacles.push({id:S.nextId++,x,y,k:"kitbag",s:2}); toast("🎒 Someone left a kit bag on your ground!"); uiDirty=true; break; } }
     S.bagAt=now+(6+Math.random()*2)*864e5; }
 }
-function collect(b){
+function collect(b){ if(lockedToast()) return;
   const d=BLD[b.t]; const n=Math.floor(b.store); if(n<1) return;
   const got=addRes(d.makes,n); b.store-=got;
   if(got<n) toast(`${d.makes==="pies"?"Pie Warmers":"Eskies"} are full!`);
@@ -238,7 +241,7 @@ function researchInfo(u){
   if(lv>cb.lv) return {ok:false, why:`Coaches Box ${lv}`};
   return {ok:true, cost:Math.round(RESEARCH_COST[lv]*(UNITS[u].space>4?2:1)), time:RESEARCH_TIME[lv]};
 }
-function startResearch(u){
+function startResearch(u){ if(lockedToast()) return;
   if(S.research) return toast("Already researching");
   const r=researchInfo(u); if(!r.ok) return toast(r.why);
   if(!pay("drink",r.cost)) return toast("Not enough 💧");
@@ -267,7 +270,7 @@ function heroStats(h="captain", club, lv){
   const H=HEROES[h], pos=H.pos(club), p=HERO_POS[pos], m=1+.1*(lv-1), g=own&&typeof gearFx==="function"?gearFx(h):{hp:0,dps:0,spd:0,ability:0,armor:0,heal:0,rage:0,shield:0};
   return {...p, hp:Math.round(p.hp*m*(1+g.hp)), dps:Math.round(p.dps*m*(1+g.dps)), spd:p.spd*(1+g.spd), name:H.name(club), pos, lv, gear:g};
 }
-function upgradeHero(h){
+function upgradeHero(h){ if(lockedToast()) return;
   const hs=S.heroes[h]; if(hs.busy) return;
   if(hs.lv>=heroMax(th(),h)) return toast(`Needs Clubhouse ${th()+1}`);
   if(!freeBuilder()) return toast("All groundskeepers are busy");
@@ -402,6 +405,7 @@ function boot(){
   resize(); addEventListener("resize",resize); addEventListener("orientationchange",()=>setTimeout(resize,250));
   if(typeof ResizeObserver!=="undefined") new ResizeObserver(resize).observe(cv);
   S=load();
+  if(S&&typeof NET!=="undefined") NET.bootLast=S.last; // when this device last played, before catching up on time away
   if(S){ const away=Math.min(24*3600,(Date.now()-S.last)/1000); produce(away); ensureDaily(); processTimers(); if(away>60&&!S.raids.some(r=>!r.seen)) toast(`Welcome back! You were away ${fmtTime(away)}.`); }
   else showClubPicker();
   if(S&&typeof S.tut==="number") setTimeout(showTutStep,400);

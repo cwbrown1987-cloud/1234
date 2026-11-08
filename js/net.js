@@ -19,13 +19,38 @@ function signOutLocal() { NET.token = null; NET.user = null; NET.liveAttacks = [
 function publicBase() {
   return homeBattleBase().map(b => { const o = { t: b.t, x: b.x, y: b.y, lv: b.lv, hp: b.hp, max: b.max }; if (b.loot) o.loot = b.loot; if (b.armed) o.armed = true; return o; });
 }
+// ---------- cross-device saves: whichever save is newer wins ----------
+// Each upload gets a revision number. A device remembers the last revision it synced; if the cloud has a higher one
+// from another device, that device played more recently, so we load it instead of overwriting it.
+const DEVICE = (() => { try { let d = localStorage.getItem("ffDevice"); if (!d) { d = Math.random().toString(36).slice(2, 10); localStorage.setItem("ffDevice", d); } return d; } catch (e) { return "x"; } })();
+const syncedRev = () => { try { return Number(localStorage.getItem("ffSyncedRev")) || 0; } catch (e) { return 0; } };
+const setSyncedRev = n => { try { localStorage.setItem("ffSyncedRev", String(n)); } catch (e) {} };
 function pushSave(opts = {}) {
-  if (!signedIn() || !S) return;
+  if (!signedIn() || !S || NET.pulling) return;
   NET.lastPush = Date.now();
-  return api("/save", { method: "PUT", keepalive: !!opts.keepalive, body: { data: S, profile: { club: S.club, th: th(), trophies: S.trophies, shield: S.shield || 0, base: publicBase() } } }).catch(() => {});
+  const base = syncedRev(); S.rev = base + 1; S.dev = DEVICE;
+  return api("/save", { method: "PUT", keepalive: !!opts.keepalive, body: { baseRev: base, data: S, profile: { club: S.club, th: th(), trophies: S.trophies, shield: S.shield || 0, base: publicBase() } } })
+    .then(() => setSyncedRev(S.rev), e => { if (/newer save/i.test(e.message || "")) pullNewer(); });
+}
+// Load the cloud save if another device has played since this one last synced. Returns true if it switched.
+async function pullNewer(bootLast) {
+  if (!signedIn() || !S || NET.pulling || mode !== "home" || placing) return false;
+  NET.pulling = true;
+  try {
+    const me = await api("/me"), cloud = me.save && me.save.data;
+    if (!cloud || !cloud.buildings || cloud.dev === DEVICE) return false;
+    const newer = (cloud.rev || 0) > syncedRev() && (syncedRev() > 0 || (cloud.last || 0) > (bootLast || S.last || 0));
+    if (!newer) return false;
+    S = fixup(cloud); setSyncedRev(cloud.rev || 0); ensureDaily(); try { localStorage.setItem(SAVE_KEY, JSON.stringify(S)); } catch (e) {}
+    selected = null; placing = null; if (typeof closeModal === "function" && $("modal").classList.contains("show") && !(typeof tutActive === "function" && tutActive())) closeModal();
+    produce(Math.min(24 * 3600, (Date.now() - (S.last || Date.now())) / 1000)); processTimers(); refreshUI();
+    toast("☁️ Loaded your latest save from your other device");
+    return true;
+  } catch (e) { return false; } finally { NET.pulling = false; }
 }
 function scheduleSync() { if (!signedIn()) return; clearTimeout(NET.syncT); NET.syncT = setTimeout(pushSave, 15000); }
-addEventListener("visibilitychange", () => { if (document.hidden && signedIn() && S) pushSave({ keepalive: true }); });
+addEventListener("visibilitychange", async () => { if (!signedIn() || !S) return;
+  if (document.hidden) pushSave({ keepalive: true }); else if (!(await pullNewer())) pushSave(); });
 
 // ---------- sign in / sign up ----------
 function openAccount(tab = "Create account") {
@@ -81,10 +106,10 @@ async function afterSignIn() {
     <div class="choice"><button class="btn gold big" id="keepCloud">☁️ Online save<small>${sum(cloud)}</small></button>
     <button class="btn green big" id="keepLocal">📱 This device<small>${sum(local)}</small></button></div>`, { noClose: true });
   $("keepCloud").onclick = () => useCloud(cloud);
-  $("keepLocal").onclick = async () => { closeModal(); await pushSave(); netStart(); toast("Kept this device's club"); };
+  $("keepLocal").onclick = async () => { closeModal(); setSyncedRev(cloud.rev || 0); await pushSave(); netStart(); toast("Kept this device's club"); };
 }
 function useCloud(data) {
-  S = fixup(data); ensureDaily(); save(); selected = null; placing = null; closeModal();
+  S = fixup(data); setSyncedRev(data.rev || 0); ensureDaily(); save(); selected = null; placing = null; closeModal();
   cam.x = 0; cam.y = 0; setZoom(1); netStart(); refreshUI(); toast(`Welcome back, ${NET.user.name}!`);
 }
 async function signOut() { try { await pushSave(); await api("/logout", { method: "POST" }); } catch (e) {} signOutLocal(); toast("Signed out. Your club stays on this device."); }
@@ -97,14 +122,14 @@ async function checkInbox() {
   try {
     const r=await api("/inbox");
     if(NET.token!==token||S!==saveGame||mode!=="home") return;
+    NET.friendNew=r.friendNew||0; showSocialDot();
     const prev=NET.liveAttacks||[], live=r.live||[];
     const fresh=live.filter(a=>!prev.some(p=>p.attackerId===a.attackerId&&p.at===a.at));
     NET.liveAttacks=live;
     if(fresh.length) toast(fresh.length===1?`⚠️ ${fresh[0].name} is attacking your ground!`:`⚠️ ${fresh.length} clubs are attacking your ground!`);
     if(fresh.length||prev.length!==live.length){
       uiDirty=true;
-      const status=$("liveAttacks");
-      if(status) status.textContent=liveAttackText();
+      if($("liveAttacks")&&typeof openLog==="function"&&hubCtx&&hubCtx.tab==="Log") openLog();
     }
     if(!r.attacks.length) return;
     const incoming=r.attacks.filter(a=>!S.raids.some(raid=>raid.id==="p"+a.id));
@@ -159,6 +184,37 @@ function netAttackStarted(bt) {
   if(!signedIn()||!bt.opp||bt.opp.bot||bt.kind==="friendly") return;
   bt.attackNotice=api("/attack/start",{method:"POST",keepalive:true,signal:AbortSignal.timeout?.(5000),body:{defender:bt.opp.id,friend:bt.kind==="friend"}}).then(()=>true,()=>false);
 }
+// Stream the attack every 2 seconds so the defender can watch it live.
+setInterval(async () => {
+  const bt = typeof BT !== "undefined" && BT;
+  if (!bt || bt.mode !== "attack" || bt.visit || !bt.attackNotice || !bt.opp || bt.over || !bt.started || !signedIn()) return;
+  if (!(await bt.attackNotice)) return;
+  const n = (bt.rec || []).length; if (bt.liveSent === n && bt.liveMeta) return;
+  const body = { defender: bt.opp.id, plan: bt.rec || [] };
+  if (!bt.liveMeta) body.meta = { atkClub: S.club, base: (bt.origBase || []).map(b => ({ id: b.id, t: b.t, x: b.x, y: b.y, lv: b.lv, hp: b.max, max: b.max, loot: b.loot, armed: b.armed })),
+    army: bt.had, spells: bt.hadSpells, heroes: Object.keys(bt.heroesLeft || {}), lv: { ...S.unitLv }, heroLv: Object.fromEntries(Object.keys(HEROES).map(h => [h, S.heroes[h].lv])),
+    bonus: Object.fromEntries(["mid", "fwd", "ruck", "def"].map(p => [p, cardBonus(p)])) };
+  bt.liveSent = n;
+  api("/attack/live", { method: "POST", body }).then(() => { bt.liveMeta = true; }, () => { bt.liveSent = -1; });
+}, 2000);
+async function watchLive(attackerId) {
+  let r; try { r = await api("/attack/live/" + encodeURIComponent(attackerId)); } catch (e) { return toast(e.message); }
+  const m = r.meta, raid = { id: "live-" + attackerId, at: Date.now(), club: m.atkClub ?? 0, attacker: r.name, real: true, base: m.base || [], plan: r.plan || [], endT: 0,
+    army: m.army || {}, spells: m.spells || {}, lv: m.lv || 1, heroLv: m.heroLv || 1, bonus: m.bonus || null, d: th() };
+  closeModal(); if (BT) leaveBattle();
+  BT = raidBattle(raid, "replay"); BT.speed = 1; BT.raid = raid;
+  for (const h of m.heroes || []) BT.heroesLeft[h] = true;
+  BT.live = { name: r.name, id: attackerId, n: (r.plan || []).length, done: r.done };
+  BT.live.poll = setInterval(async () => {
+    const bt = BT; if (!bt || !bt.live || bt.live.id !== attackerId) return;
+    try { const u = await api("/attack/live/" + encodeURIComponent(attackerId)); const add = (u.plan || []).slice(bt.live.n);
+      for (const p of add) bt.plan.push({ ...p }); bt.live.n += add.length; if (u.done) bt.live.done = true;
+    } catch (e) { bt.live.done = true; }
+    if (bt.live.done) clearInterval(bt.live.poll);
+  }, 2000);
+  mode = "battle"; selected = null; placing = null; cam.x = 0; cam.y = 0; setZoom(.8); refreshUI();
+  toast(`🔴 Watching ${r.name} attack your ground live`);
+}
 async function netReportAttack(bt, r) {
   if (!signedIn() || !bt.opp) return;
   const avail = bt.lootTotal.pies + bt.lootTotal.drink, share = avail ? (bt.loot.pies + bt.loot.drink) / avail : 0;
@@ -185,15 +241,36 @@ async function renderFriends(soc) {
     <div id="frList" class="fixture"><p class="center">Loading…</p></div>
     <p class="tiny center">Visit to look around their ground. ⚔️ Attack is a normal match (shields don't stop friends), but you only take a quarter of their loot and no trophies change hands.</p>`);
   $("frAdd").onsubmit = async e => { e.preventDefault(); const name = $("frName").value.trim(); if (!name) return;
-    try { const r = await api("/friends", { method: "POST", body: { name } }); toast(`${r.friend.name} added!`); openFriends(); } catch (err) { toast(err.message); } };
+    try { const r = await api("/friends", { method: "POST", body: { name } }); toast(r.mutual ? `You and ${r.friend.name} are now friends!` : `Friend request sent to ${r.friend.name}`); openFriends(); } catch (err) { toast(err.message); } };
   try {
     const r = await api("/friends");
     if(soc!==$("soc")) return;
-    $("frList").innerHTML = r.friends.length ? r.friends.map(f => `<div class="fx">${badgeImg(CLUBS[f.club] || CLUBS[0], "sm")}<span class="nm">${f.online ? "🟢 " : ""}<b>${esc(f.name)}</b><br><small>Clubhouse ${f.th} · 🏆 ${f.trophies}</small></span>
-        <button class="btn blue" data-visit="${f.id}">👀 Visit</button><button class="btn gold" data-fr="${f.id}">⚔️</button><button class="btn red" data-unf="${f.id}" title="Remove">✖</button></div>`).join("")
-      : `<p class="center">No friends yet. Add someone by their player name above.</p>`;
+    const row = (f, extra, btns) => `<div class="fx">${badgeImg(CLUBS[f.club] || CLUBS[0], "sm")}<span class="nm">${f.online ? "🟢 " : ""}<b>${esc(f.name)}</b><br><small>${extra || `Clubhouse ${f.th} · 🏆 ${f.trophies}`}</small></span>${btns}</div>`;
+    let h = "";
+    if (r.requests.length) h += `<h3>Friend requests</h3>` + r.requests.map(f => row(f, "added you", `<button class="btn green" data-addback="${f.id}">➕ Add</button><button class="btn red" data-unf="${f.id}" title="Ignore">✖</button>`)).join("");
+    if (r.suggestions.length) h += `<h3>Suggested by your mates</h3>` + r.suggestions.map(f => row(f, `${esc(f.from)} suggests them`, `<button class="btn green" data-addback="${f.id}">➕ Add</button><button class="btn red" data-unsug="${f.id}" title="Dismiss">✖</button>`)).join("");
+    const revOf = id => (S.raids || []).find(x => x.attackerId === id && canRevenge(x));
+    h += `<h3>Friends${r.friends.length ? ` (${r.friends.length})` : ""}</h3>` + (r.friends.length ? r.friends.map(f => { const rv = revOf(f.id); return row(f, rv ? `⚔️ attacked you ${fmtTime((Date.now() - rv.at) / 1000)} ago` : "", `<button class="btn blue" data-visit="${f.id}">👀</button>${rv ? `<button class="btn red" data-rev="${rv.id}">⚔️ Revenge</button>` : `<button class="btn gold" data-fr="${f.id}">⚔️</button>`}${r.friends.length > 1 ? `<button class="btn" data-sug="${f.id}" title="Suggest a friend to ${esc(f.name)}">💡</button>` : ""}<button class="btn red" data-unf="${f.id}" title="Remove">✖</button>`); }).join("")
+      : `<p class="center">No friends yet. Add someone by their player name above.</p>`);
+    if (r.sent.length) h += `<h3>Waiting for them to add you back</h3>` + r.sent.map(f => row(f, "request sent", `<button class="btn red" data-unf="${f.id}" title="Cancel">✖</button>`)).join("");
+    $("frList").innerHTML = h;
     document.querySelectorAll("[data-visit]").forEach(b => b.onclick = () => visitPlayer(b.dataset.visit));
     document.querySelectorAll("[data-fr]").forEach(b => b.onclick = () => attackPlayer(b.dataset.fr, "friend"));
+    document.querySelectorAll("#frList [data-rev]").forEach(b => b.onclick = () => revenge(S.raids.find(x => x.id == b.dataset.rev)));
+    // players (not friends) who attacked you: revenge them from here too
+    const others = revengeList().filter(x => x.real && x.attackerId && !r.friends.some(f => f.id === x.attackerId));
+    if (others.length) { $("frList").insertAdjacentHTML("beforeend", `<h3>Players who attacked you</h3>` + others.map(x => `<div class="fx">${badgeImg(CLUBS[x.club] || CLUBS[0], "sm")}<span class="nm"><b>${esc(x.attacker)}</b><br><small>${fmtTime((Date.now() - x.at) / 1000)} ago · ${x.stars ? "★".repeat(x.stars) : "no stars"}</small></span><button class="btn red" data-rev2="${x.id}">⚔️ Revenge</button><button class="btn green" data-addp="${x.attackerId}" title="Add friend">➕</button></div>`).join(""));
+      document.querySelectorAll("[data-rev2]").forEach(b => b.onclick = () => revenge(S.raids.find(x => x.id == b.dataset.rev2)));
+      document.querySelectorAll("[data-addp]").forEach(b => b.onclick = async () => { try { const x = await api("/friends", { method: "POST", body: { id: b.dataset.addp } }); toast(x.mutual ? `You and ${x.friend.name} are now friends!` : `Friend request sent to ${x.friend.name}`); } catch (e) { toast(e.message); } openFriends(); }); }
+    document.querySelectorAll("[data-addback]").forEach(b => b.onclick = async () => { b.disabled = true;
+      try { const x = await api("/friends", { method: "POST", body: { id: b.dataset.addback } }); toast(x.mutual ? `You and ${x.friend.name} are now friends!` : `Friend request sent to ${x.friend.name}`); } catch (e) { toast(e.message); } openFriends(); });
+    document.querySelectorAll("[data-unsug]").forEach(b => b.onclick = async () => { await api("/friends/suggest/" + b.dataset.unsug, { method: "DELETE" }).catch(e => toast(e.message)); openFriends(); });
+    document.querySelectorAll("[data-sug]").forEach(b => b.onclick = () => { const to = r.friends.find(f => f.id === b.dataset.sug), others = r.friends.filter(f => f.id !== to.id);
+      $("frList").innerHTML = `<h3>Suggest a friend to ${esc(to.name)}</h3><p class="tiny center">They'll see it in their Friends list and can add them with one tap.</p>` +
+        others.map(f => row(f, "", `<button class="btn green" data-pick="${f.id}">💡 Suggest</button>`)).join("") + `<div class="center"><button class="btn" id="sugBack">Back</button></div>`;
+      $("sugBack").onclick = () => openFriends();
+      document.querySelectorAll("[data-pick]").forEach(p => p.onclick = async () => { p.disabled = true;
+        try { await api("/friends/suggest", { method: "POST", body: { to: to.id, who: p.dataset.pick } }); toast(`Suggested ${others.find(f => f.id === p.dataset.pick).name} to ${to.name}`); p.textContent = "✅ Sent"; } catch (e) { toast(e.message); p.disabled = false; } }); });
     document.querySelectorAll("[data-unf]").forEach(b => b.onclick = async () => { if (b.dataset.sure) { await api("/friends/" + b.dataset.unf, { method: "DELETE" }).catch(e => toast(e.message)); openFriends(); } else { b.dataset.sure = 1; b.textContent = "Sure?"; } });
   } catch (e) { if(soc===$("soc")) $("frList").innerHTML = `<p class="center err">${esc(e.message)}</p>`; }
 }
@@ -209,13 +286,14 @@ async function visitPlayer(id) {
 }
 
 // ---------- leaderboard & cheer squads ----------
-async function openSocial(tab = "Leaderboard") { menuBack = null; hubCtx=null;
+async function openSocial(tab) { if (!tab) tab = NET.friendNew ? "Friends" : "Leaderboard"; menuBack = null; hubCtx=null;
   if (!NET.online) return toast("Online play works on the website: ff.backyardlegendsgames.app");
   const tabs = ["Leaderboard", "Friends", "Cheer Squad"];
   const header=`<div class="social-head"><div class="menu-banner menu-title">Footy Fortress Online</div>${tabsHTML(tabs, tab)}</div>`;
   modal('<div id="soc"><p class="center">Loading…</p></div>', {header, tick: tab === "Cheer Squad" ? refreshChat : null });
   const soc=$("soc");
   bindTabs(openSocial);
+  const ft=document.querySelector('[data-tab="Friends"]'); if(ft&&NET.friendNew){ ft.style.position="relative"; ft.insertAdjacentHTML("beforeend",`<i class="dot">${NET.friendNew}</i>`); }
   try { if (tab === "Leaderboard") await renderLeaderboard(soc); else if (tab === "Friends") await renderFriends(soc); else await renderSquad(soc); } catch (e) { if(soc===$("soc")) soc.innerHTML = `<p class="center err">${esc(e.message)}</p>`; }
 }
 async function renderLeaderboard(soc) {
@@ -232,7 +310,7 @@ let chatLast = 0, chatMembers = [];
 const CHAT_SEEN_KEY = "ffChatSeen";
 const chatSeen = () => { try { return Number(localStorage.getItem(CHAT_SEEN_KEY)) || 0; } catch (e) { return 0; } };
 function markChatSeen(id) { if (id > chatSeen()) { try { localStorage.setItem(CHAT_SEEN_KEY, String(id)); } catch (e) {} } NET.unread = 0; showSocialDot(); }
-function showSocialDot() { const d = $("socialDot"); if (!d) return; const n = NET.unread || 0; d.textContent = n > 9 ? "9+" : n; d.classList.toggle("hide", !n); }
+function showSocialDot() { const d = $("socialDot"); if (!d) return; const n = (NET.unread || 0) + (NET.friendNew || 0); d.textContent = n > 9 ? "9+" : n; d.classList.toggle("hide", !n); }
 async function checkChat() {
   if (!signedIn()) return;
   try {
@@ -292,8 +370,8 @@ async function netStart() {
   if (!NET.online) return;
   try { NET.bots = (await api("/bots")).bots; } catch (e) {}
   if (!signedIn()) return;
-  try { const me = await api("/me"); if (me.profile && S) { /* server may know about trophy changes from attacks */ } } catch (e) {}
-  await checkInbox(); pushSave(); checkChat();
+  const switched = await pullNewer(NET.bootLast); // newer save on another device? load it
+  await checkInbox(); if (!switched) pushSave(); checkChat();
 }
 setInterval(checkInbox,12000);
 setInterval(() => { if(signedIn()&&mode==="home"&&!document.hidden) checkChat(); },60000);

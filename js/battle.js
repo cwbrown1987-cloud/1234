@@ -310,6 +310,8 @@ function battleStep(dt){
   const alive=BT.units.some(u=>u.hp>0&&u.pref!=="heal");
   const toDeploy=Object.values(BT.left).some(n=>n>0)||Object.values(BT.heroesLeft).some(Boolean)||(BT.plan&&BT.plan.length);
   if(BT.endT && BT.elapsed>=BT.endT-1e-6) return true; // replay stops where the real match stopped
+  if(BT.live&&!BT.live.done&&BT.time>0&&pct()<100) return false; // watching live: more players may still come
+  if(BT.live&&BT.live.done&&!(BT.plan&&BT.plan.length)&&!BT.units.some(u=>u.hp>0&&u.pref!=="heal")&&!BT.proj.length) return true; // attacker finished: unused players aren't coming
   if(BT.time<=0 || pct()>=100 || (BT.started&&!alive&&!toDeploy&&!BT.proj.length)) return true;
   return false;
 }

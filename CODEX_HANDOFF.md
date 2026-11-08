@@ -80,7 +80,7 @@ The first art pass (PR #28) is merged and live:
 - Paint the wall panel navy `#1b2a6b` with gold trim, so it recolours per club. No banners: the game adds them.
 - Hook: `drawFence()` in `js/render.js`. Keep these rules: pillars at ends, corners and every 3rd piece; banners on straight runs of 5 or more.
 
-**E. Menu and button art:** branch `art/ui`. Everything is in **`CODEX_UI_HANDOFF.md`**, including the 10 Ranked league badges. No code needed.
+**E. Menu and button art:** branch `art/ui`, specified in **`CODEX_UI_HANDOFF.md`**. The 36-file pack is in and its icons, headers and league badges are live. **The dark "Scoreboard" panel and button style was switched off: the game uses bright Clash-style "colour pop".** Still to do: bright Battle (orange-red) and Build (gold) buttons, bright blue side buttons including Cards, and a red close button. See the status at the top of `CODEX_UI_HANDOFF.md`.
 
 ### Changed since the first handoff (so the old screenshots are out of date)
 - **Home screen:** Clash October 2026 layout.

@@ -60,6 +60,7 @@ The first visit explains how: one tap on Android, or Share → Add to Home Scree
 - **Home and matches:** `js/game.js` (home base, saves, timers), `js/battle.js` (match engine), `js/season.js` (ladder and finals), `js/raid.js` (AI raids).
 - **Menus:** `js/ui.js` (HUD, Army, Build lists, controls), `js/hubs.js` (Battle and Build menus, Groundskeepers, Profile, Ranked, Recipes, Pass, Events, rotation), `js/cards.js` (cards and album), `js/gear.js` (hero gear), `js/tutorial.js` (tutorial).
 - **Drawing:** `js/render.js` (drawing and fences), `js/stadium.js` (the stadium and crowd), `js/art.js` (loads the painted art).
+- **Look:** bright Clash-style "colour pop": cream/gold panels, blue tabs, an orange Battle button and a gold Build button. Codex's painted icons sit on top (`art/ui`). The dark "Scoreboard" theme can be tried with `window.FF_DARK_UI = true`.
 - **Art:** `art/sheets.js` is the original embedded art. Codex's painted art is in `art/units`, `heroes`, `portraits`, `players`, `cards`, `packs`, `buildings`, `scenery`, `stadium` and `ui`, all listed in `art/manifest.json` (anything missing falls back to the original art).
 - **Online:** `js/net.js` (accounts, cloud saves, online matches, friends, squads) and `server/api.js` (the server, on Cloudflare D1 as `DB`).
 - **Publishing:** `deploy.sh` publishes to Cloudflare Pages. `CF_BRANCH=name ./deploy.sh` makes a preview instead.

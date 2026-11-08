@@ -6,14 +6,14 @@ const signedIn = () => !!(NET.online && NET.token);
 
 async function api(path, opts = {}) {
   const res = await fetch("/api" + path, { method: opts.method || "GET", headers: { "content-type": "application/json", ...(NET.token ? { authorization: "Bearer " + NET.token } : {}) },
-    body: opts.body ? JSON.stringify(opts.body) : undefined, keepalive: !!opts.keepalive });
+    body: opts.body ? JSON.stringify(opts.body) : undefined, keepalive: !!opts.keepalive, signal: opts.signal });
   let data = {}; try { data = await res.json(); } catch (e) {}
   if (res.status === 401 && NET.token && !opts.noAuthReset) { signOutLocal(); toast("Please sign in again."); }
   if (!res.ok) throw new Error(data.error || "Couldn't reach the server.");
   return data;
 }
 function storeSession(token, user) { NET.token = token; NET.user = user; try { localStorage.setItem(TOKEN_KEY, JSON.stringify({ token, user })); } catch (e) {} uiDirty = true; }
-function signOutLocal() { NET.token = null; NET.user = null; try { localStorage.removeItem(TOKEN_KEY); } catch (e) {} uiDirty = true; }
+function signOutLocal() { NET.token = null; NET.user = null; NET.liveAttacks = []; try { localStorage.removeItem(TOKEN_KEY); } catch (e) {} uiDirty = true; }
 
 // ---------- what other players see when they attack you ----------
 function publicBase() {
@@ -91,24 +91,41 @@ async function signOut() { try { await pushSave(); await api("/logout", { method
 
 // ---------- Home Games inbox: real attacks on your ground ----------
 async function checkInbox() {
-  if (!signedIn() || !S || mode !== "home") return;
-  let r; try { r = await api("/inbox"); } catch (e) { return; }
-  if (!r.attacks.length) return;
-  for (const a of r.attacks) {
-    const lost = { pies: Math.min(S.pies, Math.floor(a.loot?.pies || 0)), drink: Math.min(S.drink, Math.floor(a.loot?.drink || 0)) };
-    if (a.ranked) { lost.pies = 0; lost.drink = 0; }
-    if (!a.friendly) { S.pies -= lost.pies; S.drink -= lost.drink; S.trophies = Math.max(0, S.trophies + (a.defTro || 0)); }
-    if (!a.friendly && a.magicShield) S.shield = Math.max(S.shield || 0, a.at + MAGIC_SHIELD);
-    if (!a.friendly && !a.stars) track("defend", 1);
-    S.raids.unshift({ id: "p" + a.id, at: a.at, club: a.atkClub ?? a.club ?? 0, attacker: a.attacker, attackerId: a.attackerId, real: true, friendly: !!a.friendly, friend: !!a.friend, ranked: !!a.ranked,
-      stars: a.stars, pct: a.pct, sc: a.sc, lost, tro: a.defTro, seen: false, revenged: false,
-      base: a.base || [], plan: a.plan || [], endT: a.endT || 0, army: a.army || {}, spells: a.spells || {}, lv: a.lv || 1, heroLv: a.heroLv || 1, bonus: a.bonus || null, d: th() });
-  }
-  S.raids = S.raids.slice(0, 12);
-  try { await api("/inbox/seen", { method: "POST", body: { ids: r.attacks.map(a => a.id) } }); } catch (e) {}
-  save(); uiDirty = true; const n = r.attacks.length;
-  toast(n === 1 ? `⚠️ ${r.attacks[0].attacker} ${r.attacks[0].friendly ? "played a friendly on" : r.attacks[0].friend ? "(your friend) attacked" : "attacked"} your ground!` : `⚠️ ${n} clubs came to your ground`);
+  if (!signedIn() || !S || mode !== "home" || document.hidden || NET.checkingInbox) return;
+  const token=NET.token, saveGame=S;
+  NET.checkingInbox=true;
+  try {
+    const r=await api("/inbox");
+    if(NET.token!==token||S!==saveGame||mode!=="home") return;
+    const prev=NET.liveAttacks||[], live=r.live||[];
+    const fresh=live.filter(a=>!prev.some(p=>p.attackerId===a.attackerId&&p.at===a.at));
+    NET.liveAttacks=live;
+    if(fresh.length) toast(fresh.length===1?`⚠️ ${fresh[0].name} is attacking your ground!`:`⚠️ ${fresh.length} clubs are attacking your ground!`);
+    if(fresh.length||prev.length!==live.length){
+      uiDirty=true;
+      const status=$("liveAttacks");
+      if(status) status.textContent=liveAttackText();
+    }
+    if(!r.attacks.length) return;
+    const incoming=r.attacks.filter(a=>!S.raids.some(raid=>raid.id==="p"+a.id));
+    for (const a of incoming) {
+      const lost = { pies: Math.min(S.pies, Math.floor(a.loot?.pies || 0)), drink: Math.min(S.drink, Math.floor(a.loot?.drink || 0)) };
+      if (a.ranked) { lost.pies = 0; lost.drink = 0; }
+      if (!a.friendly) { S.pies -= lost.pies; S.drink -= lost.drink; S.trophies = Math.max(0, S.trophies + (a.defTro || 0)); }
+      if (!a.friendly && a.magicShield) S.shield = Math.max(S.shield || 0, a.at + MAGIC_SHIELD);
+      if (!a.friendly && !a.stars) track("defend", 1);
+      S.raids.unshift({ id: "p" + a.id, at: a.at, club: a.atkClub ?? a.club ?? 0, attacker: a.attacker, attackerId: a.attackerId, real: true, friendly: !!a.friendly, friend: !!a.friend, ranked: !!a.ranked,
+        stars: a.stars, pct: a.pct, sc: a.sc, lost, tro: a.defTro, seen: false, revenged: false,
+        base: a.base || [], plan: a.plan || [], endT: a.endT || 0, army: a.army || {}, spells: a.spells || {}, lv: a.lv || 1, heroLv: a.heroLv || 1, bonus: a.bonus || null, d: th() });
+    }
+    if(incoming.length){
+      S.raids=S.raids.slice(0,12); save(); uiDirty=true;
+      if(!fresh.length) toast(incoming.length===1?`New Home Games result from ${incoming[0].attacker}`:`${incoming.length} new Home Games results`);
+    }
+    await api("/inbox/seen",{method:"POST",body:{ids:r.attacks.map(a=>a.id)}});
+  } catch(e) {} finally { NET.checkingInbox=false; }
 }
+const liveAttackText=()=> (NET.liveAttacks||[]).map(a=>a.name+" is attacking your ground").join(" · ");
 
 // ---------- real-player matches ----------
 function oppBuildings(opp) {
@@ -138,19 +155,26 @@ async function attackPlayer(id, kind) {
     startBattle({ kind, club: p.club, d: p.th, buildings: oppBuildings(p), opp: { id: p.id, name: p.name, bot: p.bot, trophies: p.trophies } });
   } catch (e) { toast(e.message); }
 }
-function netReportAttack(bt, r) {
+function netAttackStarted(bt) {
+  if(!signedIn()||!bt.opp||bt.opp.bot||bt.kind==="friendly") return;
+  bt.attackNotice=api("/attack/start",{method:"POST",keepalive:true,signal:AbortSignal.timeout?.(5000),body:{defender:bt.opp.id,friend:bt.kind==="friend"}}).then(()=>true,()=>false);
+}
+async function netReportAttack(bt, r) {
   if (!signedIn() || !bt.opp) return;
   const avail = bt.lootTotal.pies + bt.lootTotal.drink, share = avail ? (bt.loot.pies + bt.loot.drink) / avail : 0;
   const body = { defender: bt.opp.id, friendly: !!r.friendly, friend: bt.kind === "friend", ranked: !!bt.ranked, magicShield: !r.friendly && !bt.ranked && bt.kind !== "friend" && share >= .3, stars: r.stars, pct: r.p, sc: r.sc, loot: { pies: Math.floor(bt.loot.pies * Math.min(1, bt.lootMul ?? 1)), drink: Math.floor(bt.loot.drink * Math.min(1, bt.lootMul ?? 1)) },
     plan: bt.rec || [], endT: Math.round(bt.elapsed * 1000) / 1000, army: bt.had, spells: bt.hadSpells, lv: { ...S.unitLv }, heroLv: Object.fromEntries(Object.keys(HEROES).map(h => [h, S.heroes[h].lv])),
     bonus: Object.fromEntries(["mid", "fwd", "ruck", "def"].map(p => [p, cardBonus(p)])), base: bt.opp.bot ? [] : (bt.origBase || []).map(b => ({ t: b.t, x: b.x, y: b.y, lv: b.lv, hp: b.max, max: b.max, loot: b.loot, armed: b.armed })),
     atkClub: S.club, myTrophies: S.trophies };
+  const token=NET.token;
+  body.startedNotice=!!(await bt.attackNotice);
+  if(NET.token!==token) return;
   api("/attack", { method: "POST", body }).then(() => pushSave()).catch(e => toast("Couldn't send the result: " + e.message));
 }
 
 // ---------- friends: add mates by name, visit their ground, play a friendly ----------
 const openFriends = () => openSocial("Friends");
-async function renderFriends() {
+async function renderFriends(soc) {
   if (!signedIn()) {
     $("soc").innerHTML = `<p class="center">Sign in to add friends, visit their grounds and attack them.</p><div class="center"><button class="btn green big" id="frSign">Play online</button></div>`;
     $("frSign").onclick = sub(() => openAccount(), () => openSocial("Friends")); return;
@@ -164,13 +188,14 @@ async function renderFriends() {
     try { const r = await api("/friends", { method: "POST", body: { name } }); toast(`${r.friend.name} added!`); openFriends(); } catch (err) { toast(err.message); } };
   try {
     const r = await api("/friends");
+    if(soc!==$("soc")) return;
     $("frList").innerHTML = r.friends.length ? r.friends.map(f => `<div class="fx">${badgeImg(CLUBS[f.club] || CLUBS[0], "sm")}<span class="nm">${f.online ? "🟢 " : ""}<b>${esc(f.name)}</b><br><small>Clubhouse ${f.th} · 🏆 ${f.trophies}</small></span>
         <button class="btn blue" data-visit="${f.id}">👀 Visit</button><button class="btn gold" data-fr="${f.id}">⚔️</button><button class="btn red" data-unf="${f.id}" title="Remove">✖</button></div>`).join("")
       : `<p class="center">No friends yet. Add someone by their player name above.</p>`;
     document.querySelectorAll("[data-visit]").forEach(b => b.onclick = () => visitPlayer(b.dataset.visit));
     document.querySelectorAll("[data-fr]").forEach(b => b.onclick = () => attackPlayer(b.dataset.fr, "friend"));
     document.querySelectorAll("[data-unf]").forEach(b => b.onclick = async () => { if (b.dataset.sure) { await api("/friends/" + b.dataset.unf, { method: "DELETE" }).catch(e => toast(e.message)); openFriends(); } else { b.dataset.sure = 1; b.textContent = "Sure?"; } });
-  } catch (e) { $("frList").innerHTML = `<p class="center err">${esc(e.message)}</p>`; }
+  } catch (e) { if(soc===$("soc")) $("frList").innerHTML = `<p class="center err">${esc(e.message)}</p>`; }
 }
 async function visitPlayer(id) {
   try {
@@ -184,15 +209,18 @@ async function visitPlayer(id) {
 }
 
 // ---------- leaderboard & cheer squads ----------
-async function openSocial(tab = "Leaderboard") { menuBack = null;
+async function openSocial(tab = "Leaderboard") { menuBack = null; hubCtx=null;
   if (!NET.online) return toast("Online play works on the website: ff.backyardlegendsgames.app");
   const tabs = ["Leaderboard", "Friends", "Cheer Squad"];
-  modal(`<h2>Footy Fortress Online</h2>${tabsHTML(tabs, tab)}<div id="soc"><p class="center">Loading…</p></div>`, { tick: tab === "Cheer Squad" ? refreshChat : null });
+  const header=`<div class="social-head"><h2>Footy Fortress Online</h2>${tabsHTML(tabs, tab)}</div>`;
+  modal('<div id="soc"><p class="center">Loading…</p></div>', {header, tick: tab === "Cheer Squad" ? refreshChat : null });
+  const soc=$("soc");
   bindTabs(openSocial);
-  try { if (tab === "Leaderboard") await renderLeaderboard(); else if (tab === "Friends") await renderFriends(); else await renderSquad(); } catch (e) { $("soc").innerHTML = `<p class="center err">${e.message}</p>`; }
+  try { if (tab === "Leaderboard") await renderLeaderboard(soc); else if (tab === "Friends") await renderFriends(soc); else await renderSquad(soc); } catch (e) { if(soc===$("soc")) soc.innerHTML = `<p class="center err">${esc(e.message)}</p>`; }
 }
-async function renderLeaderboard() {
+async function renderLeaderboard(soc) {
   const r = await api("/leaderboard"), meId = NET.user && NET.user.id;
+  if(soc!==$("soc")) return;
   $("soc").innerHTML = (signedIn() ? "" : `<div class="banner">Sign in to appear on the leaderboard. <button class="btn green" id="lbSign">Play online</button></div>`) +
     `<div class="ladwrap"><table class="ladder"><tr><th>#</th><th></th><th>Player</th><th>Club</th><th>🏆</th></tr>${r.players.map((p, i) =>
       `<tr class="${p.id === meId ? "me" : ""}"><td>${i + 1}</td><td>${badgeImg(CLUBS[p.club] || CLUBS[0], "xs")}</td><td>${esc(p.name)}${p.bot ? ' <span class="tag bot">BOT</span>' : ""}${p.squadName ? `<br><small>${esc(p.squadName)}</small>` : ""}</td><td>CH ${p.th}</td><td><b>${p.trophies}</b></td></tr>`).join("")}</table></div>
@@ -216,11 +244,13 @@ async function checkChat() {
     showSocialDot();
   } catch (e) {}
 }
-async function renderSquad() {
+async function renderSquad(soc) {
   if (!signedIn()) { $("soc").innerHTML = `<p class="center">Sign in to join a Cheer Squad and chat with your mates.</p><div class="center"><button class="btn green big" id="sqSign">Play online</button></div>`; $("sqSign").onclick = sub(() => openAccount(), () => openSocial("Cheer Squad")); return; }
   const r = await api("/squad");
+  if(soc!==$("soc")) return;
   if (!r.squad) {
     const list = await api("/squads");
+    if(soc!==$("soc")) return;
     $("soc").innerHTML = `<p class="center">Cheer Squads are clans: chat, friendly matches and a shared trophy total.</p>
       <form id="sqNew" class="acct row"><input id="sqName" maxlength="16" placeholder="New squad name" required><button class="btn gold" type="submit">Create</button></form>
       <h3>Join a squad</h3><div class="fixture">${list.squads.map(s => `<div class="fx">${badgeImg(CLUBS[s.club] || CLUBS[0], "sm")}<span class="nm">${esc(s.name)}<br><small>${s.members}/30 · 🏆 ${s.trophies}${s.motto ? " · " + esc(s.motto) : ""}</small></span>${s.open ? `<button class="btn green" data-join="${s.id}">Join</button>` : "🔒"}</div>`).join("") || "<p class='center tiny'>No squads yet. Start the first one!</p>"}</div>`;
@@ -241,14 +271,21 @@ async function renderSquad() {
 }
 function addMessages(msgs) {
   const box = $("chat"); if (!box || !msgs.length) return;
+  const follow=box.scrollHeight-box.clientHeight-box.scrollTop<24;
   for (const m of msgs) { if (m.id <= chatLast) continue; chatLast = m.id; const d = document.createElement("div"); d.className = "msg" + (m.user_id ? "" : " sys") + (NET.user && m.user_id === NET.user.id ? " mine" : "");
     const mine = NET.user && m.user_id === NET.user.id, t = m.at ? new Date(m.at).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }) : "";
     const mem = (chatMembers || []).find(x => x.id === m.user_id), col = mem && CLUBS[mem.club] ? CLUBS[mem.club].b : "#ffd34d";
     markChatSeen(m.id);
     d.innerHTML = m.user_id ? `${mine ? "" : `<b style="color:${col === "#ffffff" || col === "#111111" ? "#ffd34d" : col}">${esc(m.name)}</b>`}<span>${esc(m.text)}</span><i>${t}</i>` : esc(m.text); box.append(d); }
-  box.scrollTop = box.scrollHeight;
+  if(follow) box.scrollTop = box.scrollHeight;
 }
-async function refreshChat() { if (!$("chat")) return; try { const r = await api("/squad?after=" + chatLast); addMessages(r.messages || []); } catch (e) {} }
+let chatRefreshing=false;
+async function refreshChat() {
+  const chat=$("chat"); if(!chat||chatRefreshing) return;
+  chatRefreshing=true;
+  try { const r=await api("/squad?after="+chatLast); if(chat===$("chat")) addMessages(r.messages||[]); }
+  catch(e) {} finally { chatRefreshing=false; }
+}
 
 // ---------- start-up ----------
 async function netStart() {
@@ -258,4 +295,6 @@ async function netStart() {
   try { const me = await api("/me"); if (me.profile && S) { /* server may know about trophy changes from attacks */ } } catch (e) {}
   await checkInbox(); pushSave(); checkChat();
 }
-setInterval(() => { if (signedIn() && mode === "home") { checkInbox(); checkChat(); } }, 60000);
+setInterval(checkInbox,12000);
+setInterval(() => { if(signedIn()&&mode==="home"&&!document.hidden) checkChat(); },60000);
+addEventListener("visibilitychange",()=>{if(!document.hidden) checkInbox();});

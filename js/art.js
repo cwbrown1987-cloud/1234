@@ -372,22 +372,6 @@ function loadCaptainSheet(key,clubs,rowStops) {
   loadArtSheet(FOOTY_SHEETS[key],3,3,poses,0,rowStops);
 }
 
-function drawPitchMarkings() {
-  const [cx,cy] = P(N/2,N/2);
-  ctx.save();
-  ctx.translate(cx,cy);
-  ctx.transform(TW/2,TH/2,-TW/2,TH/2,0,0);
-  ctx.strokeStyle = "#fff1bf51";
-  ctx.lineWidth = .085;
-  ctx.beginPath();
-  ctx.ellipse(0,0,N*.46,N*.37,0,0,Math.PI*2);
-  ctx.rect(-2.2,-2.2,4.4,4.4);
-  ctx.moveTo(1.1,0);
-  ctx.arc(0,0,1.1,0,Math.PI*2);
-  ctx.stroke();
-  ctx.restore();
-}
-
 function drawFlyerArt(x,y,kind,face,attacking) {
   const row = attacking ? (kind==="seagulls"?"swoop":"drop") : (kind==="seagulls"?"flap":"float");
   const motion = artSprites.get(motionFrame(kind,row,performance.now(),kind==="seagulls"?12:8)) ||
@@ -497,7 +481,7 @@ function drawTurfGrain(cx,cy) {
     const random=rng(5219);
     for (let i=0; i<6700; i++) {
       const x=random()*tile.width, y=random()*tile.height, size=.55+random()*1.6;
-      turf.fillStyle=i%3===0?"#f5d57056":i%3===1?"#34462645":"#d8ec8e34";
+      turf.fillStyle=i%3===0?"#c5de952c":i%3===1?"#254c2a34":"#9fd57428";
       turf.fillRect(x,y,size*1.45,size);
     }
     turfGrain=ctx.createPattern(tile,"repeat");

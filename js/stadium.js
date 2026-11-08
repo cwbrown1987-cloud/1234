@@ -62,6 +62,11 @@ const stadiumMatchCrowds = new WeakMap();
 let stadiumHomeCrowd;
 const stadiumOuter = () => BOWL.R0+14;
 const stadiumPoint = (radius,z,angle) => ringPt(radius,z,STADIUM_REAR+angle);
+const GOAL_DEPTH=BOWL.R0-.55;
+function pitchPoint(across,along,z=0){
+  const a=STADIUM_REAR, c=Math.cos(a), s=Math.sin(a);
+  return P(N/2+along*c-across*s,N/2+along*s+across*c,z);
+}
 
 function stadiumRig(angle) {
   const radius=stadiumOuter()+.9, aim=2.8;
@@ -381,12 +386,7 @@ function drawStadiumBowl(club,match) {
     for (let i = 0; i < 5; i++) for (let j = 0; j < 3; j++) { ctx.beginPath(); ctx.arc(tx - w / 2 + w * (i + .5) / 5, ty - h + h * (j + .5) / 3, TW * .11, 0, 7); ctx.fillStyle = "#fffbe8"; ctx.fill(); }
   }
 
-  // the playing surface: an oval of grass with mown stripes and a white boundary line, ringed by advertising boards
-  annulus(0, 0, R0 + 1.25, 0, "#7f9a3a");
-  ctx.save(); ctx.beginPath(); ringPath(R0 + 1.2, 0, false); ctx.closePath(); ctx.clip();
-  for (let k = -N; k < N * 2; k += 3) { ctx.fillStyle = "#8eaa45"; ctx.beginPath(); const a = P(k, -N), b = P(k + 1.5, -N), c2 = P(k + 1.5, N * 2), d = P(k, N * 2); ctx.moveTo(...a); ctx.lineTo(...b); ctx.lineTo(...c2); ctx.lineTo(...d); ctx.fill(); }
-  ctx.restore();
-  ctx.beginPath(); ringPath(R0, 0, false); ctx.closePath(); ctx.strokeStyle = "#f4f1e6"; ctx.lineWidth = Math.max(2, TW * .07); ctx.stroke();
+  drawOvalTurf();
   const boards = 32;
   const board = artSprites.get("stadium-board");
   for (let i = 0; i < boards; i++) {
@@ -423,29 +423,57 @@ function drawStadiumBowl(club,match) {
       drawBadge(ctx,x,y+h*.55,w*.27,club);
     }
   }
-  if(painted){
-    for (const end of [STADIUM_REAR,STADIUM_REAR+Math.PI]) {
-      for (const offset of [-.13,-.05,.05,.13]) {
-        const [x,y] = ringPt(R0-.8,0,end+offset);
-        const h = TH*(Math.abs(offset)<.1?3.2:2.15);
-        ctx.lineCap = "round";
-        ctx.strokeStyle = "#3e5143"; ctx.lineWidth = Math.max(2,TW*.072);
-        ctx.beginPath(); ctx.moveTo(x,y); ctx.lineTo(x,y-h); ctx.stroke();
-        ctx.strokeStyle = "#faf3df"; ctx.lineWidth = Math.max(1.5,TW*.045); ctx.stroke();
-      }
-    }
-  }
+  drawOvalGoals();
 }
 
-// Clash-style footprint under each building: worn turf that stays inside the footprint, plus a soft contact shadow.
-function groundPatch(x, y, s) {
-  const inset = .1;
-  for (const [m, col] of [[0, "#2f5a1430"], [.1, "#3e6d1a30"], [.22, "#4f7d2224"]]) {
-    poly([P(x + inset + m, y + inset + m), P(x + s - inset - m, y + inset + m), P(x + s - inset - m, y + s - inset - m), P(x + inset + m, y + s - inset - m)], col, null);
+function drawOvalTurf(){
+  const r=BOWL.R0;
+  ctx.save();
+  ctx.beginPath(); ringPath(r+1.25,0,false); ctx.closePath(); ctx.clip();
+  const [cx,cy]=pitchPoint(0,0), grass=ctx.createLinearGradient(cx,cy-r*TH,cx,cy+r*TH);
+  grass.addColorStop(0,"#477f3b"); grass.addColorStop(.48,"#6b9d4a"); grass.addColorStop(1,"#548842");
+  ctx.fillStyle=grass; ctx.fillRect(0,0,W,H);
+  for(let k=-r;k<r;k+=5.2) poly([pitchPoint(-r,k),pitchPoint(r,k),pitchPoint(r,k+2.6),pitchPoint(-r,k+2.6)],"#b9d57f32",null);
+  drawTurfGrain(cx,cy);
+  ctx.restore();
+  ctx.save();
+  ctx.strokeStyle="#f3f3d9d0"; ctx.lineWidth=Math.max(1,TW*.042);
+  ctx.beginPath(); ringPath(r,0,false); ctx.closePath(); ctx.stroke(); ctx.clip();
+  const [xx,xy]=pitchPoint(1,0), [yx,yy]=pitchPoint(0,1);
+  ctx.transform(xx-cx,xy-cy,yx-cx,yy-cy,cx,cy);
+  ctx.lineWidth=.10;
+  ctx.beginPath();
+  ctx.rect(-3,-3,6,6);
+  ctx.moveTo(1.15,0); ctx.arc(0,0,1.15,0,2*Math.PI);
+  for(const end of [-1,1]){
+    const y=end*GOAL_DEPTH;
+    ctx.rect(-1.05,end<0?y:y-2.9,2.1,2.9);
+    ctx.moveTo(-r*.32,y);
+    ctx.arc(0,y,r*.32,Math.PI,end<0?0:2*Math.PI,end<0);
   }
-  const [cx, cy] = P(x + s * .58, y + s * .6), rx = TW * s * .42, ry = TH * s * .42;
+  ctx.stroke();
+  ctx.restore();
+}
+function drawOvalGoals(){
+  ctx.save(); ctx.lineCap="round";
+  for(const end of [-1,1]) for(const across of [-3.15,-1.05,1.05,3.15]){
+    const [x,y]=pitchPoint(across,end*GOAL_DEPTH);
+    const height=TH*(Math.abs(across)<2?5.4:3.65);
+    ctx.fillStyle="#27472875"; ctx.beginPath(); ctx.ellipse(x,y,TW*.17,TH*.14,0,0,Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(x,y); ctx.lineTo(x,y-height);
+    ctx.strokeStyle="#455a4a"; ctx.lineWidth=Math.max(2,TW*.105); ctx.stroke();
+    ctx.strokeStyle="#fbf8e5"; ctx.lineWidth=Math.max(1.6,TW*.071); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(x,y); ctx.lineTo(x,y-TH*.66);
+    ctx.strokeStyle="#f2f2e4"; ctx.lineWidth=Math.max(3,TW*.16); ctx.stroke();
+  }
+  ctx.restore();
+}
+
+// Contact shadow tucks into the sprite's visible footing.
+function groundPatch(x, y, s) {
+  const [cx, cy] = P(x + s * .53, y + s * .57), rx = TW * s * .44, ry = TH * s * .44;
   const g = ctx.createRadialGradient(cx, cy, 0, cx, cy, rx);
-  g.addColorStop(0, "#14200a66"); g.addColorStop(.7, "#14200a26"); g.addColorStop(1, "#14200a00");
+  g.addColorStop(0, "#172a16bd"); g.addColorStop(.52, "#172a1680"); g.addColorStop(1, "#172a1600");
   ctx.save(); ctx.translate(cx, cy); ctx.scale(1, ry / rx); ctx.fillStyle = g; ctx.beginPath(); ctx.arc(0, 0, rx, 0, 7); ctx.fill(); ctx.restore();
 }
 

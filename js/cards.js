@@ -241,7 +241,7 @@ function statsPanel(c, t) {
 // ---------- album: a leather binder like the mock-up ----------
 let albumClub = null, albumSel = null, albumPage = 0, albumTab = "album";
 const slotsPerSpread = () => albumClub === "sp" ? 8 : 12; // a club's 11 cards fit on one spread (two pages of 2 x 3)
-function openAlbum(club) { menuBack = null;
+function openAlbum(club, keepScroll=false) { menuBack = null; hubCtx=null;
   if (club !== undefined && club !== albumClub) { albumSel = null; albumPage = 0; }
   albumClub = club ?? albumClub ?? S.club;
   const tokens = S.tokens || 0, canOpen = tokens >= PACK_COST;
@@ -273,23 +273,22 @@ function openAlbum(club) { menuBack = null;
       ${S.prizePacks ? `<button class="btn red" id="openPrize"><img class="packmini" src="${packImg("prize")}" alt=""> Open Prize Pack ×${S.prizePacks}<small>includes a 24K Gold card</small></button>` : `<div class="rwd"><b>🏆 Prize Pack</b><span>Every 5 Experience Levels. Includes a 24K Gold card. Next at level ${Math.ceil((S.lvl + 1) / 5) * 5}.</span></div>`}
       <div class="rwd"><b>⬆️ Upgrades</b><span>3 matching duplicates upgrade a card: Common → Rare → Epic → Legendary. Cards are for collecting and don't change match stats.</span></div></div>`;
   }
-  const h = `<div class="fcc">
-    <div class="fccbanner"><span class="emblem">🏉</span><div><b>Footy Card Collectors</b><small>Collect · Upgrade · Complete the set</small></div></div>
+  const header = `<div class="album-head">
+    <div class="fccbanner">${uiArt("ico-cards","🏉")}<div><b>Footy Card Collectors</b><small>Club card album</small></div></div>
     <div class="atabs">${tab("album", '<span class="cicon"><i></i><i></i></span>', "Album")}<button class="atab soon" data-tab="trade"><b>⇄</b>Trade<i class="soontag">Soon</i></button>${tab("sets", "🛡️", "Sets")}${tab("rewards", "🎁", "Rewards")}</div>
-    ${body}
-    <div class="woodbar"><div class="clubstrip">${CLUBS.map((c, i) => { const [o, t] = albumCount(x => x.club === i && !x.special); return `<button class="${i === albumClub ? "on" : ""}${o === t ? " done" : ""}" data-club="${i}">${badgeImg(c, "xs")}${i !== albumClub && clubHasNew(x => x.club === i && !x.special) ? '<i class="ndot"></i>' : ""}</button>`; }).join("")}<button class="${albumClub === "sp" ? "on" : ""}" data-club="sp"><b class="spstar">⭐</b>${albumClub !== "sp" && clubHasNew(x => x.special) ? '<i class="ndot"></i>' : ""}</button></div><button class="stripnext" id="stripNext">›</button></div>
-    <div class="fccfoot">
+    <div class="woodbar"><div class="clubstrip">${CLUBS.map((c, i) => { const [o, t] = albumCount(x => x.club === i && !x.special); return `<button aria-label="${c.name}" class="${i === albumClub ? "on" : ""}${o === t ? " done" : ""}" data-club="${i}">${badgeImg(c, "xs")}${i !== albumClub && clubHasNew(x => x.club === i && !x.special) ? '<i class="ndot"></i>' : ""}</button>`; }).join("")}<button aria-label="Special cards" class="${albumClub === "sp" ? "on" : ""}" data-club="sp"><b class="spstar">⭐</b>${albumClub !== "sp" && clubHasNew(x => x.special) ? '<i class="ndot"></i>' : ""}</button></div><button class="stripnext" id="stripNext" aria-label="More clubs">›</button></div></div>`;
+  const actions = `<div class="fccfoot">
       <div class="sets"><b class="setsicon"><span class="cicon"><i></i><i></i></span></b><div><span>Sets</span><i><b style="width:${sets / 18 * 100}%"></b></i></div><em>${sets}/18</em></div>
       <button class="btn green openpack" id="openPackBtn" ${canOpen ? "" : "disabled"}><b class="packicon"><span class="cicon"><i></i><i></i></span></b>Open Pack<small>${PACK_COST} 🎟️ · you have ${tokens}</small>${canOpen ? '<span class="bang">!</span>' : ""}</button>
-    </div></div>`;
-  modal(h); $("modal").querySelector(".card").classList.add("albummode"); tut("cards");
+    </div>`;
+  modal(`<div class="fcc">${body}</div>`,{header,actions,album:true,keepScroll}); tut("cards");
   if (albumTab === "album" && S.albumNew) { for (const c of spread) if (c && S.albumNew[c.id]) delete S.albumNew[c.id]; save(); }
   document.querySelectorAll("[data-club]").forEach(b => b.onclick = () => { const v = b.dataset.club; albumTab = "album"; openAlbum(v === "sp" ? "sp" : +v); });
   document.querySelectorAll("[data-set]").forEach(b => b.onclick = () => { const v = b.dataset.set; albumTab = "album"; openAlbum(v === "sp" ? "sp" : +v); });
   document.querySelectorAll("[data-tab]").forEach(b => b.onclick = () => { if (b.dataset.tab === "trade") return toast("Trading cards with other players is coming soon!"); albumTab = b.dataset.tab; openAlbum(); });
   document.querySelectorAll("[data-ac]").forEach(el => el.onclick = () => { const c = CARD_BY_ID[el.dataset.ac];
     if (!bestTier(c)) return toast(c.special ? `${SPECIALS[c.kind].name}: comes from the special slot in packs` : `#${pad3(c.num)} ${c.name}: not collected yet. Keep opening packs!`);
-    albumSel = c.id; openAlbum(); });
+    albumSel = c.id; openAlbum(undefined,true); });
   document.querySelectorAll("[data-view]").forEach(el => el.onclick = () => showAlbumCard(CARD_BY_ID[el.dataset.view]));
   const pp = $("pgPrev"), pn = $("pgNext"); if (pp) pp.onclick = () => { albumPage--; openAlbum(); }; if (pn) pn.onclick = () => { albumPage++; openAlbum(); };
   const strip = document.querySelector(".clubstrip"), sc = strip.querySelector(".on"); if (sc) strip.scrollLeft = sc.offsetLeft - strip.clientWidth / 2 + sc.clientWidth / 2;

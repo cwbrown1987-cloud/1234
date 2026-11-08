@@ -266,7 +266,12 @@ function battleTap(x,y){
   if(!BT||BT.over||BT.finishing||BT.visit||!BT.sel||BT.mode!=="attack") return;
   if(x<-1.5||y<-1.5||x>N+1.5||y>N+1.5) return;
   const {k,v}=BT.sel;
-  if(deployAt(k,v,x,y)){ if(k==="unit") sfx("tap",.2); autoSel(); uiDirty=true; tut("deploy"); }
+  const first=!BT.started;
+  if(deployAt(k,v,x,y)){
+    if(first&&typeof netAttackStarted==="function") netAttackStarted(BT);
+    if(k==="unit") sfx("tap",.2);
+    autoSel(); uiDirty=true; tut("deploy");
+  }
 }
 function autoSel(){ const s=BT.sel; const has = s&&(s.k==="unit"?BT.left[s.v]>0:s.k==="spell"?BT.spellsLeft[s.v]>0:BT.heroesLeft[s.v]); if(!has){ BT.sel=firstSel(); uiDirty=true; } }
 
@@ -370,10 +375,9 @@ function renderBattle(){
     ctx.save(); ctx.globalAlpha=.25+.1*Math.sin(performance.now()/120); ctx.beginPath(); ctx.ellipse(x,y,z.r*TW*.72,z.r*TH*.72,0,0,7); ctx.fillStyle=col; ctx.fill(); ctx.globalAlpha=.8; ctx.strokeStyle=col; ctx.lineWidth=3; ctx.stroke(); ctx.restore();
     if(z.k==="rain") rainDrops(z); }
   const ents=[];
-  for(const t of deco) ents.push({k:t.x+t.y,f:()=>drawDeco(t)});
   // Knocked-down buildings are flat rubble on the ground: draw them first so players never hide behind them.
   for(const b of BT.buildings) ents.push({k:b.hp<=0?-1e3+b.x+b.y:b.x+b.y+BLD[b.t].size,f:()=>drawBuilding(b,club,BT.buildings,{hideTraps:BT.mode==="attack",fill:.6,heroes:BT.homeHeroes||{captain:club}})});
-  for(const u of BT.units) if(u.hp>0) ents.push({k:u.x+u.y+(u.air?40:0),f:()=>drawUnitB(u)});
+  for(const {u,x,y} of battlePlayerPositions()) ents.push({k:x+y+(u.air?40:0),f:()=>drawUnitB(u,x,y)});
   // knocked-out players play their KO animation, lie there a moment, then fade
   if(BT.kos){ const now=performance.now(); BT.kos=BT.kos.filter(o=>now-o.at<1600);
     for(const o of BT.kos) ents.push({k:o.u.x+o.u.y,f:()=>drawKO(o,now)}); }
@@ -437,9 +441,42 @@ function drawCollapse({x,y,t,size,debris}){
   ctx.restore();
 }
 function rainDrops(z){ ctx.save(); ctx.strokeStyle="#9fd3ff"; ctx.lineWidth=1.5; const t=performance.now()/200; for(let i=0;i<24;i++){ const a=i*2.4, r=z.r*((i*37%10)/10); const [x,y]=P(z.x+Math.cos(a)*r,z.y+Math.sin(a)*r,3-((t+i*.3)%1)*3); ctx.beginPath(); ctx.moveTo(x,y); ctx.lineTo(x-3,y+TH*.4); ctx.stroke(); } ctx.restore(); }
-function drawUnitB(u){
-  if(u.air) return drawFlyer(u);
-  const [x,y]=P(u.x,u.y);
+// Give players separate screen space while preserving deterministic damage and replays.
+const battlePlayerOffsets=new WeakMap();
+function battlePlayerPositions(){
+  const spots=new Map(), spacing=.42;
+  const cell=(x,y,air)=>`${x},${y},${air}`;
+  const clear=(u,x,y)=>{
+    if(!u.air&&x>=0&&x<N&&y>=0&&y<N&&BT.grid?.[(y|0)*N+(x|0)]?.hp>0) return false;
+    const ix=Math.floor(x/spacing), iy=Math.floor(y/spacing);
+    for(let dx=-1;dx<=1;dx++) for(let dy=-1;dy<=1;dy++){
+      const neighbours=spots.get(cell(ix+dx,iy+dy,u.air));
+      if(neighbours?.some(p=>(x-p.x)**2+(y-p.y)**2<spacing**2)) return false;
+    }
+    return true;
+  };
+  const positions=[];
+  for(const u of BT.units){
+    if(u.hp<=0) continue;
+    let x=u.x,y=u.y;
+    if(!clear(u,x,y)) for(let i=1;i<=18;i++){
+      const radius=.25*Math.sqrt(i), angle=(i+u.id)*2.39996;
+      const nx=u.x+radius*Math.cos(angle), ny=u.y+radius*Math.sin(angle);
+      if(clear(u,nx,ny)){ x=nx; y=ny; break; }
+    }
+    const key=cell(Math.floor(x/spacing),Math.floor(y/spacing),u.air);
+    if(!spots.has(key)) spots.set(key,[]);
+    spots.get(key).push({x,y});
+    const previous=battlePlayerOffsets.get(u)||{x:0,y:0};
+    const offset={x:previous.x*.64+(x-u.x)*.36,y:previous.y*.64+(y-u.y)*.36};
+    battlePlayerOffsets.set(u,offset);
+    positions.push({u,x:u.x+offset.x,y:u.y+offset.y});
+  }
+  return positions;
+}
+function drawUnitB(u,gx,gy){
+  if(u.air) return drawFlyer(u,gx,gy);
+  const [x,y]=P(gx,gy);
   const k = TW*(u.hero?.5:u.kind==="ruck"?.42:u.kind==="trainer"?.4:u.kind==="tagger"?.3:.33);
   drawPlayer(x,y,k,u.club,{id:u.id,moving:u.moving,face:u.face,atk:u.atk>0,kind:u.pos==="coach"?"coach":u.kind,hero:u.hero,heroKey:u.heroKey,ranged:u.ranged,rage:u.rage>0,unit:u,ko:u.hp<=0});
   if(u.immune>0){ ctx.save(); ctx.globalAlpha=.35; ctx.fillStyle="#ffd34d"; ctx.beginPath(); ctx.ellipse(x,y-k*1.4,k*1.2,k*1.9,0,0,7); ctx.fill(); ctx.restore(); }
@@ -454,8 +491,8 @@ function drawKO(o,now){
     ctx.fillStyle="#ddd"; const t=Math.min(1,(now-o.at)/600); for(let i=0;i<4;i++){ ctx.beginPath(); ctx.arc(x+(i-1.5)*TW*.15,y-TH*(.5+t*2),TW*.15*(1-t),0,7); ctx.fill(); } }
   ctx.restore();
 }
-function drawFlyer(u){
-  const [gx,gy]=P(u.x,u.y), [x,y]=P(u.x,u.y,2.4+Math.sin(performance.now()/300+u.id)*.15);
+function drawFlyer(u,wx,wy){
+  const [gx,gy]=P(wx,wy), [x,y]=P(wx,wy,2.4+Math.sin(performance.now()/300+u.id)*.15);
   ctx.save(); ctx.globalAlpha=.25; ctx.fillStyle="#000"; ctx.beginPath(); ctx.ellipse(gx,gy,TW*.35,TH*.25,0,0,7); ctx.fill(); ctx.restore();
   if(!drawFlyerArt(x,y,u.kind,u.face,u.atk>0)) {
     if(u.kind==="seagulls") seagullFlock(x,y,u);

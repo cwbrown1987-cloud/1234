@@ -76,9 +76,15 @@ function refreshUI(){
 const unreadRaids=()=>S.raids.filter(r=>!r.seen).length;
 function updateLogBadge(){
   const n=unreadRaids();
-  $("logDot").textContent=n;
-  $("logDot").classList.toggle("hide",!n);
-  $("btnAttack").setAttribute("aria-label",n?`Battle, ${n} unread in the log`:"Battle");
+  const live=typeof liveAttackText==="function"&&liveAttackText();
+  $("logDot").textContent=live?"!":n;
+  $("logDot").classList.toggle("hide",!n&&!live);
+  $("btnAttack").setAttribute("aria-label",live?`Battle, ${live}`:n?`Battle, ${n} unread in the log`:"Battle");
+  const link=$("unreadLog");
+  if(link){
+    link.classList.toggle("hide",!n&&!live);
+    link.textContent=live?"Your ground is under attack ›":`${n} new in the battle log ›`;
+  }
 }
 let seenEvent="";
 try { seenEvent=localStorage.getItem("ffSeenEvent")||""; } catch(e) {}
@@ -175,14 +181,14 @@ function goBack(){ const f=menuBack; menuBack=null; if(f) f(); else closeModal()
 function modal(html, opts={}){
   const layer=$("modal"), card=layer.querySelector(".card"), wasPinned=card.classList.contains("pinned");
   const scroller=wasPinned?$("modalBody"):card, scrollTop=opts.keepScroll?scroller.scrollTop:0;
-  const header=hubCtx?hubBarHTML():"", actions=opts.actions||"";
-  card.classList.remove("albummode");
+  const header=opts.header??(hubCtx?hubBarHTML():""), actions=opts.actions||"";
+  card.classList.toggle("albummode",!!opts.album);
   card.classList.toggle("pinned",!!(header||actions));
   card.classList.toggle("has-hub",!!header);
   $("modalHead").innerHTML=header;
   $("modalBody").innerHTML=html;
   $("modalActions").innerHTML=actions;
-  if(hubCtx) bindHubBar();
+  if(hubCtx&&opts.header===undefined) bindHubBar();
   layer.classList.toggle("match-day",!!opts.matchDay);
   layer.classList.add("show");
   $("modalX").style.display=opts.noClose?"none":"block";
@@ -342,6 +348,7 @@ function openTasks(){
 }
 function openLog(){
   let h=`<h2>Home Games</h2><p class="center tiny">Clubs that came to your ground while you were away.</p>`;
+  h+=`<div class="live-attacks" id="liveAttacks" aria-live="polite">${esc(liveAttackText())}</div>`;
   if(!S.raids.length) h+=`<p class="center">No visitors yet. They will come…</p>`;
   for(const r of S.raids){ const c=CLUBS[r.club]||CLUBS[0], ago=fmtTime((Date.now()-r.at)/1000);
     const who=r.attacker?`${esc(r.attacker)}${r.real?"":' <span class="tag bot">BOT</span>'} <small>${c.short}</small>`:c.name;
@@ -362,11 +369,11 @@ function showReplayEnd(){
   const rv=$("rv2"); if(rv) rv.onclick=()=>{ closeModal(); leaveBattle(); revenge(r); };
 }
 function openMatch(){
-  const rk=ensureRanked(), left=rkAttacks(rk.tier)-rk.attacks, unread=unreadRaids();
+  const rk=ensureRanked(), left=rkAttacks(rk.tier)-rk.attacks;
   let h=`<div class="match-heading"><h2>Match Day</h2><button class="btn blue" id="rkTable">${rkBadge(rk.tier)} ${rkName(rk.tier)} table</button></div>
     ${rk.last?`<div class="banner">Last week: ${ordinal(rk.last.pos)} of ${rk.last.n}. ${rk.last.to>rk.last.from?"⬆ Promoted to ":rk.last.to<rk.last.from?"⬇ Moved down to ":"Staying in "}<b>${rkName(rk.last.to)}</b></div>`:""}
     <div class="center tiny">🏆 ${S.trophies} · ${left}/${rkAttacks(rk.tier)} ranked attacks left${S.shield>Date.now()?" · Attacking ends your shield":""}</div>
-    ${unread?`<button class="btn blue match-log-link" id="unreadLog">${unread} new in the battle log ›</button>`:""}`;
+    <button class="btn blue match-log-link hide" id="unreadLog"></button>`;
   const online=typeof signedIn==="function"&&signedIn(), tutorial=tutActive();
   const cost=online?50*th():tutorial?0:10*th()*th();
   const matchLock=!Object.values(S.army).some(n=>n>0)?"Train players first":!canPay("pies",cost)?`Need ${fmt(cost)} pies`:"";
@@ -386,7 +393,8 @@ function openMatch(){
   if(typeof NET!=="undefined"&&NET.online) h+= online?`<div class="center tiny">Playing online as <b>${esc(NET.user.name)}</b> · <a href="#" id="lbLink">Leaderboard</a></div>`:`<div class="banner">Play real people and climb the leaderboard. <button class="btn green" id="goOnline">Play online</button></div>`;
   if(s.results.length) h+=`<h3>Recent results</h3><div class="fixture">${[...s.results].reverse().slice(0,6).map(r=>`<div class="fx"><span class="wl ${r.res}">${r.res}</span>${badgeImg(CLUBS[r.club],"sm")}<span class="nm"><small>${r.name}</small><br>${fmtScore(r.my)} – ${fmtScore(r.their)}</span></div>`).join("")}</div>`;
   modal(h,{actions,matchDay:true}); tut("match");
-  if(unread) $("unreadLog").onclick=()=>openHub("battle","Log");
+  $("unreadLog").onclick=()=>openHub("battle","Log");
+  updateLogBadge();
   const lb=$("lbLink"); if(lb) lb.onclick=e=>{ e.preventDefault(); openSocial("Leaderboard"); };
   const go=$("goOnline"); if(go) go.onclick=sub(()=>{ hubCtx=null; openAccount(); },()=>openHub("battle","Play"));
   const find=ranked=>{ if(online) return findOnlineMatch([],ranked);
@@ -470,6 +478,7 @@ $("btnCards").onclick=()=>{ hubCtx=null; openAlbum(); };
 $("btnTasks").onclick=()=>openPass();
 $("btnEvents").onclick=()=>openEvents();
 $("btnSocial").onclick=()=>{ hubCtx=null; openSocial(); };
+$("btnSettings").onclick=()=>{ menuBack=null; hubCtx=null; openSettings(); };
 $("clubBadge").onclick=()=>openProfile();
 $("builders").onclick=()=>openBuilders();
 $("buyMedals").onclick=e=>{ e.stopPropagation(); openHub("build","Shop"); };

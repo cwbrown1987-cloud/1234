@@ -480,15 +480,13 @@ p.clash{color:#8a6d45;font-size:13px;margin:-4px 0 6px}
   .fcc{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);gap:8px 10px;align-items:start}
   .fcc>*{min-width:0}
   .fcc>*{grid-column:1}
-  .fcc>.fccbanner{margin:0;padding:5px 10px}
+  .fcc>.binder{grid-row:2 / span 2}
   .fccbanner b{font-size:24px}.fccbanner .emblem{width:34px;height:34px;font-size:18px}
-  .fcc>.atabs{grid-column:2;grid-row:1;margin-right:46px}
   .atab{padding:3px 2px;font-size:11px}.atab b{font-size:17px}
-  .fcc>.statpanel,.fcc>.setlist,.fcc>.rewards{grid-column:2;grid-row:2 / span 3}
-  .fcc>.woodbar{grid-column:1}
+  .fcc>.statpanel{grid-column:2;grid-row:1 / span 3}
+  .fcc>.setlist,.fcc>.rewards{grid-column:1 / -1}
   .fcc .statpanel{grid-template-columns:96px 1fr;gap:8px;padding:8px}
   .fcc .sbar{grid-template-columns:auto minmax(46px,1fr) 22px;font-size:11px;gap:4px}
-  .fcc>.fccfoot{grid-column:2}
 }
 .fradd{display:flex;gap:6px;margin:4px 0}
 .fradd input{flex:1;min-width:0;font:inherit;font-size:16px;padding:8px 10px;border-radius:10px;border:3px solid #3a2a18;background:#fffdf6;color:#222;text-shadow:none}
@@ -717,12 +715,60 @@ body:not(.ffui) .match-day #modalActions{
 .round .uia{font-size:30px}
 .round.attack .uia{font-size:34px}
 .sidebtn .uia img{display:block}
+.settings-gear{width:1.15em;height:1.15em;fill:#fff3ce;stroke:#1c4268;stroke-width:1;stroke-linejoin:round;filter:drop-shadow(0 1px 1px #132b4d80)}
 #homeBtns .round,#side .sidebtn,.btn,#modal .btn,#modal .hubtabs button,#modal .tabs button,#modal .x,
 #selPanel .btn,#placePanel .btn{box-shadow:inset 0 1px 0 #fff6,0 2px 4px #13283926}
 #homeBtns .round:active,#side .sidebtn:active,.btn:active,#modal button:active,#selPanel .btn:active,#placePanel .btn:active{
   box-shadow:inset 0 1px 2px #1c1c2526}
 #placePanel{width:max-content;max-width:calc(100% - 20px)}
 #placePanel .btn{flex:none}
+.card, #modalBody, .ladwrap, .chat, #cards, .clubstrip{
+  scrollbar-width:none;
+  -webkit-overflow-scrolling:touch;
+}
+.card::-webkit-scrollbar, #modalBody::-webkit-scrollbar, .ladwrap::-webkit-scrollbar,
+.chat::-webkit-scrollbar, #cards::-webkit-scrollbar, .clubstrip::-webkit-scrollbar{display:none}
+.clubstrip{touch-action:pan-x}
+.chat .msg{flex-shrink:0}
+.social-head h2{min-height:36px;margin-bottom:5px}
+.social-head .tabs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));padding-bottom:3px}
+.social-head .tabs button{padding-inline:2px;min-height:43px}
+.live-attacks{background:#ffedc3;color:#6f3118;border:2px solid #b86440;border-radius:10px;padding:8px;margin:6px 0}
+.live-attacks:empty{display:none}
+.card.pinned.albummode{
+  max-height:min(92dvh,100%);background:linear-gradient(#f9edce,#e1c18b);color:#2b3549;
+  border-color:#25344a;box-shadow:inset 0 0 0 2px #fff4d7,0 4px 12px #101a3050;
+}
+.album-head{display:grid;grid-template-columns:minmax(0,1fr);gap:6px;margin-bottom:7px}
+.album-head .atabs{grid-template-columns:repeat(4,minmax(0,1fr))}
+.album-head .clubstrip{min-width:0}
+.album-head .fccbanner{
+  padding:6px 44px 6px 7px;margin:0;background:linear-gradient(#3678ad,#214c78);
+  border:2px solid #244262;box-shadow:inset 0 1px 0 #ffffff60;
+}
+.album-head .fccbanner::before,.album-head .fccbanner::after{content:none}
+.album-head .fccbanner .uia img{width:32px;height:32px}
+.album-head .fccbanner b{font-size:clamp(17px,5.4vw,26px);color:#fff3d2;letter-spacing:0;text-shadow:0 2px 0 #183b62}
+.album-head .fccbanner small{font-size:11px;color:#d8e9fa}
+.album-head .atab{background:linear-gradient(#68a7d8,#316d9f);border:2px solid #28517d;box-shadow:inset 0 1px 0 #fff7}
+.album-head .atab.on{background:linear-gradient(#ffe895,#e7aa37);border-color:#9b691d;color:#322311;text-shadow:none}
+.album-head .atab.soon{opacity:.64}
+.album-head .woodbar{background:#e5c999;border:1px solid #ad8953;padding:3px;box-shadow:none}
+.album-head .clubstrip button{width:36px;height:36px;border-width:2px;background:#233d5b}
+.album-head .clubstrip button.on{border-color:#eaae37;box-shadow:none}
+.albummode .fcc{text-shadow:none}
+.albummode .pagehead small{color:#645132}
+.albummode .binder{background:#2c4058;border:2px solid #1c2b40;box-shadow:inset 0 0 0 2px #ffffff30,0 2px 5px #15233850}
+.albummode .bpage{background:linear-gradient(150deg,#fff5df,#e7d1a5);box-shadow:inset 0 0 6px #9b744e66}
+.albummode .aslot.empty{background:#e1cba3;color:#45351d;border-color:#a88b5b}
+.albummode .aslot.empty span{color:#65471f}
+.albummode .aslot.blank{background:#e5d4b0;border-color:#b69b70}
+.albummode #modalActions{display:block;margin:0;padding:4px;background:#fff1ce;border:1px solid #b89b69}
+.albummode .fccfoot .openpack,.albummode .fccfoot .sets{min-height:44px}
+.albummode .fccfoot .sets{background:#f2dcae;color:#49351b;border:2px solid #b4935f;box-shadow:none}
+.albummode .fccfoot .openpack{display:grid;grid-template-columns:auto 1fr;gap:0 5px;font-size:16px}
+.albummode .openpack .packicon{grid-row:span 2}
+.albummode .openpack small{grid-column:2}
 @media (max-width:360px){
   #shopGrid{grid-template-columns:repeat(2,minmax(0,1fr))}
   .match-heading h2{font-size:21px}

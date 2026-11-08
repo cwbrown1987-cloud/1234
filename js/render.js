@@ -471,17 +471,6 @@ function drawMini(x,y,club){ const [px,py]=P(x,y,.55); drawPlayer(px,py,TW*.13,c
 function drawHeroStatue(x,y,z,club,hk,noLabel,size=.36){ const H=HEROES[hk], pos=H.pos(club), [px,py]=P(x,y,z); drawPlayer(px,py,TW*size,club,{hero:true,heroKey:hk,kind:pos==="coach"?"coach":null,ranged:HERO_POS[pos].ranged,id:hk==="coach"?5:1}); if(!noLabel) txt(H.name(club).split(" ").pop(),px,py+TH*.35,TH*.55,GOLD); }
 
 // ---------- scenery ----------
-let deco=null, tufts=null, patches=[];
-function makeDeco(){
-  const r=rng(42); deco=[]; tufts=[];
-  for(let i=-10;i<N+10;i++) for(let j=-10;j<N+10;j++){
-    if(i>=-2&&j>=-2&&i<=N+2&&j<=N+2) continue; // clear apron so border trees never hide the ground
-    if(i>=-5&&j>=-5&&i<=N+1&&j<=N+1&&(i<0||j<0)) continue;
-    if(false) deco.push({x:i+.2+r()*.6,y:j+.2+r()*.6,k:r()<.72?"tree":r()<.6?"bush":"rock",s:.7+r()*.3,h:r()});
-  }
-  for(let n=0;n<320;n++) tufts.push([r()*N,r()*N]);
-  patches=[]; for(let n=0;n<26;n++) patches.push([r()*N,r()*N,1+r()*2.5,r()<.5]);
-}
 function drawDeco(t,ox=0,oy=0){
   const [x,y]=P(t.x+ox,t.y+oy), k=TW*.5*(t.s||1);
   if(x<-k*2||x>W+k*2||y<-k*4||y>H+k) return;
@@ -576,37 +565,10 @@ function drawPebble(x,y,k){
 }
 
 function drawGround(){
-  if(!deco) makeDeco();
-  const [cx,cy]=P(N/2,N/2);
   const match = typeof mode!=="undefined" && mode==="battle" && typeof BT!=="undefined" && BT;
   const club = match ? CLUBS[BT.club] : (typeof S!=="undefined" && S ? myClub() : null);
   drawStadiumBowl(club,match);
-  diamond(0,0,N,N,"#91aa49");
-  for(let i=0;i<N;i+=4) diamond(i,0,2,N,"#a4bb515c");
-  for(const [a,b,r,dark] of patches){
-    const [x,y]=P(a,b), rad=r*TW*.60;
-    if(x<-rad||x>W+rad||y<-rad||y>H+rad) continue;
-    const patch=ctx.createRadialGradient(x,y,0,x,y,rad);
-    patch.addColorStop(0,dark?"#5f8a2a38":"#b4cf5a30");
-    patch.addColorStop(1,"#91aa4900");
-    ctx.fillStyle=patch;
-    ctx.fillRect(x-rad,y-rad,rad*2,rad*2);
-  }
-  ctx.save();
-  ctx.beginPath(); ringPath(BOWL.R0+1.2,0,false); ctx.closePath(); ctx.clip();
-  drawTurfGrain(cx,cy);
-  ctx.restore();
   drawStadiumLighting();
-  drawPitchMarkings();
-  ctx.strokeStyle="#4c71214d";
-  ctx.lineWidth=Math.max(1,TW*.018);
-  ctx.beginPath();
-  for(const [a,b] of tufts){
-    const [x,y]=P(a,b), s=TW*.065;
-    if(x<-s||x>W+s||y<-s||y>H+s) continue;
-    ctx.moveTo(x-s,y-s); ctx.lineTo(x,y); ctx.lineTo(x+s*.3,y-s*1.3);
-  }
-  ctx.stroke();
   if(match) drawAmbientBirds(performance.now()/1000);
 }
 

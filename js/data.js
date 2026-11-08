@@ -1,5 +1,5 @@
 // ---------- Game data ----------
-const VERSION = "2026.11.11.4";
+const VERSION = "2026.11.11.5";
 // Club names + colours. Logos: drop PNGs named <abbr>.png (e.g. coll.png) into the logos/ folder and they're used everywhere.
 // Player names checked against the 2026 trade period and retirements (lists for the 2027 season); edit freely.
 const CLUBS = [
@@ -168,7 +168,7 @@ const TASKS = [
   {k:"train",   goal:20,   text:n=>`Train ${n} players`},
   {k:"upgrade", goal:1,    text:n=>`Start ${n} upgrade${n>1?"s":""}`},
   {k:"pack",    goal:1,    text:n=>`Open ${n} pack${n>1?"s":""}`},
-  {k:"defend",  goal:1,    text:n=>n>1?`Defend your ground ${n} times`:"Defend your ground once"},
+  {k:"defend",  goal:1,    text:n=>n>1?`Hold off ${n} attacks on your ground`:"Hold off an attack on your ground"},
 ];
 const EVENTS = { // by weekday, 0 = Sunday
   0:{name:"Grand Final Weekend", desc:"Double loot from matches", loot:2},

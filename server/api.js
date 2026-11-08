@@ -32,6 +32,13 @@ async function newSession(env, userId) {
   return token;
 }
 const profileOut = p => p && ({id: p.user_id, name: p.name, club: p.club, th: p.th, trophies: p.trophies, bot: !!p.bot, squad: p.squad_id, shield: p.shield_until});
+const LIVE_ATTACK_MS = 210000;
+let attackNoticeSchema;
+function ensureAttackNotices(db) {
+  return attackNoticeSchema ??= db.prepare("CREATE TABLE IF NOT EXISTS attack_notices (attacker_id TEXT PRIMARY KEY, defender_id TEXT NOT NULL, at INTEGER NOT NULL, active INTEGER NOT NULL)").run()
+    .then(() => db.prepare("CREATE INDEX IF NOT EXISTS attack_notices_defender ON attack_notices(defender_id, at)").run())
+    .catch(error => { attackNoticeSchema = null; throw error; });
+}
 
 export async function handleApi(req, env) {
   if (!env.DB) return fail("Online play isn't set up on this server yet.", 503);
@@ -132,6 +139,24 @@ export async function handleApi(req, env) {
       if (!p) return fail("Player not found.", 404);
       return json({player: {...profileOut(p), base: p.base ? JSON.parse(p.base) : null}});
     }
+    if (path === "/attack/start" && m === "POST") {
+      const b = await body(req), defender = String(b.defender || "");
+      if (defender === me.id) return fail("Opponent not found.", 404);
+      const profile = await env.DB.prepare("SELECT bot, base, shield_until FROM profiles WHERE user_id = ?").bind(defender).first();
+      if (!profile?.base || profile.bot) return fail("Opponent not found.", 404);
+      if (profile.shield_until > now()) {
+        if (!b.friend) return fail("This ground is shielded.", 409);
+        const friend = await env.DB.prepare("SELECT 1 FROM friends WHERE user_id = ? AND friend_id = ?").bind(me.id, defender).first();
+        if (!friend) return fail("This ground is shielded.", 409);
+      }
+      await ensureAttackNotices(env.DB);
+      const at = now();
+      await env.DB.prepare(`INSERT INTO attack_notices(attacker_id,defender_id,at,active) VALUES(?,?,?,1)
+        ON CONFLICT(attacker_id) DO UPDATE SET defender_id=excluded.defender_id,at=excluded.at,active=1
+        WHERE attack_notices.at < ? OR (attack_notices.active=0 AND attack_notices.at < ?)`)
+        .bind(me.id, defender, at, at - LIVE_ATTACK_MS, at - 15000).run();
+      return json({ok: true});
+    }
     // ----- record an attack; the defender sees it in Home Games -----
     if (path === "/attack" && m === "POST") {
       const b = await body(req);
@@ -145,6 +170,10 @@ export async function handleApi(req, env) {
       const data = JSON.stringify({attacker: me.name, ...b, defTro, stars, pct});
       if (data.length > 150000) return fail("Replay is too big.");
       const stmts = [env.DB.prepare("INSERT INTO attacks(attacker_id,defender_id,at,data,seen) VALUES(?,?,?,?,0)").bind(me.id, def.user_id, now(), data)];
+      if (b.startedNotice) {
+        await ensureAttackNotices(env.DB);
+        stmts.push(env.DB.prepare("UPDATE attack_notices SET active=0 WHERE attacker_id=? AND defender_id=?").bind(me.id, def.user_id));
+      }
       if (!friendly) stmts.push(env.DB.prepare("UPDATE profiles SET trophies = MAX(0, trophies + ?), shield_until = MAX(shield_until, ?) WHERE user_id = ?").bind(defTro, shield, def.user_id));
       if (ranked && Number.isFinite(Number(b.myTrophies))) stmts.push(env.DB.prepare("UPDATE profiles SET trophies = ?, shield_until = 0 WHERE user_id = ?").bind(Math.max(0, Number(b.myTrophies)), me.id));
       await env.DB.batch(stmts);
@@ -182,8 +211,12 @@ export async function handleApi(req, env) {
       }
     }
     if (path === "/inbox" && m === "GET") {
-      const r = await env.DB.prepare("SELECT a.id, a.attacker_id, a.at, a.data, p.club FROM attacks a LEFT JOIN profiles p ON p.user_id = a.attacker_id WHERE a.defender_id = ? AND a.seen = 0 ORDER BY a.id LIMIT 20").bind(me.id).all();
-      return json({attacks: r.results.map(a => ({id: a.id, attackerId: a.attacker_id, at: a.at, club: a.club, ...JSON.parse(a.data)}))});
+      await ensureAttackNotices(env.DB);
+      const [r, live] = await env.DB.batch([
+        env.DB.prepare("SELECT a.id, a.attacker_id, a.at, a.data, p.club FROM attacks a LEFT JOIN profiles p ON p.user_id = a.attacker_id WHERE a.defender_id = ? AND a.seen = 0 ORDER BY a.id LIMIT 20").bind(me.id),
+        env.DB.prepare("SELECT n.attacker_id AS attackerId, n.at, u.name FROM attack_notices n JOIN users u ON u.id = n.attacker_id WHERE n.defender_id = ? AND n.active = 1 AND n.at > ? ORDER BY n.at DESC LIMIT 20").bind(me.id, now() - LIVE_ATTACK_MS)
+      ]);
+      return json({attacks: r.results.map(a => ({id: a.id, attackerId: a.attacker_id, at: a.at, club: a.club, ...JSON.parse(a.data)})), live: live.results});
     }
     if (path === "/inbox/seen" && m === "POST") {
       const ids = ((await body(req)).ids || []).map(Number).filter(Number.isFinite).slice(0, 50);

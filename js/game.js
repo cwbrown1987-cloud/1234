@@ -342,7 +342,6 @@ function renderHome(){
     diamond(preview.x,preview.y,1,1,rowOK?"#64df7fb0":"#ff5634b0","#fff",2);
   }
   const heroes={busy:{}}; for(const h of Object.keys(HEROES)){ heroes[h]=heroReady(h)?club:null; heroes.busy[h]=!!S.heroes[h].busy; }
-  for(const t of deco) ents.push({k:t.x+t.y,f:()=>drawDeco(t)});
   for(const o of S.obstacles) ents.push({k:o.x+o.y+(o.s||1),f:()=>{ if(selected===o) selectGlow(o.x,o.y,o.s||1); drawObstacle(o); }});
   const movingB = placing&&placing.moving;
   for(const b of list){ if(b===movingB) continue; const d=BLD[b.t];

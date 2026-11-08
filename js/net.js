@@ -153,7 +153,7 @@ const openFriends = () => openSocial("Friends");
 async function renderFriends() {
   if (!signedIn()) {
     $("soc").innerHTML = `<p class="center">Sign in to add friends, visit their grounds and attack them.</p><div class="center"><button class="btn green big" id="frSign">Play online</button></div>`;
-    $("frSign").onclick = () => openAccount(); return;
+    $("frSign").onclick = sub(() => openAccount(), () => openSocial("Friends")); return;
   }
   $("soc").innerHTML = (`
     <form id="frAdd" class="fradd"><input id="frName" placeholder="Friend's player name" maxlength="16" autocomplete="off"><button class="btn green" type="submit">Add</button></form>
@@ -184,7 +184,7 @@ async function visitPlayer(id) {
 }
 
 // ---------- leaderboard & cheer squads ----------
-async function openSocial(tab = "Leaderboard") {
+async function openSocial(tab = "Leaderboard") { menuBack = null;
   if (!NET.online) return toast("Online play works on the website: ff.backyardlegendsgames.app");
   const tabs = ["Leaderboard", "Friends", "Cheer Squad"];
   modal(`<h2>Footy Fortress Online</h2>${tabsHTML(tabs, tab)}<div id="soc"><p class="center">Loading…</p></div>`, { tick: tab === "Cheer Squad" ? refreshChat : null });
@@ -197,7 +197,7 @@ async function renderLeaderboard() {
     `<div class="ladwrap"><table class="ladder"><tr><th>#</th><th></th><th>Player</th><th>Club</th><th>🏆</th></tr>${r.players.map((p, i) =>
       `<tr class="${p.id === meId ? "me" : ""}"><td>${i + 1}</td><td>${badgeImg(CLUBS[p.club] || CLUBS[0], "xs")}</td><td>${esc(p.name)}${p.bot ? ' <span class="tag bot">BOT</span>' : ""}${p.squadName ? `<br><small>${esc(p.squadName)}</small>` : ""}</td><td>CH ${p.th}</td><td><b>${p.trophies}</b></td></tr>`).join("")}</table></div>
     <p class="tiny center">Bots are computer clubs so there's always someone to play while the league fills up.</p>`;
-  const b = $("lbSign"); if (b) b.onclick = () => openAccount();
+  const b = $("lbSign"); if (b) b.onclick = sub(() => openAccount(), () => openSocial("Leaderboard"));
 }
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
 let chatLast = 0, chatMembers = [];
@@ -217,7 +217,7 @@ async function checkChat() {
   } catch (e) {}
 }
 async function renderSquad() {
-  if (!signedIn()) { $("soc").innerHTML = `<p class="center">Sign in to join a Cheer Squad and chat with your mates.</p><div class="center"><button class="btn green big" id="sqSign">Play online</button></div>`; $("sqSign").onclick = () => openAccount(); return; }
+  if (!signedIn()) { $("soc").innerHTML = `<p class="center">Sign in to join a Cheer Squad and chat with your mates.</p><div class="center"><button class="btn green big" id="sqSign">Play online</button></div>`; $("sqSign").onclick = sub(() => openAccount(), () => openSocial("Cheer Squad")); return; }
   const r = await api("/squad");
   if (!r.squad) {
     const list = await api("/squads");

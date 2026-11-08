@@ -239,7 +239,7 @@ function statsPanel(c, t) {
 // ---------- album: a leather binder like the mock-up ----------
 let albumClub = null, albumSel = null, albumPage = 0, albumTab = "album";
 const slotsPerSpread = () => albumClub === "sp" ? 8 : 12; // a club's 11 cards fit on one spread (two pages of 2 x 3)
-function openAlbum(club) {
+function openAlbum(club) { menuBack = null;
   if (club !== undefined && club !== albumClub) { albumSel = null; albumPage = 0; }
   albumClub = club ?? albumClub ?? S.club;
   const tokens = S.tokens || 0, canOpen = tokens >= PACK_COST;

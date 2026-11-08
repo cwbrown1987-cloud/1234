@@ -33,7 +33,7 @@ const HUBS = {
   battle: { title: "Battle", tabs: [["Play", "⚔️", () => openMatch()], ["Army", "🏉", () => openSquad("Train")], ["Recipes", "📋", () => openRecipes()], ["Log", "🛡️", () => openLog()]] },
   build: { title: "Build", tabs: [["Buildings", "🏗️", () => openShop(shopTab === "Deals" ? "Resources" : shopTab)], ["Heroes", "⭐", () => openSquad("Heroes")], ["Research", "🔬", () => openSquad("Coaching")], ["Shop", "🛒", () => openShop("Deals")]] },
 };
-function openHub(kind, tab) {
+function openHub(kind, tab) { menuBack = null;
   const H = HUBS[kind]; tab = tab || H.tabs[0][0];
   hubCtx = { kind, tab };
   H.tabs.find(t => t[0] === tab)[2]();
@@ -53,7 +53,7 @@ function bindHubBar() {
 }
 
 // ---------- Builder Menu: every job your groundskeepers are on, and what to do next ----------
-function openBuilders() {
+function openBuilders() { menuBack = null;
   hubCtx = null;
   const now = Date.now(), jobs = [];
   for (const b of S.buildings) if (b.busy && b.busy.total > 0) jobs.push({ name: BLD[b.t].name, what: b.busy.kind === "build" ? "Building" : `Upgrading to level ${b.lv + 1}`, end: b.busy.end, go: b });
@@ -102,7 +102,7 @@ function claimAch(a) {
 }
 
 // ---------- Profile: tap your club badge ----------
-function openProfile(tab = "Profile") {
+function openProfile(tab = "Profile") { menuBack = null;
   hubCtx = null;
   const c = myClub(), st = S.stats || {}, online = typeof signedIn === "function" && signedIn();
   let h = `<div class="profhead" data-uibg="profile-banner">${badgeImg(c)}<div><b>${online ? esc(NET.user.name) : c.name}</b><small>${c.name} · Level ${S.lvl}</small></div></div>${tabsHTML(["Profile", "Achievements", "Settings"], tab)}`;
@@ -126,7 +126,7 @@ function openProfile(tab = "Profile") {
   bindTabs(t => openProfile(t));
   document.querySelectorAll("[data-ach]").forEach(b => b.onclick = () => { claimAch(ACH[+b.dataset.ach]); openProfile("Achievements"); });
   const pl = $("pLog"); if (pl) pl.onclick = () => openHub("battle", "Log");
-  const pa = $("pAcct"); if (pa) pa.onclick = () => online ? openSocial() : openAccount();
+  const pa = $("pAcct"); if (pa) pa.onclick = sub(() => online ? openSocial() : openAccount(), () => openProfile());
 }
 
 // ---------- weekly Ranked leagues (like Clash's Ranked Battles) ----------
@@ -189,7 +189,7 @@ function openRankedTable() {
     <div class="ladwrap"><table class="ladder"><tr><th>#</th><th></th><th>Club</th><th>🏆</th></tr>${tbl.map((r, i) =>
     `<tr class="${r.me ? "me" : ""} ${i === up - 1 ? "cut" : ""} ${i === down - 1 ? "cutdn" : ""}"><td>${i + 1}${i < up ? " ⬆" : i >= down ? " ⬇" : ""}</td><td>${badgeImg(CLUBS[r.club], "xs")}</td><td>${esc(r.name)}</td><td><b>${r.tro}</b></td></tr>`).join("")}</table></div>
     <p class="tiny center">Top ${up} move up a league, bottom ${n - down} move down. Each attack earns up to 40 trophies: 3 stars = 40.</p><div class="center"><button class="btn" id="rkBack">Back</button></div>`;
-  modal(h); $("rkBack").onclick = () => openHub("battle", "Play");
+  modal(h); $("rkBack").onclick = () => menuBack ? goBack() : openHub("battle", "Play");
 }
 
 // ---------- Army Recipes: save squads and load them in one tap ----------
@@ -223,7 +223,7 @@ function passReward(i) {
 const rewardText = r => r.pies ? `${fmt(r.pies)} 🥧` : r.drink ? `${fmt(r.drink)} 💧` : r.tokens ? `${r.tokens} 🎟️` : r.tape ? `${r.tape} 🩹` : `${r.medals} 🏅`;
 function giveReward(r) { if (r.pies) addRes("pies", r.pies); if (r.drink) addRes("drink", r.drink); if (r.tokens) earnTokens(r.tokens); if (r.tape) addOre({ tape: r.tape }); if (r.medals) S.medals += r.medals; }
 const passReady = () => { const p = ensurePass(), t = Math.min(PASS_TIERS, Math.floor(p.pts / PASS_PER)); let n = 0; for (let i = 0; i < t; i++) if (!p.got.includes(i)) n++; return n; };
-function openPass(tab = "Rewards") {
+function openPass(tab = "Rewards") { menuBack = null;
   hubCtx = null; const p = ensurePass(), tier = Math.min(PASS_TIERS, Math.floor(p.pts / PASS_PER));
   if (tab === "Challenges") { openTasks(); const b = $("modalBody"); b.insertAdjacentHTML("afterbegin", tabsHTML(["Rewards", "Challenges"], "Challenges")); bindTabs(t => openPass(t)); return; }
   let h = `<div class="passhead" data-uibg="pass-banner"><b>Footy Pass</b><small>Ends in ${fmtTime((passEnds() - Date.now()) / 1000)}</small></div>${tabsHTML(["Rewards", "Challenges"], "Rewards")}
@@ -237,7 +237,7 @@ function openPass(tab = "Rewards") {
 function passPoints(k, n) { const v = PASS_PTS[k]; if (!v || !S) return; ensurePass().pts += v * n; }
 
 // ---------- Events tray ----------
-function openEvents() {
+function openEvents() { menuBack = null;
   hubCtx = null; const e = eventNow(), sb = S.starBonus || { stars: 0, until: 0 }, rk = ensureRanked(), p = ensurePass();
   const card = (icon, title, body, btn) => `<div class="evcard">${uiArt(icon, { "ev-today": "🎉", "ev-star": "⭐", "ev-ranked": "🏆", "ev-pass": "🎫", "ev-afl": "🏉" }[icon] || "📅")}<div class="grow"><b>${title}</b><small>${body}</small></div>${btn || ""}</div>`;
   let h = `<h2>Events</h2>`;
@@ -248,7 +248,7 @@ function openEvents() {
   h += card("ev-afl", "AFL season", seasonCountdown().replace("🏉 ", "Starts in "));
   h += `<h3>This week</h3>${[1, 2, 3, 4, 5, 6, 0].map(d => { const ev = EVENTS[d], nm = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][d]; return `<div class="stat ${d === new Date().getDay() ? "today" : ""}"><span>${nm}</span><b>${ev ? ev.name + " · " + ev.desc : "–"}</b></div>`; }).join("")}`;
   modal(h);
-  document.querySelectorAll("[data-go]").forEach(b => b.onclick = () => ({ play: () => openHub("battle", "Play"), rk: openRankedTable, pass: () => openPass() })[b.dataset.go]());
+  document.querySelectorAll("[data-go]").forEach(b => b.onclick = () => ({ play: () => openHub("battle", "Play"), rk: sub(() => { hubCtx = null; openRankedTable(); }, openEvents), pass: () => openPass() })[b.dataset.go]());
 }
 
 // ---------- rotation: phones stay portrait; tablets and computers stay landscape ----------

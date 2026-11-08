@@ -2,7 +2,7 @@
 let simulating = false;
 
 function raidTick(now){
-  if(!S.nextRaid || now<S.nextRaid || placing || tutActive()) return;
+  if(!S.nextRaid || now<S.nextRaid || placing || tutActive() || typeof EDIT!=="undefined"&&EDIT) return; // never raid a half-edited ground
   if(S.shield>now){ S.nextRaid=S.shield+(3+Math.random()*7)*60000; return; }
   if(th()<2 && S.trophies<30){ S.nextRaid=now+10*60000; return; } // go easy on brand-new clubs
   runRaid(); S.nextRaid=now+(8+Math.random()*12)*60000; save();

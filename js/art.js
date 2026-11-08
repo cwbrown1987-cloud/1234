@@ -318,7 +318,7 @@ function loadFootyArt() {
     "shepherd","trainer","captain","coach","seagulls","blimp","tree","rock"
   ],0,[0,.25,.50,.759,1]);
   loadArtSheet(FOOTY_SHEETS.fortress,3,3,[
-    "clubhouse","goalpost","siren","catapult","floodlight",null,"rubble","grandstand","footy"
+    "clubhouse","goalpost","siren","catapult","floodlight","fence-post","rubble","grandstand","footy"
   ],1);
   loadArtSheet(FOOTY_SHEETS.interface,4,4,[
     "portrait-rover","portrait-forward","portrait-ruck","portrait-tagger",

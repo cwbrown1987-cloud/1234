@@ -577,6 +577,7 @@ function drawGround(){
   ctx.beginPath(); ringPath(BOWL.R0+1.2,0,false); ctx.closePath(); ctx.clip();
   drawTurfGrain(cx,cy);
   ctx.restore();
+  drawStadiumLighting();
   drawPitchMarkings();
   ctx.strokeStyle="#4c71214d";
   ctx.lineWidth=Math.max(1,TW*.018);

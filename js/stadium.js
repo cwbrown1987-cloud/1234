@@ -49,100 +49,228 @@ function drawFallbackStands() {
   annulus(rTop + 2.4, zTop + 1.35, rTop + 2.7, zTop + 1.5, "#f6c343");
 }
 
-function paintBowlLayer(crowd, roof) {
-  const inner = BOWL.R0 + 1.2, outer = inner + 11.5;
-  const width = Math.ceil((outer+1.5)*Math.SQRT2*TW);
-  const height = Math.ceil(width*.5+TH*6);
-  const resolution = Math.min(1, 2400/width);
-  const canvas = document.createElement("canvas");
-  canvas.width = Math.ceil(width*resolution);
-  canvas.height = Math.ceil(height*resolution);
-  const g = canvas.getContext("2d");
-  const top = height/2+TH*2.25;
-  g.setTransform(resolution,0,0,resolution,width/2*resolution,top*resolution);
-  const arc = Math.PI*2/48;
-  const point = (radius, rise, angle) => [Math.sin(angle)*radius*TW/Math.SQRT2,
-    -(Math.cos(angle)*radius/Math.SQRT2+rise)*TH];
-  const ellipse = (r,z) => g.ellipse(0,-z*TH,r*TW/Math.SQRT2,r*TH/Math.SQRT2,0,0,Math.PI*2);
-  const band = (r0,z0,r1,z1,color) => {
-    g.beginPath(); ellipse(r1,z1); g.moveTo(r0*TW/Math.SQRT2,-z0*TH); ellipse(r0,z0);
-    g.fillStyle=color; g.fill("evenodd");
-  };
-  const bays = (art,r0,z0,r1,z1,deck) => {
-    for(let i=0;i<48;i++){
-      const a=(i+.035)*arc, b=(i+.965)*arc, near=Math.cos((a+b)/2)<0;
-      const a0=point(r0,z0,a), a1=point(r0,z0,b), b0=point(r1,z1,a), b1=point(r1,z1,b);
-      // The near bays face back toward the turf, so their tops are on the inner edge.
-      let [tl,tr,bl,br]=near?[a0,a1,b0,b1]:[b0,b1,a0,a1];
-      if(tl[0]>tr[0]) [tl,tr,bl,br]=[tr,tl,br,bl];
-      const x=(tr[0]-tl[0]+br[0]-bl[0])/2, y=(tr[1]-tl[1]+br[1]-bl[1])/2;
-      const dx=(bl[0]-tl[0]+br[0]-tr[0])/2, dy=(bl[1]-tl[1]+br[1]-tr[1])/2;
-      g.save();
-      g.beginPath(); g.moveTo(...tl); g.lineTo(...tr); g.lineTo(...br); g.lineTo(...bl); g.closePath();
-      g.clip();
-      g.transform(x,y,dx,dy,tl[0],tl[1]);
-      g.drawImage(art.image,art.x,art.y,art.w,art.h,-.07,0,1.14,1);
-      if(deck!==undefined){
-        // Aisles and tunnel mouths break up the rows where spectators enter each deck.
-        if((i+3)%8===0){
-          g.fillStyle="#999da2"; g.fillRect(.37,.20,.26,.8);
-          g.fillStyle="#303844"; g.fillRect(.40,.24,.20,.76);
-          g.fillStyle="#b9b5a6"; g.fillRect(.40,.25,.20,.065);
-          g.fillStyle="#17212d"; g.fillRect(.43,.39,.14,.61);
-        }
-        g.fillStyle=(i+deck)%3===0?"#142d4138":"#142d411c";
-        g.fillRect(0,0,1,1);
-      }
-      g.restore();
-    }
-  };
-  band(inner,0,outer+.5,-.7,"#182334");                   // exterior base wall
-  band(outer+.26,-.49,outer+.5,-.2,"#303d4c");
-  band(outer+.12,-.15,outer+.4,.15,"#445160");
-  band(inner,0,outer,4.2,"#5b6370");                      // full rake of the bowl
-  band(inner,0,inner+1.3,.2,"#697383");                   // field-level concourse
-  for(let deck=0;deck<3;deck++){
-    const r=inner+1.3+deck*3.5, z=.2+deck*1.4;
-    band(r,z,r+3.12,z+1.18,"#333c4c");
-    bays(crowd,r,z,r+3.12,z+1.18,deck);
-    band(r+3.12,z+1.18,r+3.5,z+1.4,deck===2?"#7b8490":"#9a9893");
-  }
-  band(outer-.12,4.12,outer+.27,4.34,"#c49a53");          // roofline rail
-  // The roof sits on the outside of the seating with the same projected bays.
-  band(outer-.22,4.14,outer+1.3,4.72,"#394859");
-  bays(roof,outer-.22,4.14,outer+1.3,4.72);
-  return {canvas,width,height,top,crowd,roof,tile:TW};
+const STADIUM_REAR = Math.PI*1.25;
+const STADIUM_MOUNTS = [-2.12,-.79,.73,2.03];
+const stadiumOuter = () => BOWL.R0+14;
+const stadiumPoint = (radius,z,angle) => ringPt(radius,z,STADIUM_REAR+angle);
+
+function stadiumRig(angle) {
+  const radius=stadiumOuter()+.9, aim=2.8;
+  const height=Math.cos(angle)>0?14.2:12.4;
+  return {angle,radius,height,aim,slope:height/(radius-aim)};
 }
+
+// A quad in stadium space becomes two textured triangles in the same projection as the ground.
+function stadiumTexture(g,art,points) {
+  for(const [origin,horizontal,vertical,opposite,reverse] of [
+    [points[0],points[1],points[3],points[2],false],
+    [points[2],points[3],points[1],points[0],true]
+  ]){
+    g.save();
+    g.beginPath(); g.moveTo(...origin); g.lineTo(...horizontal); g.lineTo(...vertical); g.closePath();
+    g.clip();
+    g.transform(horizontal[0]-origin[0],horizontal[1]-origin[1],vertical[0]-origin[0],vertical[1]-origin[1],origin[0],origin[1]);
+    if(reverse){ g.translate(1,1); g.scale(-1,-1); }
+    g.drawImage(art.image,art.x,art.y,art.w,art.h,0,0,1,1);
+    g.restore();
+  }
+}
+
+function stadiumShape(g,points,fill,stroke,width) {
+  g.beginPath();
+  g.moveTo(...points[0]);
+  for(const p of points.slice(1)) g.lineTo(...p);
+  g.closePath();
+  if(fill){ g.fillStyle=fill; g.fill(); }
+  if(stroke){ g.strokeStyle=stroke; g.lineWidth=width; g.stroke(); }
+}
+
+function paintBowlLayer(crowd, roof, facade) {
+  const inner=BOWL.R0+1.25, outer=stadiumOuter();
+  const width=Math.ceil((outer+2)*Math.SQRT2*TW), top=(outer/Math.SQRT2+10)*TH;
+  const height=Math.ceil(top+(outer/Math.SQRT2+2)*TH);
+  const resolution=Math.min(1,2450/width);
+  const canvas=document.createElement("canvas");
+  canvas.width=Math.ceil(width*resolution);
+  canvas.height=Math.ceil(height*resolution);
+  const g=canvas.getContext("2d");
+  g.setTransform(resolution,0,0,resolution,width/2*resolution,top*resolution);
+  const bays=56, arc=2*Math.PI/bays;
+  const point=(r,z,a)=>[r*Math.sin(a)*TW/Math.SQRT2,-(r*Math.cos(a)/Math.SQRT2+z)*TH];
+  const quad=(a,b,r0,z0,r1,z1)=>[point(r0,z0,a),point(r0,z0,b),point(r1,z1,b),point(r1,z1,a)];
+  const section=(points,fill,line)=>stadiumShape(g,points,fill,line,TW*.018);
+  const rear=a=>Math.cos(a)>0;
+  const covered=a=>a>-1.52 && a<.91 || a>1.78 && a<2.34;
+  const upper=a=>a>-1.76 && a<1.17 || a>1.54 && a<2.58;
+  const angles=Array.from({length:bays},(_,i)=>[-Math.PI+i*arc,-Math.PI+(i+1)*arc]);
+
+  // Continuous foundation and a separate exterior wall. Front-facing windows sit below the seats.
+  g.beginPath();
+  g.ellipse(0,TH*.28,(outer+1.45)*TW/Math.SQRT2,(outer+1.45)*TH/Math.SQRT2,0,0,Math.PI*2);
+  g.fillStyle="#152235"; g.fill();
+  g.strokeStyle="#34465b"; g.lineWidth=TW*.1; g.stroke();
+  for(const [a,b] of angles){
+    section(quad(a,b,inner,0,outer,0),"#536174");
+    section(quad(a,b,inner,0,inner+1.38,.12),"#78828b");
+    section(quad(a,b,inner+.05,.03,inner+.22,.05),"#b7a47b");
+  }
+  for(const [a,b] of angles){
+    const m=(a+b)/2, high=upper(m)?5.7:3.4;
+    const wall=quad(a,b,outer,high,outer,0);
+    section(wall,rear(m)?"#27364a":"#445165","#192534");
+    if(!rear(m)){
+      stadiumTexture(g,facade,wall);
+      section(wall,"#15263856");
+      section(quad(a,b,outer+.04,.38,outer+.04,0),"#273449");
+      const deckEdge=inner+(upper(m)?13.02:9.66);
+      section(quad(a,b,deckEdge,high+.19,outer,high),"#646f7c","#525c68");
+      section(quad(a,b,outer-.06,high+.17,outer+.04,high+.13),"#b59f7a");
+    }
+  }
+
+  // The lower bowl wraps around the pitch. Taller upper stands have gaps between the pavilions.
+  const decks=[[1.38,.12,5.52,1.82],[5.83,2.08,9.34,3.58],[9.60,3.83,12.70,5.75]];
+  for(const [i,[a,b]] of angles.entries()){
+    const m=(a+b)/2;
+    for(const [level,[start,z0,end,z1]] of decks.entries()){
+      if(level===2 && !upper(m)) continue;
+      const r0=inner+start, r1=inner+end;
+      const seats=quad(a,b,r0,z0,r1,z1);
+      section(seats,"#424e5c");
+      if(i%8===3){
+        const tunnel=quad(a+arc*.24,b-arc*.24,r0+.05,z0+.02,r1-.10,z1-.04);
+        section(tunnel,"#a19d92");
+        for(let stair=1;stair<7;stair++){
+          const t=stair/8, z=z0+(z1-z0)*t, r=r0+(r1-r0)*t;
+          section(quad(a+arc*.27,b-arc*.27,r,z,r+.12,z+.05),stair%2===0?"#7c858d":"#596673");
+        }
+        const lip=r0+(r1-r0)*.55, sill=z0+(z1-z0)*.55;
+        section(quad(a+arc*.27,b-arc*.27,lip,sill,lip,sill+.53),"#273444","#d2b383");
+      } else {
+        const patch=quad(a+arc*.035,b-arc*.035,r0,z0,r1,z1);
+        // The crowd has an upright silhouette on both sides of the oval.
+        const ordered=rear(m)?[patch[3],patch[2],patch[1],patch[0]]:patch;
+        if(ordered[0][0]>ordered[1][0]) stadiumTexture(g,crowd,[ordered[1],ordered[0],ordered[3],ordered[2]]);
+        else stadiumTexture(g,crowd,ordered);
+        section(patch,level===2?"#14264246":"#1d324521");
+      }
+      section(quad(a,b,r1,z1,r1+.32,z1+.05),"#9a9b96","#69717c");
+      section(quad(a,b,r1+.32,z1+.05,r1+.32,z1+.25),"#4d5c6d");
+    }
+  }
+
+  // Cantilever canopies project over the upper rows. The open terraces expose the bowl on the camera side.
+  for(const [a,b] of angles){
+    const m=(a+b)/2;
+    if(!covered(m)) continue;
+    const lip=outer-4.25, roofZ=rear(m)?7.6:6.45;
+    const rail=outer-.29;
+    section(quad(a,b,rail,5.83,rail,roofZ-.02),"#2c3a4c");
+    section(quad(a,a+arc*.17,rail-.11,5.78,rail-.11,roofZ-.01),"#96a4aa","#3c4a55");
+    section(quad(a,b,rail-.14,6.05,rail-.14,6.21),"#53677b");
+    const canopy=quad(a,b,lip,roofZ,outer+.38,roofZ+.48);
+    section(canopy,"#526883","#25364a");
+    stadiumTexture(g,roof,[canopy[3],canopy[2],canopy[1],canopy[0]]);
+    section(quad(a,b,lip,roofZ-.28,lip,roofZ),"#293548");
+    section(quad(a,b,lip-.035,roofZ-.07,lip-.035,roofZ+.02),"#bfa36c");
+  }
+  return {canvas,width,height,top,crowd,roof,facade,tile:TW};
+}
+
+function drawStadiumRig(rig,lamp) {
+  const {angle,radius,height,slope}=rig;
+  const [x,foot]=stadiumPoint(radius,0,angle);
+  const y=foot-height*TH;
+  const taper=TW*.19;
+  const steel=ctx.createLinearGradient(x-taper,0,x+taper,0);
+  steel.addColorStop(0,"#1b2734"); steel.addColorStop(.38,"#bbc8cd");
+  steel.addColorStop(.57,"#859ba8"); steel.addColorStop(1,"#344654");
+  stadiumShape(ctx,[[x-taper,foot],[x-taper*.42,y],[x+taper*.49,y],[x+taper,foot]],steel,"#1d2936",TW*.028);
+  for(const t of [.23,.49,.75]){
+    const yy=foot-height*TH*t, half=taper*(1-t*.54);
+    ctx.fillStyle="#455968"; ctx.fillRect(x-half,yy,half*2,TH*.08);
+  }
+  ctx.fillStyle="#909591"; ctx.fillRect(x-TW*.23,foot-TH*.18,TW*.46,TH*.28);
+  ctx.fillStyle="#222d3a"; ctx.fillRect(x-TW*.25,foot+TH*.09,TW*.5,TH*.13);
+
+  // The head is tangent to the bowl. Its emitting surface tilts down to the rig's aim point.
+  const facePoint=(t,z,back=0)=>{
+    const radial=radius-slope*z+back;
+    return [x+(Math.sin(angle)*(radial-radius)+Math.cos(angle)*t)*TW/Math.SQRT2,
+      y+(Math.sin(angle)*t-Math.cos(angle)*(radial-radius))*TH/Math.SQRT2-z*TH];
+  };
+  const frame=back=>[facePoint(-1.82,1.01,back),facePoint(1.82,1.01,back),
+    facePoint(1.82,-1.01,back),facePoint(-1.82,-1.01,back)];
+  const front=frame(0), back=frame(.39);
+  const forward=Math.cos(angle)-slope/Math.SQRT2>0;
+  const shell=forward?back:front, visible=forward?front:back;
+  stadiumShape(ctx,shell,"#2d3d4f","#1b2532",TW*.04);
+  for(let i=0;i<4;i++){
+    const j=(i+1)%4;
+    stadiumShape(ctx,[shell[i],shell[j],visible[j],visible[i]],i===0?"#798e9c":"#394e5f","#202b3b",TW*.025);
+  }
+  if(forward){
+    const face=front[0][0]<=front[1][0]?front:[front[1],front[0],front[3],front[2]];
+    stadiumTexture(ctx,lamp,face);
+    const glow=ctx.createRadialGradient(x,y,0,x,y,TW*1.65);
+    glow.addColorStop(0,"#ffe8ad56"); glow.addColorStop(.48,"#ffe8ad1e"); glow.addColorStop(1,"#ffe8ad00");
+    ctx.fillStyle=glow; ctx.fillRect(x-TW*1.65,y-TW*1.65,TW*3.3,TW*3.3);
+  } else {
+    stadiumShape(ctx,back,"#506273","#1e2d3b",TW*.045);
+    for(const t of [-1,-.34,.34,1]){
+      const a=facePoint(t,.79,.40), b=facePoint(t,-.79,.40);
+      ctx.beginPath(); ctx.moveTo(...a); ctx.lineTo(...b);
+      ctx.strokeStyle="#84949b"; ctx.lineWidth=TW*.05; ctx.stroke();
+    }
+  }
+}
+
+function stadiumArt() {
+  const crowd=artSprites.get("stadium-crowd"), roof=artSprites.get("stadium-roof");
+  const facade=artSprites.get("stadium-facade"), lamp=artSprites.get("stadium-lamp");
+  return crowd && roof && facade && lamp && {crowd,roof,facade,lamp};
+}
+
+function drawStadiumLighting() {
+  if(!paintedBowl) return;
+  ctx.save();
+  ctx.beginPath(); ringPath(BOWL.R0+1.2,0,false); ctx.closePath(); ctx.clip();
+  for(const angle of STADIUM_MOUNTS){
+    const [x,y]=stadiumPoint(stadiumRig(angle).aim,0,angle), width=TW*13;
+    ctx.save(); ctx.translate(x,y); ctx.scale(1,.5);
+    const pool=ctx.createRadialGradient(0,0,0,0,0,width);
+    pool.addColorStop(0,"#fff0b820"); pool.addColorStop(.65,"#ffefad10"); pool.addColorStop(1,"#ffefad00");
+    ctx.fillStyle=pool; ctx.fillRect(-width,-width,width*2,width*2); ctx.restore();
+  }
+  ctx.restore();
+}
+
 
 function drawStadiumBowl(club) {
   const { R0, tiers, step, rise } = BOWL;
-  const crowd = artSprites.get("stadium-crowd"), roof = artSprites.get("stadium-roof");
-  const painted = crowd && roof;
+  const painted = stadiumArt();
   const sky = ctx.createLinearGradient(0, 0, 0, H);
   sky.addColorStop(0, "#0d1730"); sky.addColorStop(.5, painted ? "#354761" : "#1c2c4f"); sky.addColorStop(1, "#141d33");
   ctx.fillStyle = sky; ctx.fillRect(0, 0, W, H);
 
   if(painted){
-    if(paintedBowl?.tile!==TW || paintedBowl.crowd!==crowd || paintedBowl.roof!==roof)
-      paintedBowl=paintBowlLayer(crowd,roof);
-    const {canvas,width,height,top}=paintedBowl, [cx,cy]=P(N/2,N/2);
-    ctx.drawImage(canvas,cx-width/2,cy-top,width,height);
-  } else drawFallbackStands();
+    const {crowd,roof,facade,lamp}=painted;
+    const zoom=paintedBowl ? TW/paintedBowl.tile : 0;
+    // Panning and small zoom steps can reuse the layer without moving it off the oval.
+    if(zoom<.8 || zoom>1.25 || paintedBowl.crowd!==crowd || paintedBowl.roof!==roof || paintedBowl.facade!==facade)
+      paintedBowl=paintBowlLayer(crowd,roof,facade);
+    const {canvas,width,height,top,tile}=paintedBowl, [cx,cy]=P(N/2,N/2), scale=TW/tile;
+    for(const angle of STADIUM_MOUNTS) if(Math.cos(angle)>.2) drawStadiumRig(stadiumRig(angle),lamp);
+    ctx.drawImage(canvas,cx-width*scale/2,cy-top*scale,width*scale,height*scale);
+    for(const angle of STADIUM_MOUNTS) if(Math.cos(angle)<=.2) drawStadiumRig(stadiumRig(angle),lamp);
+  } else {
+    paintedBowl=undefined;
+    drawFallbackStands();
+  }
 
-  // four light towers
-  const rear = Math.PI*1.25, rTop = R0+1.7+tiers*step, zTop = .45+tiers*rise;
-  const mast = artSprites.get("stadium-light-tower");
-  const towers = mast ? [-1.15,-.42,.42,1.15].map(offset=>rear+offset) : [.25,.75,1.25,1.75].map(a=>Math.PI*a);
-  for (const a of towers) {
-    if (mast) {
-      const [x,foot] = ringPt(R0+9,3.3,a), height = TH*(Math.abs(a-rear)>.5?11.5:9.7);
-      const lamp = foot-height*.92;
-      const glow = ctx.createRadialGradient(x,lamp,0,x,lamp,TW*1.2);
-      glow.addColorStop(0,"#fff0bb6b"); glow.addColorStop(1,"#fff0bb00");
-      ctx.fillStyle=glow; ctx.fillRect(x-TW*1.2,lamp-TW*1.2,TW*2.4,TW*2.4);
-      paintArt(mast,x,foot,height/mast.h,1,a>rear?-1:1);
-      continue;
-    }
+  // Keep the procedural lights for offline installs with no stadium art.
+  const rTop = R0+1.7+tiers*step, zTop = .45+tiers*rise;
+  if(!painted) for (const a of [.25,.75,1.25,1.75].map(a=>Math.PI*a)) {
     const [bx, by] = ringPt(rTop + 1.4, zTop + 1.4, a), [tx, ty] = ringPt(rTop + 1.4, zTop + 8.5, a);
     ctx.lineCap = "round";
     ctx.strokeStyle = OUT; ctx.lineWidth = TW * .18; ctx.beginPath(); ctx.moveTo(bx, by); ctx.lineTo(tx, ty); ctx.stroke();
@@ -189,7 +317,7 @@ function drawStadiumBowl(club) {
   }
   if(painted && club){
     for (const offset of [-.57,-.39,-.2,.2,.39,.57]) {
-      const [x,y] = ringPt(R0+6,1.95,rear+offset);
+      const [x,y] = stadiumPoint(R0+6.77,2.05,offset);
       const w = TW*.86, h = TH*.98;
       ctx.fillStyle = "#121922"; ctx.fillRect(x-w*.57,y-TH*.14,w*1.14,Math.max(2,TH*.12));
       poly([[x-w/2,y],[x+w/2,y],[x+w/2,y+h],[x,y+h*.83],[x-w/2,y+h]],club.a,"#121922",Math.max(1,TW*.035));
@@ -198,7 +326,7 @@ function drawStadiumBowl(club) {
     }
   }
   if(painted){
-    for (const end of [rear,rear+Math.PI]) {
+    for (const end of [STADIUM_REAR,STADIUM_REAR+Math.PI]) {
       for (const offset of [-.13,-.05,.05,.13]) {
         const [x,y] = ringPt(R0-.8,0,end+offset);
         const h = TH*(Math.abs(offset)<.1?3.2:2.15);

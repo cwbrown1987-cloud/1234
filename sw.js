@@ -1,5 +1,5 @@
 // Offline support: keep the game files cached so it opens like an app.
-const CACHE = "footy-fortress-v32-scenery";
+const CACHE = "footy-fortress-v33-scenery";
 const SHELL = ["./","index.html","style.css","manifest.webmanifest","art/sheets.js",
   "js/data.js","js/render.js","js/art.js","js/stadium.js","js/game.js","js/battle.js","js/season.js","js/raid.js","js/audio.js","js/ui.js","js/cardset.js","js/cards.js","js/gear.js","js/hubs.js","js/tutorial.js","js/net.js","js/install.js",
   "icons/icon-192.png","icons/icon-512.png"];

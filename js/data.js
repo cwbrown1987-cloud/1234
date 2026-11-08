@@ -1,5 +1,5 @@
 // ---------- Game data ----------
-const VERSION = "2026.11.11.27";
+const VERSION = "2026.11.11.28";
 // Club names + colours. Logos: drop PNGs named <abbr>.png (e.g. coll.png) into the logos/ folder and they're used everywhere.
 // Player names checked against the 2026 trade period and retirements (lists for the 2027 season); edit freely.
 const CLUBS = [
@@ -118,8 +118,8 @@ const BLD = {
     desc:"Hidden. Swoops on flyers that come close, hitting everything nearby in the air."},
   kite:{name:"Kite Catcher", size:1, res:"pies", hp:[1,1,1,1,1], cost:[15000,70000,220000,550000,950000], time:[0,3600,14400,43200,86400], dmg:geo(420,1.3,5), trap:true, air:true, emo:"🪁",
     desc:"Hidden. Snags one big flyer and hits it hard."},
-  streaker:{name:"Streaker", size:1, res:"pies", hp:[1,1,1,1,1], cost:[6000,25000,90000,300000,700000], time:[0,1800,7200,28800,86400], stun:[3,3.5,4,4.5,5], trap:true, emo:"🏃",
-    desc:"Hidden. Runs across the ground and every player nearby stops to watch."},
+  streaker:{name:"Streaker", size:1, res:"pies", hp:[1,1,1,1,1], cost:[6000,25000,90000,300000,700000], time:[0,1800,7200,28800,86400], guards:[2,3,4,5,6], trap:true, emo:"🏃",
+    desc:"Hidden. A streaker runs on, everyone nearby stops to watch, and security stewards chase down the attackers."},
   gust:{name:"Wind Gust", size:1, res:"pies", hp:[1,1,1,1,1], cost:[100000,300000,700000,1000000,1500000], time:[0,14400,43200,86400,172800], dur:[5,6,7,8,9], trap:true, emo:"🌪️",
     desc:"Hidden. A swirling gust that drags players in and holds them in one spot."},
   spark:{name:"Hidden Scoreboard", size:2, res:"pies", hp:[1,1,1,1,1], cost:[50000,150000,400000,800000,1300000], time:[0,7200,28800,64800,129600], dmg:geo(45,1.25,5), trap:true, emo:"⚡",

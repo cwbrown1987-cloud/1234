@@ -200,6 +200,21 @@ async function renderLeaderboard() {
 }
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
 let chatLast = 0, chatMembers = [];
+const CHAT_SEEN_KEY = "ffChatSeen";
+const chatSeen = () => { try { return Number(localStorage.getItem(CHAT_SEEN_KEY)) || 0; } catch (e) { return 0; } };
+function markChatSeen(id) { if (id > chatSeen()) { try { localStorage.setItem(CHAT_SEEN_KEY, String(id)); } catch (e) {} } NET.unread = 0; showSocialDot(); }
+function showSocialDot() { const d = $("socialDot"); if (!d) return; const n = NET.unread || 0; d.textContent = n > 9 ? "9+" : n; d.classList.toggle("hide", !n); }
+async function checkChat() {
+  if (!signedIn()) return;
+  try {
+    const r = await api("/squad?after=" + chatSeen());
+    if (!r.squad) { NET.unread = 0; return showSocialDot(); }
+    if (!chatSeen() && r.messages.length) return markChatSeen(Math.max(...r.messages.map(m => m.id))); // first run: don't flag old history
+    NET.unread = r.messages.filter(m => m.user_id && m.user_id !== NET.user.id).length;
+    if ($("chat")) return markChatSeen(Math.max(chatSeen(), ...r.messages.map(m => m.id)));
+    showSocialDot();
+  } catch (e) {}
+}
 async function renderSquad() {
   if (!signedIn()) { $("soc").innerHTML = `<p class="center">Sign in to join a Cheer Squad and chat with your mates.</p><div class="center"><button class="btn green big" id="sqSign">Play online</button></div>`; $("sqSign").onclick = () => openAccount(); return; }
   const r = await api("/squad");
@@ -227,6 +242,7 @@ function addMessages(msgs) {
   for (const m of msgs) { if (m.id <= chatLast) continue; chatLast = m.id; const d = document.createElement("div"); d.className = "msg" + (m.user_id ? "" : " sys") + (NET.user && m.user_id === NET.user.id ? " mine" : "");
     const mine = NET.user && m.user_id === NET.user.id, t = m.at ? new Date(m.at).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }) : "";
     const mem = (chatMembers || []).find(x => x.id === m.user_id), col = mem && CLUBS[mem.club] ? CLUBS[mem.club].b : "#ffd34d";
+    markChatSeen(m.id);
     d.innerHTML = m.user_id ? `${mine ? "" : `<b style="color:${col === "#ffffff" || col === "#111111" ? "#ffd34d" : col}">${esc(m.name)}</b>`}<span>${esc(m.text)}</span><i>${t}</i>` : esc(m.text); box.append(d); }
   box.scrollTop = box.scrollHeight;
 }
@@ -238,6 +254,6 @@ async function netStart() {
   try { NET.bots = (await api("/bots")).bots; } catch (e) {}
   if (!signedIn()) return;
   try { const me = await api("/me"); if (me.profile && S) { /* server may know about trophy changes from attacks */ } } catch (e) {}
-  await checkInbox(); pushSave();
+  await checkInbox(); pushSave(); checkChat();
 }
-setInterval(() => { if (signedIn() && mode === "home") checkInbox(); }, 60000);
+setInterval(() => { if (signedIn() && mode === "home") { checkInbox(); checkChat(); } }, 60000);

@@ -165,30 +165,38 @@ const isFritschTribute = c => c.name === "Bayley Fritsch" && CLUBS[c.club].abbr 
 const roleFor = pos => ({mid:"rover", fwd:"forward", ruck:"ruck", def:"shepherd"})[pos] || "rover";
 const isLight = hex => { const n = parseInt(hex.slice(1, 7), 16); return ((n >> 16) * .3 + (n >> 8 & 255) * .59 + (n & 255) * .11) > 170; };
 function fitText(g, text, maxW, size, min = 9) { let fs = size; g.font = `${fs}px "Lilita One",sans-serif`; while (g.measureText(text).width > maxW && fs > min) { fs--; g.font = `${fs}px "Lilita One",sans-serif`; } }
+function drawCollectorBorder(g, club, finish) {
+  const metal = {
+    c:["#e8e4d7","#a6abb0","#f9f5e9"], s:["#eafaff","#6c90a9","#c1f3ff"],
+    g:["#ffdbb1","#9c4d5e","#ffc388"], p:["#fff1b4","#976617","#ffda6d"],
+    SW:["#ffe79f","#a83b34","#ff9e65"], BF:["#f9faff","#686e8d","#d5d9ff"],
+    GK:["#fff3d8","#a73854","#ff9795"], FL:["#bafcf5","#5164b0","#cbadff"],
+    PZ:["#fff8ca","#a36b11","#ffeb9b"]
+  }[finish];
+  const foil=g.createLinearGradient(0,0,240,336);
+  [metal[0],metal[1],metal[2],metal[1],metal[0]].forEach((color,i)=>foil.addColorStop(i/4,color));
+  g.save();
+  g.lineWidth=10;
+  g.strokeStyle=foil;
+  g.beginPath(); g.roundRect(9,9,222,318,11); g.stroke();
+  g.lineWidth=1.5;
+  g.strokeStyle="#101724";
+  g.beginPath(); g.roundRect(15,15,210,306,7); g.stroke();
+  g.beginPath(); g.roundRect(3,3,234,330,15); g.stroke();
+  g.fillStyle=club.b;
+  for(const [x,y,dx,dy] of [[9,9,1,1],[231,327,-1,-1]]){
+    g.beginPath(); g.moveTo(x+8*dx,y); g.lineTo(x+46*dx,y);
+    g.lineTo(x+34*dx,y+5*dy); g.lineTo(x+8*dx,y+5*dy); g.fill();
+  }
+  g.restore();
+}
 function cardFace(c, t) {
   const key = "cf" + c.id + t; if (iconCache[key]) return iconCache[key];
   const W = 240, H = 336, club = CLUBS[c.club], sp = c.special ? SPECIALS[c.kind] : null, R = TIERS[t] || TIERS.c;
   const cv = document.createElement("canvas"); cv.width = W; cv.height = H; const g = cv.getContext("2d");
-  const frame = sp ? (c.kind === "PZ" ? ["#fff7c8", "#e0a91a", "#fff0a0", "#9c6a08"] : sp.col.concat(sp.col[0])) : R.frame;
   const accent = sp ? (c.kind === "PZ" ? "#e0a91a" : sp.col[0] === "#1b1b1b" ? "#ffd34d" : sp.col[0]) : R.frame[1];
-  const gfx = cardImg(`art/cards/frame-${sp ? ({SW:"star-wildcard", BF:"best-fairest", GK:"goal-kicker", FL:"future-legend", PZ:"24k-gold"})[c.kind] : R.name.toLowerCase()}.webp`);
-  // 1. glowing frame: thick bevelled metal band with corner ornaments (like the reference cards)
-  if (!gfx) {
-    const [hi, mid, lite, dark] = [frame[0], frame[1], frame[2] || frame[0], frame[3] || frame[1]];
-    g.save(); g.shadowColor = sp ? accent : R.glow; g.shadowBlur = t === "c" && !sp ? 6 : 18;
-    g.fillStyle = "#0b0d12"; g.beginPath(); g.roundRect(4, 4, W - 8, H - 8, 20); g.fill(); g.restore();
-    const band = g.createLinearGradient(0, 0, W * .35, H);
-    [[0, lite], [.12, mid], [.28, dark], [.42, hi], [.55, mid], [.7, dark], [.85, lite], [1, mid]].forEach(([o, col]) => band.addColorStop(o, col));
-    g.fillStyle = band; g.beginPath(); g.roundRect(7, 7, W - 14, H - 14, 17); g.roundRect(16, 16, W - 32, H - 32, 11); g.fill("evenodd");
-    g.lineWidth = 2; g.strokeStyle = "#ffffffaa"; g.beginPath(); g.roundRect(8.5, 8.5, W - 17, H - 17, 16); g.stroke();   // outer highlight
-    g.strokeStyle = "#00000099"; g.beginPath(); g.roundRect(15, 15, W - 30, H - 30, 12); g.stroke();                       // inner shadow line
-    g.strokeStyle = "#000"; g.lineWidth = 2.5; g.beginPath(); g.roundRect(4, 4, W - 8, H - 8, 20); g.stroke();
-    // corner ornaments: metal caps with a gem
-    const gem = (x, y, r) => { g.save(); g.translate(x, y); g.rotate(Math.PI / 4);
-      g.fillStyle = band; g.strokeStyle = "#000"; g.lineWidth = 2; g.beginPath(); g.roundRect(-r, -r, r * 2, r * 2, 3); g.fill(); g.stroke();
-      g.fillStyle = sp ? accent : R.tag; g.beginPath(); g.roundRect(-r * .5, -r * .5, r, r, 2); g.fill(); g.fillStyle = "#ffffffb0"; g.fillRect(-r * .45, -r * .45, r * .35, r * .35); g.restore(); };
-    gem(W - 12, H - 12, 7); gem(12, H - 12, 7);
-  }
+  g.fillStyle = "#101724";
+  g.beginPath(); g.roundRect(3, 3, W - 6, H - 6, 15); g.fill();
   // 2. window: club colours with a burst of rays
   const ix = 17, iy = 17, iw = W - 34, ih = H - 34;
   g.save(); g.beginPath(); g.roundRect(ix, iy, iw, ih, 12); g.clip();
@@ -209,7 +217,7 @@ function cardFace(c, t) {
   if (t === "p" || c.kind === "PZ") { const r = rng(c.num || 7); g.fillStyle = "#fffbe0";
     for (let k = 0; k < 12; k++) { const x = ix + r() * iw, y = iy + r() * (ih - 90), z = 2 + r() * 4; g.beginPath(); g.moveTo(x, y - z); g.lineTo(x + z * .3, y - z * .3); g.lineTo(x + z, y); g.lineTo(x + z * .3, y + z * .3); g.lineTo(x, y + z); g.lineTo(x - z * .3, y + z * .3); g.lineTo(x - z, y); g.lineTo(x - z * .3, y - z * .3); g.fill(); } }
   g.restore();
-  if (gfx) g.drawImage(gfx, 0, 0, W, H);
+  drawCollectorBorder(g,club,sp?c.kind:TIERS[t]?t:"c");
   if (!photo) {
     g.save();
     g.translate(W / 2, 148);

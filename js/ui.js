@@ -495,8 +495,7 @@ $("buyMedals").onclick=e=>{ e.stopPropagation(); openHub("build","Shop"); };
 // (buttons below are optional: a missing one must never stop touch controls from loading)
 
 $("cardsIco").src=cardsButtonIcon();
-$("bCopy").onclick=()=>{ if(!BT||!(BT.visit||BT.kind==="pvp"&&!BT.started)) return; S.savedLayout={from:BT.opp.name, L:layoutOf(BT.origBase||BT.buildings), at:Date.now()}; save();
-  toast(`📋 Copied ${BT.opp.name}'s layout. Use it from Build → Buildings → 📋`); };
+$("bCopy").onclick=()=>{ if(!BT||!(BT.visit||BT.kind==="pvp"&&!BT.started)) return; layoutToSlot(BT.opp.name+"'s ground", layoutOf(BT.origBase||BT.buildings)); };
 $("bNext").onclick=()=>{ if(BT&&BT.visit){ const id=BT.opp.id; leaveBattle(); attackPlayer(id,"friend"); } else nextOpponent(); };
 $("placeYes").onclick=confirmPlace;
 $("placeNo").onclick=()=>{ placing=null; refreshUI(); };
@@ -570,7 +569,7 @@ function endPtr(e){
     return;
   }
   if(gesture.k==="tap"){ if(mode==="home") homeTap(gesture.gx,gesture.gy); else battleTap(gesture.gx,gesture.gy); }
-  if(gesture.k==="move"){ const b=gesture.b; if(footprintFree(placing.x,placing.y,BLD[b.t].size,b)){ b.x=placing.x; b.y=placing.y; sfx("tap"); save(); } else toast("Can't move it there"); placing=null; refreshUI(); }
+  if(gesture.k==="move"){ const b=gesture.b; if(footprintFree(placing.x,placing.y,BLD[b.t].size,b)){ if(typeof EDIT!=="undefined"&&EDIT) editSnap(); b.x=placing.x; b.y=placing.y; sfx("tap"); save(); } else toast("Can't move it there"); placing=null; refreshUI(); }
   gesture=null;
 }
 cv.addEventListener("pointerup",endPtr); cv.addEventListener("pointercancel",endPtr);

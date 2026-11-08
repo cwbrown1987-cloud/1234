@@ -25,6 +25,7 @@ function newGame(club){
 }
 // Fill in anything missing (older saves) so every field exists.
 function fixup(s){
+  if(s.editBackup){ const by=new Map((s.buildings||[]).map(b=>[b.id,b])); for(const [id,x,y] of s.editBackup){ const b=by.get(id); if(b){ b.x=x; b.y=y; } } delete s.editBackup; } // closed mid-edit
   if(s.v===2){ // map grew from 30 to 34: shift everything to stay centred
     for(const b of s.buildings){ b.x+=2; b.y+=2; } for(const o of s.obstacles){ o.x+=2; o.y+=2; }
     s.heroes={captain:s.hero||{lv:1,busy:null},coach:{lv:1,busy:null}}; delete s.hero; s.v=3;

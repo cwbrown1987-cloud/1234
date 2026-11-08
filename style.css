@@ -817,3 +817,21 @@ body:not(.ffui) .albummode .rwd{background:linear-gradient(#2a2e37,#16181e);bord
 @keyframes sfDots{0%{content:""}25%{content:"."}50%{content:".."}75%{content:"..."}}
 #searchFx .btn{min-width:140px}
 .lycode{font:900 34px/1.1 inherit;letter-spacing:6px;margin:10px 0 4px;color:#2b1d10}
+
+/* Layout Editor (placeholder look, to be polished) */
+body.editing #top,body.editing #homeBtns,body.editing #side,body.editing #eventBanner,body.editing #selPanel{display:none!important}
+#editUI{position:fixed;inset:0;pointer-events:none;z-index:400}
+#editUI>*{pointer-events:auto}
+#editUI .ed-top{position:absolute;top:calc(8px + env(safe-area-inset-top));left:8px;right:8px}
+#editUI .ed-title{background:linear-gradient(#fff6dc,#e3c58e);border:3px solid #2b1d10;border-radius:14px;padding:6px 10px;font-weight:900;color:#2b1d10;font-size:17px;box-shadow:0 3px 0 #2b1d10}
+#editUI .ed-title small{display:block;font-size:12px;color:#6b4a22}
+#editUI .ed-side{position:absolute;right:8px;top:90px;display:flex;flex-direction:column;gap:9px}
+#editUI .ed-sb{width:70px;border-radius:12px;border:3px solid #13314d;background:linear-gradient(#5aa9e6,#2f6fae);color:#fff;font:900 11px/1.2 inherit;padding:6px 2px;box-shadow:0 3px 0 #13314d}
+#editUI .ed-sb.red{background:linear-gradient(#ff8a6a,#d23a1c);border-color:#5a1206}
+#editUI .ed-bot{position:absolute;left:0;right:0;bottom:0;background:linear-gradient(#3b2a17,#24180c);border-top:3px solid #2b1d10;padding:8px 8px calc(12px + env(safe-area-inset-bottom))}
+#editUI .ed-trayh{color:#ffe6a8;font-weight:900;font-size:13px;margin:0 4px 6px}
+#editUI .ed-tray{display:flex;gap:7px;overflow-x:auto;padding-top:6px}
+#editUI .ed-ti{flex:0 0 76px;height:64px;border-radius:12px;background:linear-gradient(#fff6dc,#e3c58e);border:3px solid #2b1d10;position:relative;font:800 11px/1.1 inherit;color:#2b1d10;padding:4px}
+#editUI .ed-ti i{position:absolute;right:-4px;top:-6px;background:#d23a1c;color:#fff;font-style:normal;font-weight:900;font-size:12px;border-radius:10px;padding:1px 6px;border:2px solid #fff}
+#editUI .ed-acts{display:flex;gap:8px;margin-top:9px}
+#editUI .ed-acts .btn{flex:1}

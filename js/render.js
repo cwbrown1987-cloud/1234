@@ -108,6 +108,13 @@ function drawBuilding(b, club, list, opts={}){
     if(isNew || !artSprites.has(b.t)) pad(x,y,s);
   }
   let top=isNew?1.8:drawBuildingArt(b,club,opts);
+  const mirrorFallback=!top&&mirrorBuilding(b.t);
+  if(mirrorFallback){
+    const [cx]=P(x+s/2,y+s/2);
+    ctx.save();
+    ctx.translate(cx*2,0);
+    ctx.scale(-1,1);
+  }
   if(!top) switch(b.t){
     case "clubhouse":{
       prism(x+.3,y+.3,s-.6,s-.6,0,.45,"#a3968a");
@@ -288,6 +295,7 @@ function drawBuilding(b, club, list, opts={}){
       top=3.2; break;}
     case "fence": drawFence(b,club,list,lv); top=1.6; break;
   }
+  if(mirrorFallback) ctx.restore();
   if(b.busy) scaffold(b, s);
   if(b.hp!==undefined && b.hp<b.max) bar(...P(x+s/2,y+s/2,top),b.hp/b.max,b.hp/b.max>.5?"#5fd16b":"#e8503a");
   if(opts.collect && opts.collect>=1){ const [cx,cy]=P(x+s/2,y+s/2,top+1.2+Math.sin(performance.now()/300)*.2); bubble(cx,cy,BLD[b.t].makes==="pies"?"🥧":"💧"); }

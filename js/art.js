@@ -77,6 +77,7 @@ function buildingArtScale(type,sprite) {
   const maxHeight = type==="goalpost"?4.5:type==="clubhouse"?3.75:type==="floodlight"?3.48:2.8;
   return Math.min(BLD[type].size*width/sprite.w,maxHeight/sprite.h);
 }
+const mirrorBuilding = type => type==="esky" || type==="bench";
 
 function drawBuildingArt(b, club, opts) {
   const isNewBuilding = b.t==="kitroom" || b.t==="herohall";
@@ -90,7 +91,8 @@ function drawBuildingArt(b, club, opts) {
   const [x,y] = P(b.x+s/2,b.y+s/2);
   const face = b.t==="siren" || b.t==="catapult" ? (Math.cos(b.ang??-2.6)<0?-1:1) : 1;
   const recoil = (b.recoil||0)*TW*.13;
-  paintArt(sprite,x-face*recoil,y,scale,anchor,b.t==="siren"?-face:face);
+  const spriteFace=b.t==="siren" || mirrorBuilding(b.t)?-face:face;
+  paintArt(sprite,x-face*recoil,y,scale,anchor,spriteFace);
   const height = sprite.h*scale*anchor/TH;
 
   if (b.t==="clubhouse") {
@@ -127,7 +129,10 @@ function drawBuildingArt(b, club, opts) {
   }
   if (b.t==="bench" && !opts.hideAmbient) {
     const count = Math.min(6,Math.ceil((opts.fill??.5)*6));
-    for (let i=0; i<count; i++) drawPlayer(x+(i-(count-1)/2)*TW*.235,y+TH*.2,TW*.086,club,{id:i});
+    for (let i=0; i<count; i++) {
+      const along=(i-(count-1)/2)*TW*.235;
+      drawPlayer(x+along,y+TH*.2+along*.36,TW*.086,club,{id:i,face:spriteFace});
+    }
   }
   if (BLD[b.t].stores && opts.fill!==undefined) {
     bar(x,y+TH*.46,opts.fill,b.t==="esky"?"#54cffa":"#f4b84a",TW*.75);

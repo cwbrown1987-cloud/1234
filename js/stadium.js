@@ -4,6 +4,7 @@
 const BOWL = { R0: N * 0.74, tiers: 10, step: 1.2, rise: 0.75, seg: 96 };
 let crowdPat = null, crowdSrc = null;
 let paintedBowl;
+let stadiumCrowdPalette;
 
 function crowdPattern() {
   if (crowdPat && crowdSrc === ctx) return crowdPat;
@@ -93,7 +94,47 @@ function stadiumShape(g,points,fill,stroke,width) {
   if(stroke){ g.strokeStyle=stroke; g.lineWidth=width; g.stroke(); }
 }
 
-function paintBowlLayer(crowd, roof, facade) {
+// Red and green mark the two groups of supporters. Blue mixes the two kit colours on their clothing.
+function tintStadiumClothing(art,mask,first,second,offset=0) {
+  if(!first || !mask || offset+art.x+art.w>mask.w || art.y+art.h>mask.h) return art;
+  const canvas=document.createElement("canvas");
+  canvas.width=art.w; canvas.height=art.h;
+  const g=canvas.getContext("2d",{willReadFrequently:true});
+  g.drawImage(mask.image,mask.x+offset+art.x,mask.y+art.y,art.w,art.h,0,0,art.w,art.h);
+  const channels=g.getImageData(0,0,art.w,art.h).data;
+  g.clearRect(0,0,art.w,art.h);
+  g.drawImage(art.image,art.x,art.y,art.w,art.h,0,0,art.w,art.h);
+  const paint=g.getImageData(0,0,art.w,art.h), px=paint.data;
+  const colors=[first,second||first].map(club=>[rgb(club.a),rgb(club.b)]);
+  for(let i=0;i<px.length;i+=4){
+    const weight=Math.max(channels[i],channels[i+1])/255;
+    if(!weight || !px[i+3]) continue;
+    const [primary,accent]=colors[channels[i+1]>channels[i]?1:0];
+    const trim=channels[i+2]/255, light=(px[i]*.24+px[i+1]*.65+px[i+2]*.11)/255;
+    for(let c=0;c<3;c++){
+      const base=primary[c]+(accent[c]-primary[c])*trim;
+      const shade=base*(.55+light*.65)+Math.max(0,light-.26)*57;
+      px[i+c]+=(shade-px[i+c])*weight*.94;
+    }
+  }
+  g.putImageData(paint,0,0);
+  return {...art,image:canvas,x:0,y:0};
+}
+
+function stadiumSupporters(crowd,home,away) {
+  const mask=artSprites.get("stadium-crowd-palette"), guestMask=artSprites.get("stadium-seat-palette");
+  const saved=stadiumCrowdPalette;
+  if(saved?.crowd===crowd && saved.mask===mask && saved.guestMask===guestMask && saved.home===home && saved.away===away) return saved;
+  const homeTile=tintStadiumClothing(crowd,mask,home,away);
+  const awayTile=away && away!==home?tintStadiumClothing(crowd,mask,away,home):homeTile;
+  return stadiumCrowdPalette={crowd,mask,guestMask,home,away,homeTile,awayTile,guests:new Map()};
+}
+
+function stadiumAwayBay(bay) {
+  return (bay>=6 && bay<=11) || (bay>=24 && bay<=26) || (bay>=36 && bay<=39);
+}
+
+function paintBowlLayer(supporters, roof, facade) {
   const inner=BOWL.R0+1.25, outer=stadiumOuter();
   const width=Math.ceil((outer+2)*Math.SQRT2*TW), top=(outer/Math.SQRT2+10)*TH;
   const height=Math.ceil(top+(outer/Math.SQRT2+2)*TH);
@@ -160,7 +201,7 @@ function paintBowlLayer(crowd, roof, facade) {
         // The crowd has an upright silhouette on both sides of the oval.
         let ordered=rear(m)?[patch[3],patch[2],patch[1],patch[0]]:patch;
         if(ordered[0][0]>ordered[1][0]) ordered=[ordered[1],ordered[0],ordered[3],ordered[2]];
-        stadiumTexture(g,crowd,ordered);
+        stadiumTexture(g,stadiumAwayBay(i)?supporters.awayTile:supporters.homeTile,ordered);
         section(patch,level===2?"#14264246":"#1d324521");
         if(level<2 && Math.abs(m)<.82) crowdBays.set(i*2+level,ordered);
       }
@@ -184,7 +225,7 @@ function paintBowlLayer(crowd, roof, facade) {
     section(quad(a,b,lip,roofZ-.28,lip,roofZ),"#293548");
     section(quad(a,b,lip-.035,roofZ-.07,lip-.035,roofZ+.02),"#bfa36c");
   }
-  return {canvas,width,height,top,crowd,roof,facade,tile:TW,crowdBays};
+  return {canvas,width,height,top,supporters,roof,facade,tile:TW,crowdBays};
 }
 
 function newStadiumCrowd(bays) {
@@ -214,7 +255,20 @@ function drawStadiumCrowd(layer,match,cx,cy,scale) {
     if(x<-TW*2 || x>W+TW*2 || y<-TH*2 || y>H+TH*2) continue;
     const beat=(time+phase)%19;
     const frame=guest==="flag" && beat<2.1 && Math.floor(beat*5)%2 ? "flag-return" : guest;
-    stadiumTexture(ctx,art[STADIUM_GUESTS.indexOf(frame)],points,rect);
+    const i=STADIUM_GUESTS.indexOf(frame);
+    const palette=layer.supporters;
+    const club=stadiumAwayBay(Math.floor(bay/2)) ? palette.away||palette.home : palette.home;
+    let sprite=art[i];
+    if(i>0 && i<5 && club && palette.guestMask){
+      const key=frame+"-"+club.abbr;
+      const cached=palette.guests.get(key);
+      if(cached?.source!==sprite){
+        const tinted=tintStadiumClothing(sprite,palette.guestMask,club,club,(i-1)*128);
+        palette.guests.set(key,{source:sprite,tinted});
+        sprite=tinted;
+      } else sprite=cached.tinted;
+    }
+    stadiumTexture(ctx,sprite,points,rect);
   }
   ctx.restore();
 }
@@ -297,10 +351,11 @@ function drawStadiumBowl(club,match) {
 
   if(painted){
     const {crowd,roof,facade,lamp}=painted;
+    const supporters=stadiumSupporters(crowd,club,match?CLUBS[match.atkClub]:null);
     const zoom=paintedBowl ? TW/paintedBowl.tile : 0;
     // Panning and small zoom steps can reuse the layer without moving it off the oval.
-    if(zoom<.8 || zoom>1.25 || paintedBowl.crowd!==crowd || paintedBowl.roof!==roof || paintedBowl.facade!==facade)
-      paintedBowl=paintBowlLayer(crowd,roof,facade);
+    if(zoom<.8 || zoom>1.25 || paintedBowl.supporters!==supporters || paintedBowl.roof!==roof || paintedBowl.facade!==facade)
+      paintedBowl=paintBowlLayer(supporters,roof,facade);
     const {canvas,width,height,top,tile}=paintedBowl, [cx,cy]=P(N/2,N/2), scale=TW/tile;
     for(const angle of STADIUM_MOUNTS) if(Math.cos(angle)>.2) drawStadiumRig(stadiumRig(angle),lamp);
     ctx.drawImage(canvas,cx-width*scale/2,cy-top*scale,width*scale,height*scale);

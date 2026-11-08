@@ -562,7 +562,7 @@ function drawGround(){
     const [x,y]=P(a,b), rad=r*TW*.60;
     if(x<-rad||x>W+rad||y<-rad||y>H+rad) continue;
     const patch=ctx.createRadialGradient(x,y,0,x,y,rad);
-    patch.addColorStop(0,dark?"#60772f56":"#d8c97242");
+    patch.addColorStop(0,dark?"#5f8a2a38":"#b4cf5a30");
     patch.addColorStop(1,"#91aa4900");
     ctx.fillStyle=patch;
     ctx.fillRect(x-rad,y-rad,rad*2,rad*2);

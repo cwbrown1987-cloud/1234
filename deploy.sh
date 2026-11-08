@@ -16,7 +16,7 @@ files, binary = {}, {}
 for root, _, names in os.walk('.'):
     for n in names:
         p = os.path.join(root, n)[1:]
-        if p.startswith(('/mockups', '/.', '/server')) or n.endswith(('.md', '.sh')): continue
+        if p.startswith(('/mockups', '/.', '/server', '/docs')) or n.endswith(('.md', '.sh')): continue
         data = open('.' + p, 'rb').read()
         if p.endswith(('.html', '.css', '.js')): files[p] = data.decode('utf-8')
         if p == '/index.html':

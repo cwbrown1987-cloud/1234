@@ -86,7 +86,7 @@ function drawStadiumBowl() {
 // Clash-style footprint under each building: worn turf that stays inside the footprint, plus a soft contact shadow.
 function groundPatch(x, y, s) {
   const inset = .1;
-  for (const [m, col] of [[0, "#3f4a1c3d"], [.12, "#6e5b3245"], [.26, "#9c835233"]]) {
+  for (const [m, col] of [[0, "#2f5a1430"], [.1, "#3e6d1a30"], [.22, "#4f7d2224"]]) {
     poly([P(x + inset + m, y + inset + m), P(x + s - inset - m, y + inset + m), P(x + s - inset - m, y + s - inset - m), P(x + inset + m, y + s - inset - m)], col, null);
   }
   const [cx, cy] = P(x + s * .58, y + s * .6), rx = TW * s * .42, ry = TH * s * .42;

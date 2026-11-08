@@ -1,5 +1,5 @@
 // ---------- Game data ----------
-const VERSION = "2026.11.10.10";
+const VERSION = "2026.11.10.11";
 // Club names + colours. Logos: drop PNGs named <abbr>.png (e.g. coll.png) into the logos/ folder and they're used everywhere.
 // Player names checked against the 2026 trade period and retirements (lists for the 2027 season); edit freely.
 const CLUBS = [

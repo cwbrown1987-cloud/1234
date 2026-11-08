@@ -484,3 +484,17 @@ p.clash{color:#8a6d45;font-size:13px;margin:-4px 0 6px}
 }
 .fradd{display:flex;gap:6px;margin:4px 0}
 .fradd input{flex:1;min-width:0;font:inherit;font-size:16px;padding:8px 10px;border-radius:10px;border:3px solid #3a2a18;background:#fffdf6;color:#222;text-shadow:none}
+/* keep the resource bars on screen: the left side shrinks and wraps its pills instead of pushing them off */
+#top .tl{flex:1 1 auto;min-width:0}
+#top .tr{flex:none}
+#top .row2{flex-wrap:wrap}
+#top #clubName{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+#top .badge>div,#top .nmrow{min-width:0}
+#top .nmrow{display:flex;align-items:center}
+@media (orientation:portrait) and (max-height:700px){
+  #side{gap:5px;top:calc(max(8px,env(safe-area-inset-top)) + 118px)}
+  .sidebtn{width:46px;height:46px;font-size:19px;border-radius:12px}
+  .sidebtn span{font-size:9px}
+  .sidebtn img{width:22px;height:22px}
+}
+#eventBanner{max-width:calc(100vw - 16px);white-space:normal;text-align:center}

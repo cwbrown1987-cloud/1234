@@ -154,20 +154,21 @@ const liveAttackText=()=> (NET.liveAttacks||[]).map(a=>a.name+" is attacking you
 
 // ---------- real-player matches ----------
 function oppBuildings(opp) {
-  if (opp.base && opp.base.gen) return genBase(opp.th, opp.base.gen); // bot clubs
+  if (opp.base && opp.base.gen) return genBase(opp.th, opp.base.gen, opp.base.tier); // bot clubs
   return (opp.base || []).map((b, i) => ({ id: i + 1, t: b.t, x: b.x, y: b.y, lv: b.lv, hp: b.max || b.hp, max: b.max || b.hp, cd: 0, loot: b.loot ? { ...b.loot } : undefined, armed: BLD[b.t] && BLD[b.t].trap ? true : undefined }));
 }
 async function findOnlineMatch(skip = [], ranked = false) {
   if (!Object.values(S.army).some(n => n > 0)) return toast("Train some players first!");
   const cost = 50 * th(); if (!pay("pies", cost)) return toast("Not enough 🥧");
-  toast("Finding an opponent…");
   try {
-    await pushSave();
-    const r = await api("/match?mode=" + (ranked ? "ranked" : "battle") + (skip.length ? "&skip=" + skip.join(",") : ""));
-    const o = r.opponent; closeModal();
+    closeModal();
+    const r = await searching(pushSave().catch(() => {}).then(() => api("/match?mode=" + (ranked ? "ranked" : "battle") + (skip.length ? "&skip=" + skip.join(",") : ""))));
+    const o = r.opponent;
     startBattle({ kind: "pvp", ranked, club: o.club, d: o.th, buildings: oppBuildings(o), opp: { id: o.id, name: o.name, bot: o.bot, trophies: o.trophies }, seen: skip.concat(o.id) });
     BT.skip = skip.concat(o.id);
-  } catch (e) { S.pies += cost; toast(e.message); }
+    if (o.base && o.base.tier === "hard") toast("💀 Boss ground! Maxed defences, double loot");
+    if (o.base && o.base.tier === "boss") toast("💀 Boss battle! Every defence maxed for your level. Big loot if you win");
+  } catch (e) { S.pies += cost; if (!e.cancelled) toast(e.message); }
 }
 function nextOpponent() { if (!BT || BT.started || BT.kind !== "pvp") return; const skip = BT.skip || [], ranked = BT.ranked; leaveBattle(); findOnlineMatch(skip, ranked); }
 async function attackPlayer(id, kind) {
@@ -176,8 +177,10 @@ async function attackPlayer(id, kind) {
     const p = (await api("/player/" + id)).player;
     if (!p.base) return toast(`${p.name} hasn't set up their ground yet.`);
     if (kind !== "friendly" && kind !== "friend" && p.shield > Date.now()) return toast(`${p.name} is shielded for ${fmtTime((p.shield - Date.now()) / 1000)}.`);
+    const shielded = kind === "friend" && p.lootShield > Date.now();
     closeModal();
-    startBattle({ kind, club: p.club, d: p.th, buildings: oppBuildings(p), opp: { id: p.id, name: p.name, bot: p.bot, trophies: p.trophies } });
+    startBattle({ kind, club: p.club, d: p.th, buildings: oppBuildings(p), lootMul: shielded ? 0 : undefined, opp: { id: p.id, name: p.name, bot: p.bot, trophies: p.trophies } });
+    if (shielded) { BT.lootShield = p.lootShield; toast(`🛡️ ${p.name} has a loot shield from you for ${fmtTime((p.lootShield - Date.now()) / 1000)}. Attack for fun, but no loot.`); }
   } catch (e) { toast(e.message); }
 }
 function netAttackStarted(bt) {
@@ -225,7 +228,7 @@ async function netReportAttack(bt, r) {
   const token=NET.token;
   body.startedNotice=!!(await bt.attackNotice);
   if(NET.token!==token) return;
-  api("/attack", { method: "POST", body }).then(() => pushSave()).catch(e => toast("Couldn't send the result: " + e.message));
+  api("/attack", { method: "POST", body }).then(x => { if (x && x.lootShield && bt.kind === "friend" && !bt.lootShield) toast(`🛡️ That's 10 attacks in an hour. ${bt.opp.name} has a 2-hour loot shield from you`); return pushSave(); }).catch(e => toast("Couldn't send the result: " + e.message));
 }
 
 // ---------- friends: add mates by name, visit their ground, play a friendly ----------
@@ -239,7 +242,7 @@ async function renderFriends(soc) {
     <form id="frAdd" class="fradd"><input id="frName" placeholder="Friend's player name" maxlength="16" autocomplete="off"><button class="btn green" type="submit">Add</button></form>
     <p class="tiny center">Your player name is <b>${esc(NET.user.name)}</b>. Give it to your mates so they can add you.</p>
     <div id="frList" class="fixture"><p class="center">Loading…</p></div>
-    <p class="tiny center">Visit to look around their ground. ⚔️ Attack is a normal match (shields don't stop friends), but you only take a quarter of their loot and no trophies change hands.</p>`);
+    <p class="tiny center">Visit to look around their ground. ⚔️ Attack is a normal match (shields don't stop friends), but you take ⅛ of their loot (rising to ¼ once they have 300,000+ on offer) and no trophies change hands. Attack the same friend 10 times in an hour and they get a 2-hour 🛡️ loot shield from you: you can still attack, but take no loot.</p>`);
   $("frAdd").onsubmit = async e => { e.preventDefault(); const name = $("frName").value.trim(); if (!name) return;
     try { const r = await api("/friends", { method: "POST", body: { name } }); toast(r.mutual ? `You and ${r.friend.name} are now friends!` : `Friend request sent to ${r.friend.name}`); openFriends(); } catch (err) { toast(err.message); } };
   try {
@@ -250,7 +253,7 @@ async function renderFriends(soc) {
     if (r.requests.length) h += `<h3>Friend requests</h3>` + r.requests.map(f => row(f, "added you", `<button class="btn green" data-addback="${f.id}">➕ Add</button><button class="btn red" data-unf="${f.id}" title="Ignore">✖</button>`)).join("");
     if (r.suggestions.length) h += `<h3>Suggested by your mates</h3>` + r.suggestions.map(f => row(f, `${esc(f.from)} suggests them`, `<button class="btn green" data-addback="${f.id}">➕ Add</button><button class="btn red" data-unsug="${f.id}" title="Dismiss">✖</button>`)).join("");
     const revOf = id => (S.raids || []).find(x => x.attackerId === id && canRevenge(x));
-    h += `<h3>Friends${r.friends.length ? ` (${r.friends.length})` : ""}</h3>` + (r.friends.length ? r.friends.map(f => { const rv = revOf(f.id); return row(f, rv ? `⚔️ attacked you ${fmtTime((Date.now() - rv.at) / 1000)} ago` : "", `<button class="btn blue" data-visit="${f.id}">👀</button>${rv ? `<button class="btn red" data-rev="${rv.id}">⚔️ Revenge</button>` : `<button class="btn gold" data-fr="${f.id}">⚔️</button>`}${r.friends.length > 1 ? `<button class="btn" data-sug="${f.id}" title="Suggest a friend to ${esc(f.name)}">💡</button>` : ""}<button class="btn red" data-unf="${f.id}" title="Remove">✖</button>`); }).join("")
+    h += `<h3>Friends${r.friends.length ? ` (${r.friends.length})` : ""}</h3>` + (r.friends.length ? r.friends.map(f => { const rv = revOf(f.id); return row(f, rv ? `⚔️ attacked you ${fmtTime((Date.now() - rv.at) / 1000)} ago` : f.lootShield > Date.now() ? `🛡️ no loot for ${fmtTime((f.lootShield - Date.now()) / 1000)}` : "", `<button class="btn blue" data-visit="${f.id}">👀</button>${rv ? `<button class="btn red" data-rev="${rv.id}">⚔️ Revenge</button>` : `<button class="btn gold" data-fr="${f.id}">⚔️</button>`}${r.friends.length > 1 ? `<button class="btn" data-sug="${f.id}" title="Suggest a friend to ${esc(f.name)}">💡</button>` : ""}<button class="btn red" data-unf="${f.id}" title="Remove">✖</button>`); }).join("")
       : `<p class="center">No friends yet. Add someone by their player name above.</p>`);
     if (r.sent.length) h += `<h3>Waiting for them to add you back</h3>` + r.sent.map(f => row(f, "request sent", `<button class="btn red" data-unf="${f.id}" title="Cancel">✖</button>`)).join("");
     $("frList").innerHTML = h;
@@ -301,7 +304,7 @@ async function renderLeaderboard(soc) {
   if(soc!==$("soc")) return;
   $("soc").innerHTML = (signedIn() ? "" : `<div class="banner">Sign in to appear on the leaderboard. <button class="btn green" id="lbSign">Play online</button></div>`) +
     `<div class="ladwrap"><table class="ladder"><tr><th>#</th><th></th><th>Player</th><th>Club</th><th>🏆</th></tr>${r.players.map((p, i) =>
-      `<tr class="${p.id === meId ? "me" : ""}"><td>${i + 1}</td><td>${badgeImg(CLUBS[p.club] || CLUBS[0], "xs")}</td><td>${esc(p.name)}${p.bot ? ' <span class="tag bot">BOT</span>' : ""}${p.squadName ? `<br><small>${esc(p.squadName)}</small>` : ""}</td><td>CH ${p.th}</td><td><b>${p.trophies}</b></td></tr>`).join("")}</table></div>
+      `<tr class="${p.id === meId ? "me" : ""}"><td>${i + 1}</td><td>${badgeImg(CLUBS[p.club] || CLUBS[0], "xs")}</td><td>${esc(p.name)}${p.squadName ? `<br><small>${esc(p.squadName)}</small>` : ""}</td><td>CH ${p.th}</td><td><b>${p.trophies}</b></td></tr>`).join("")}</table></div>
     <p class="tiny center">Bots are computer clubs so there's always someone to play while the league fills up.</p>`;
   const b = $("lbSign"); if (b) b.onclick = sub(() => openAccount(), () => openSocial("Leaderboard"));
 }

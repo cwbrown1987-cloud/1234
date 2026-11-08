@@ -33,6 +33,11 @@ async function newSession(env, userId) {
 }
 const profileOut = p => p && ({id: p.user_id, name: p.name, club: p.club, th: p.th, trophies: p.trophies, bot: !!p.bot, squad: p.squad_id, shield: p.shield_until});
 const LIVE_ATTACK_MS = 210000;
+// Friend loot shield: after 10 attacks by the same friend within an hour, that friend can still attack but takes no loot for 2 hours.
+const FRIEND_RAIDS = 10, FRIEND_WINDOW = 3600e3, FRIEND_SHIELD = 2 * 3600e3;
+let friendLootSchema;
+const ensureFriendLoot = db => friendLootSchema ??= db.prepare("CREATE TABLE IF NOT EXISTS friend_loot (attacker_id TEXT NOT NULL, defender_id TEXT NOT NULL, n INTEGER NOT NULL, first INTEGER NOT NULL, until INTEGER NOT NULL DEFAULT 0, PRIMARY KEY(attacker_id, defender_id))").run();
+async function friendLootUntil(db, atk, def) { await ensureFriendLoot(db); const r = await db.prepare("SELECT until FROM friend_loot WHERE attacker_id = ? AND defender_id = ?").bind(atk, def).first(); return r && r.until > now() ? r.until : 0; }
 let attackNoticeSchema;
 function ensureAttackNotices(db) {
   return attackNoticeSchema ??= db.prepare("CREATE TABLE IF NOT EXISTS attack_notices (attacker_id TEXT PRIMARY KEY, defender_id TEXT NOT NULL, at INTEGER NOT NULL, active INTEGER NOT NULL)").run()
@@ -129,21 +134,29 @@ export async function handleApi(req, env) {
       const myP = await env.DB.prepare("SELECT * FROM profiles WHERE user_id = ?").bind(me.id).first();
       const ranked = url.searchParams.get("mode") === "ranked";
       const tro = myP ? myP.trophies : 0, th = myP ? myP.th : 1, skip = (url.searchParams.get("skip") || "").split(",").filter(Boolean).slice(0, 20);
-      const holes = skip.map(() => "?").join(",") || "''";
-      const pick = async (range, real) => (await env.DB.prepare(
-        `SELECT * FROM profiles WHERE user_id != ? AND user_id NOT IN (${holes}) AND bot = ? AND shield_until < ? AND base IS NOT NULL
-         AND ABS(trophies - ?) <= ? AND ABS(th - ?) <= ${ranked ? 2 : 1} ${real ? "AND last_seen > ?" : ""} ORDER BY RANDOM() LIMIT 1`)
-        .bind(me.id, ...skip, real ? 0 : 1, now(), tro, ranked ? range : 99999, th, ...(real ? [now() - 30 * 864e5] : [])).first());
+      // Don't serve anyone you've been matched with in the last 30 minutes (unless there's no one else).
+      await env.DB.prepare("CREATE TABLE IF NOT EXISTS recent_opps (user_id TEXT NOT NULL, opp_id TEXT NOT NULL, at INTEGER NOT NULL, PRIMARY KEY(user_id, opp_id))").run();
+      const recent = (await env.DB.prepare("SELECT opp_id FROM recent_opps WHERE user_id = ? AND at > ? ORDER BY at DESC LIMIT 40").bind(me.id, now() - 30 * 60e3).all()).results.map(x => x.opp_id);
+      // kind: "real" players, "easy" bots, "hard" boss bots, or "scale" bots that match your level. Bots never have shields.
+      const pick = async (kind, range, avoid) => { const ex = [...new Set([...skip, ...avoid])], holes = ex.map(() => "?").join(",") || "''", scale = kind === "scale" || kind === "boss";
+        const who = kind === "real" ? "bot = 0 AND shield_until < ? AND last_seen > ?" : `bot = 1 AND COALESCE(json_extract(base, '$.tier'), 'easy') = '${kind}'`;
+        const p = await env.DB.prepare(`SELECT * FROM profiles WHERE user_id != ? AND user_id NOT IN (${holes}) AND ${who} AND base IS NOT NULL
+          ${scale ? "" : `AND ABS(trophies - ?) <= ? AND ABS(th - ?) <= ${ranked ? 2 : 1}`} ORDER BY RANDOM() LIMIT 1`)
+          .bind(me.id, ...ex, ...(kind === "real" ? [now(), now() - 30 * 864e5] : []), ...(scale ? [] : [tro, ranked ? range : 99999, th])).first();
+        return p && scale ? {...p, th, trophies: Math.max(0, tro + Math.round((Math.random() - .5) * 80))} : p; };
+      const roll = Math.random(), first = roll < 0.28 ? "real" : roll < 0.42 ? "scale" : roll < 0.49 ? "boss" : roll < 0.55 ? "hard" : "easy";
+      // fall back through the friendlier kinds first; bosses only when they were rolled
+      const order = [first, ...["easy", "scale", "real"].filter(k => k !== first).sort(() => Math.random() - .5)];
       let opp = null;
-      for (const range of [150, 400, 99999]) { opp = await pick(range, true); if (opp) break; }
-      if (!opp || Math.random() < 0.35) { for (const range of [200, 600, 99999]) { const b = await pick(range, false); if (b) { opp = b; break; } } }
+      for (const avoid of [recent, recent.slice(0, 3), []]) { for (const kind of order) { for (const range of [150, 400, 99999]) { opp = await pick(kind, range, avoid); if (opp) break; } if (opp) break; } if (opp) break; }
       if (!opp) return fail("No one to play right now. Try again soon.", 404);
+      await env.DB.prepare("INSERT INTO recent_opps(user_id,opp_id,at) VALUES(?,?,?) ON CONFLICT(user_id,opp_id) DO UPDATE SET at=excluded.at").bind(me.id, opp.user_id, now()).run();
       return json({opponent: {...profileOut(opp), base: JSON.parse(opp.base)}});
     }
     if (path.startsWith("/player/") && m === "GET") {
       const p = await env.DB.prepare("SELECT * FROM profiles WHERE user_id = ?").bind(path.slice(8)).first();
       if (!p) return fail("Player not found.", 404);
-      return json({player: {...profileOut(p), base: p.base ? JSON.parse(p.base) : null}});
+      return json({player: {...profileOut(p), base: p.base ? JSON.parse(p.base) : null, lootShield: await friendLootUntil(env.DB, me.id, p.user_id)}});
     }
     if (path === "/attack/start" && m === "POST") {
       const b = await body(req), defender = String(b.defender || "");
@@ -193,6 +206,18 @@ export async function handleApi(req, env) {
       const atkTro = stars >= 3 ? 40 : stars === 2 ? Math.min(32, 16 + Math.max(0, Math.floor((pct - 50) / 3))) : stars === 1 ? Math.min(15, 5 + Math.floor(pct / 9)) : pct >= 10 ? Math.min(4, Math.floor(pct / 10)) : 0;
       const defTro = !ranked ? 0 : stars ? 40 - atkTro : 40; // Clash Ranked Battles: defenders only gain
       const shield = !friendly && b.magicShield ? now() + 8 * 3600e3 : 0; // Magic Shield: 30%+ of the loot taken
+      let lootShield = 0;
+      if (b.friend && !friendly) {
+        await ensureFriendLoot(env.DB);
+        const t = now(), fl = await env.DB.prepare("SELECT * FROM friend_loot WHERE attacker_id = ? AND defender_id = ?").bind(me.id, def.user_id).first();
+        if (fl && fl.until > t) { lootShield = fl.until; b.loot = {pies: 0, drink: 0}; b.lootShielded = true; }
+        else {
+          const n = fl && fl.first > t - FRIEND_WINDOW ? fl.n + 1 : 1, first = n === 1 ? t : fl.first;
+          if (n >= FRIEND_RAIDS) lootShield = t + FRIEND_SHIELD;
+          await env.DB.prepare("INSERT INTO friend_loot(attacker_id,defender_id,n,first,until) VALUES(?,?,?,?,?) ON CONFLICT(attacker_id,defender_id) DO UPDATE SET n=excluded.n, first=excluded.first, until=excluded.until")
+            .bind(me.id, def.user_id, lootShield ? 0 : n, first, lootShield).run();
+        }
+      }
       const data = JSON.stringify({attacker: me.name, ...b, defTro, stars, pct});
       if (data.length > 150000) return fail("Replay is too big.");
       const stmts = [env.DB.prepare("INSERT INTO attacks(attacker_id,defender_id,at,data,seen) VALUES(?,?,?,?,0)").bind(me.id, def.user_id, now(), data)];
@@ -201,10 +226,10 @@ export async function handleApi(req, env) {
         stmts.push(env.DB.prepare("UPDATE attack_notices SET active=0 WHERE attacker_id=? AND defender_id=?").bind(me.id, def.user_id));
         stmts.push(env.DB.prepare("UPDATE live_moves SET done=1, plan=?, updated=? WHERE attacker_id=? AND defender_id=?").bind(JSON.stringify(b.plan || []), now(), me.id, def.user_id));
       }
-      if (!friendly) stmts.push(env.DB.prepare("UPDATE profiles SET trophies = MAX(0, trophies + ?), shield_until = MAX(shield_until, ?) WHERE user_id = ?").bind(defTro, shield, def.user_id));
+      if (!friendly) stmts.push(env.DB.prepare("UPDATE profiles SET trophies = MAX(0, trophies + ?), shield_until = CASE WHEN bot = 1 THEN 0 ELSE MAX(shield_until, ?) END WHERE user_id = ?").bind(defTro, shield, def.user_id));
       if (ranked && Number.isFinite(Number(b.myTrophies))) stmts.push(env.DB.prepare("UPDATE profiles SET trophies = ?, shield_until = 0 WHERE user_id = ?").bind(Math.max(0, Number(b.myTrophies)), me.id));
       await env.DB.batch(stmts);
-      return json({ok: true, defTro});
+      return json({ok: true, defTro, lootShield});
     }
     // ----- friends: add by player name, visit their ground, play a friendly -----
     // ----- friends: requests (add + add back), suggestions, visit, attack -----
@@ -222,7 +247,9 @@ export async function handleApi(req, env) {
           env.DB.prepare("SELECT p.*, u.name AS from_name FROM friend_suggestions s JOIN profiles p ON p.user_id = s.who_id JOIN users u ON u.id = s.from_id WHERE s.to_id = ? AND NOT EXISTS (SELECT 1 FROM friends f WHERE f.user_id = s.to_id AND f.friend_id = s.who_id) ORDER BY s.created DESC LIMIT 30").bind(me.id),
         ]);
         const out = p => ({...profileOut(p), online: p.last_seen > now() - 10 * 60e3});
-        return json({friends: fr.results.map(out), requests: req.results.map(out), sent: sent.results.map(out), suggestions: sug.results.map(p => ({...out(p), from: p.from_name}))});
+        await ensureFriendLoot(env.DB);
+        const ls = await env.DB.prepare("SELECT defender_id, until FROM friend_loot WHERE attacker_id = ? AND until > ?").bind(me.id, now()).all(), lsOf = Object.fromEntries(ls.results.map(x => [x.defender_id, x.until]));
+        return json({friends: fr.results.map(f => ({...out(f), lootShield: lsOf[f.user_id] || 0})), requests: req.results.map(out), sent: sent.results.map(out), suggestions: sug.results.map(p => ({...out(p), from: p.from_name}))});
       }
       if (path === "/friends" && m === "POST") {
         const b = await body(req), name = String(b.name || "").trim();

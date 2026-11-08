@@ -111,8 +111,13 @@ function confirmPlace(){ if(lockedToast()) return;
   S.buildings.push({id:S.nextId++,t,x,y,lv:1,store:0,busy:time>0?{kind:"build",end:Date.now()+time*1000,total:time}:null});
   sfx("build"); save(); tut("placed");
   if(t==="fence"){
-    const st=shopStatus("fence"), nx=[[x+1,y],[x,y+1],[x-1,y],[x,y-1]].find(([a,c])=>footprintFree(a,c,1));
-    placing = st.ok&&st.afford&&nx ? {t,x:nx[0],y:nx[1]} : null;
+    // keep building the same row in the same direction: from the last fence placed, or along a fence this one joins
+    const prev=placing.prev, isFence=(a,c)=>S.buildings.some(b=>b.t==="fence"&&b.x===a&&b.y===c&&!(b.x===x&&b.y===y));
+    let dir=prev&&Math.abs(x-prev.x)+Math.abs(y-prev.y)===1 ? [x-prev.x,y-prev.y] : null;
+    if(!dir) dir=[[1,0],[0,1],[-1,0],[0,-1]].find(([dx,dy])=>isFence(x-dx,y-dy)&&!isFence(x+dx,y+dy)) || null;
+    const st=shopStatus("fence"), tries=dir?[dir,[dir[1],dir[0]],[-dir[1],-dir[0]]]:[[1,0],[0,1],[-1,0],[0,-1]];
+    const nx=tries.map(([dx,dy])=>[x+dx,y+dy]).find(([a,c])=>footprintFree(a,c,1));
+    placing = st.ok&&st.afford&&nx ? {t,x:nx[0],y:nx[1],prev:{x,y}} : null;
   } else placing=null;
   refreshUI();
 }
@@ -345,10 +350,13 @@ function renderHome(){
     diamond(preview.x,preview.y,1,1,rowOK?"#64df7fb0":"#ff5634b0","#fff",2);
   }
   const heroes={busy:{}}; for(const h of Object.keys(HEROES)){ heroes[h]=heroReady(h)?club:null; heroes.busy[h]=!!S.heroes[h].busy; }
-  for(const o of S.obstacles) ents.push({k:o.x+o.y+(o.s||1),f:()=>{ if(selected===o) selectGlow(o.x,o.y,o.s||1); drawObstacle(o); }});
+  // while placing fences, everything else goes see-through so you can see where the fence is going
+  const fenceMode=placing&&placing.t==="fence", ghost=f=>()=>{ ctx.save(); ctx.globalAlpha=.35; f(); ctx.restore(); };
+  for(const o of S.obstacles){ const f=()=>{ if(selected===o) selectGlow(o.x,o.y,o.s||1); drawObstacle(o); }; ents.push({k:o.x+o.y+(o.s||1),f:fenceMode?ghost(f):f}); }
   const movingB = placing&&placing.moving;
   for(const b of list){ if(b===movingB) continue; const d=BLD[b.t];
-    ents.push({k:b.x+b.y+d.size,f:()=>drawBuilding(b,club,list,{selected:!row&&selected===b, deferLevel:true, fill:fillOf(b), heroes, collect:d.makes&&!b.busy&&b.store>=Math.max(1,d.cap[b.lv-1]*.1)?b.store:0})}); }
+    const f=()=>drawBuilding(b,club,list,{selected:!row&&selected===b, deferLevel:true, fill:fillOf(b), heroes, collect:d.makes&&!b.busy&&b.store>=Math.max(1,d.cap[b.lv-1]*.1)?b.store:0});
+    ents.push({k:b.x+b.y+d.size,f:fenceMode&&b.t!=="fence"?ghost(f):f}); }
   ents.sort((a,b)=>a.k-b.k).forEach(e=>e.f());
   if(placing&&!row){ const d=BLD[placing.t], ok=footprintFree(placing.x,placing.y,d.size,placing.moving);
     diamond(placing.x,placing.y,d.size,d.size,ok?"#5fd16b88":"#e8503a99","#fff",2);
@@ -356,7 +364,7 @@ function renderHome(){
   drawSky();
   // Draw labels after the world so foreground fences cannot hide them.
   for(const b of list){
-    if(b===movingB || b.t==="fence" || BLD[b.t].trap || b.busy?.kind==="build") continue;
+    if(b===movingB || b.t==="fence" || BLD[b.t].trap || b.busy?.kind==="build" || fenceMode) continue;
     if(b.lv>=3 || b===selected) drawBuildingLevel(b);
   }
   if(row){

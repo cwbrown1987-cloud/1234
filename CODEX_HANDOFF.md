@@ -438,3 +438,19 @@ Jobs C and D need small hooks:
   - screenshots: home base with the Kit Room and Hero Hall, the album page, the pack tear, and one card of each rarity plus a special
   - a list of anything you couldn't do
 - **Don't merge and don't deploy.** The owner previews it, and Claude merges and deploys.
+
+## New traps (placeholder art: an emoji on a grey disc)
+Paint each as a small object half-buried in the grass, in our own AFL style. In battle it stays hidden until it goes off. Save it as `art/buildings/<id>.webp` and list it in `art/manifest.json`. Size 1 → 256×256; size 2 → 384×384.
+
+| id | Name | Size | What it does |
+|---|---|---|---|
+| `sendoff` | Send-Off Gate | 1 | The umpire sends ground players off, up to a squad-size limit |
+| `flooder` | Pitch Flooder | 2 | Big splash that soaks a whole pack of ground players |
+| `swoop` | Magpie Swoop | 1 | Hits every flyer in an area |
+| `kite` | Kite Catcher | 1 | One big hit on a single flyer |
+| `streaker` | Streaker | 1 | Ground players nearby stop and watch for a few seconds |
+| `gust` | Wind Gust | 1 | Drags players in and holds them for a few seconds |
+| `spark` | Hidden Scoreboard | 2 | Pops up and zaps nearby players for 8 seconds |
+
+## Level art: buildings that change as they level up
+Any building or trap can have a different picture from a given level up. Name it `art/buildings/<id>-lv<N>.webp`, and it's used from level N until the next one you've drawn. Example: `siren-lv1.webp`, `siren-lv4.webp`, `siren-lv7.webp` gives three looks. Anything without level art keeps its normal picture. Size and anchor are the same as the building's normal art, but it can be taller.

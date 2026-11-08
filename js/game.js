@@ -25,6 +25,7 @@ function newGame(club){
 }
 // Fill in anything missing (older saves) so every field exists.
 function fixup(s){
+  if(s.editBackup){ const by=new Map((s.buildings||[]).map(b=>[b.id,b])); for(const [id,x,y] of s.editBackup){ const b=by.get(id); if(b){ b.x=x; b.y=y; } } delete s.editBackup; } // closed mid-edit
   if(s.v===2){ // map grew from 30 to 34: shift everything to stay centred
     for(const b of s.buildings){ b.x+=2; b.y+=2; } for(const o of s.obstacles){ o.x+=2; o.y+=2; }
     s.heroes={captain:s.hero||{lv:1,busy:null},coach:{lv:1,busy:null}}; delete s.hero; s.v=3;
@@ -75,6 +76,36 @@ function occupiedHome(x,y,s,ignore){
   return false;
 }
 function findSpot(s){ const c=N/2-s/2|0; for(let r=0;r<N;r++) for(let dx=-r;dx<=r;dx++) for(let dy=-r;dy<=r;dy++){ if(Math.max(Math.abs(dx),Math.abs(dy))!==r) continue; if(footprintFree(c+dx,c+dy,s)) return [c+dx,c+dy]; } return null; }
+
+// ---------- base layouts (like Clash's Copy Layout): a list of [type, x, y] ----------
+const layoutOf = list => list.filter(b=>BLD[b.t]).map(b=>[b.t,b.x,b.y]);
+function applyLayout(L){
+  if(lockedToast()) return false;
+  const want={}; for(const [t,x,y] of L||[]) if(BLD[t]) (want[t]=want[t]||[]).push([x,y]);
+  const mine=S.buildings.slice(), was=new Map(mine.map(b=>[b,[b.x,b.y]]));
+  S.layoutUndo=mine.map(b=>[b.id,b.x,b.y]);
+  for(const b of mine){ b.x=-99; b.y=-99; }
+  let placed=0; const left=[];
+  for(const b of mine.sort((a,c)=>BLD[c.t].size-BLD[a.t].size)){ const s=BLD[b.t].size, spots=want[b.t]||[]; let ok=false;
+    while(spots.length&&!ok){ const [x,y]=spots.shift(); if(footprintFree(x,y,s,b)){ b.x=x; b.y=y; ok=true; placed++; } }
+    if(!ok) left.push(b); }
+  // anything their ground doesn't have room for goes back where it was, or the nearest free spot
+  // spare fences get stacked in tidy rows in the back corner, ready to drag into place
+  const spare=left.filter(b=>b.t==="fence"); let k=0;
+  for(const b of spare){ for(;k<N*N;k++){ const x=1+k%(N-2), y=1+Math.floor(k/(N-2)); if(footprintFree(x,y,1,b)){ b.x=x; b.y=y; k++; break; } } }
+  for(const b of left){ if(b.t==="fence"&&b.x>=0) continue; const [ox,oy]=was.get(b), s=BLD[b.t].size; const sp=footprintFree(ox,oy,s,b)?[ox,oy]:findSpot(s); [b.x,b.y]=sp||[ox,oy]; }
+  selected=null; placing=null; save(); refreshUI();
+  return {placed, left:left.length};
+}
+function undoLayout(){
+  if(!S.layoutUndo||lockedToast()) return;
+  const byId=new Map(S.buildings.map(b=>[b.id,b])); for(const [id,x,y] of S.layoutUndo){ const b=byId.get(id); if(b){ b.x=x; b.y=y; } }
+  S.layoutUndo=null; selected=null; save(); refreshUI(); toast("Layout put back");
+}
+
+// Reserves bench (our clan castle): empty after it defends, refilled 6 hours later (until friends can lend players)
+const RES_REFILL = 6*3600e3;
+const reservesReady = () => !S.resUsedAt || Date.now() - S.resUsedAt >= RES_REFILL;
 
 // ---------- shop / build / upgrade ----------
 // Your first Pie Shop and Drink Tap are free, so spending everything can never leave you with no income.
@@ -349,7 +380,7 @@ function renderHome(){
   const previewFits=preview&&footprintFree(preview.x,preview.y,previewSize,movingB);
   ctx.save();
   if(fenceMode) ctx.globalAlpha=.35;
-  for(const b of list) if(b!==movingB) groundPatch(b);
+  for(const b of list) if(b!==movingB&&b.x>=0) groundPatch(b);
   if(previewFits) groundPatch(preview);
   ctx.restore();
   if(placing){ ctx.strokeStyle="#ffffff28"; ctx.lineWidth=1; for(let i=0;i<=N;i++){ ctx.beginPath(); ctx.moveTo(...P(i,0)); ctx.lineTo(...P(i,N)); ctx.moveTo(...P(0,i)); ctx.lineTo(...P(N,i)); ctx.stroke(); } }
@@ -362,7 +393,8 @@ function renderHome(){
   // while placing fences, everything else goes see-through so you can see where the fence is going
   const ghost=f=>()=>{ ctx.save(); ctx.globalAlpha=.35; f(); ctx.restore(); };
   for(const o of S.obstacles){ const f=()=>{ if(selected===o) selectGlow(o.x,o.y,o.s||1); drawObstacle(o); }; ents.push({k:o.x+o.y+(o.s||1),f:fenceMode?ghost(f):f}); }
-  for(const b of list){ if(b===movingB) continue; const d=BLD[b.t];
+  const ed=typeof EDIT!=="undefined"&&EDIT;
+  for(const b of list){ if(b===movingB||b.x<0||ed&&(ed.walls&&b.t!=="fence"||ed.scout&&BLD[b.t].trap)) continue; const d=BLD[b.t];
     const f=()=>drawBuilding(b,club,list,{selected:!row&&selected===b, deferLevel:true, fill:fillOf(b), heroes, collect:d.makes&&!b.busy&&b.store>=Math.max(1,d.cap[b.lv-1]*.1)?b.store:0});
     ents.push({k:b.x+b.y+d.size,f:fenceMode&&b.t!=="fence"?ghost(f):f}); }
   if(!placing) addGroundCrew(ents,list,club);
@@ -373,7 +405,7 @@ function renderHome(){
   drawSky();
   // Draw labels after the world so foreground fences cannot hide them.
   for(const b of list){
-    if(b===movingB || b.t==="fence" || BLD[b.t].trap || b.busy?.kind==="build" || fenceMode) continue;
+    if(b===movingB || b.t==="fence" || BLD[b.t].trap || b.busy?.kind==="build" || fenceMode || ed) continue;
     if(b.lv>=3 || b===selected) drawBuildingLevel(b);
   }
   if(row){
@@ -430,4 +462,6 @@ function boot(){
   if(typeof netStart==="function") setTimeout(netStart,800);
   refreshUI(); requestAnimationFrame(frame);
   addEventListener("visibilitychange",()=>{ if(document.hidden&&mode==="home") save(); });
+  addEventListener("pagehide",()=>{ if(mode==="home") save(); });
+  setInterval(()=>{ if(S&&mode==="home"&&!document.hidden) save(); },20000); // keep the saved copy fresh while you play
 }

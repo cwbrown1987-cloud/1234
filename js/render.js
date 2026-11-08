@@ -457,7 +457,12 @@ function drawFence(b,club,list,lv){
     else fenceCached("p"+id,x,y,()=>fencePillar(lv,club));
   }
 }
-function drawTrap(b){ const [x,y]=P(b.x+.5,b.y+.5); ctx.fillStyle="#425657"; ctx.strokeStyle=OUT; ctx.lineWidth=1.5; ctx.beginPath(); ctx.ellipse(x,y,TW*.21,TH*.23,0,0,7); ctx.fill(); ctx.stroke();
+function drawTrap(b){
+  if(b.t!=="sprinkler"){ const s=BLD[b.t].size, [x,y]=P(b.x+s/2,b.y+s/2), sp=levelSprite(b.t,b.lv);
+    if(sp){ paintArt(sp,x,y+TH*s/2,TW*s*.9/sp.w,1); return; }
+    ctx.fillStyle="#42565799"; ctx.strokeStyle=OUT; ctx.lineWidth=1.5; ctx.beginPath(); ctx.ellipse(x,y,TW*.21*s,TH*.23*s,0,0,7); ctx.fill(); ctx.stroke();
+    ctx.font=`${TW*.3*s}px sans-serif`; ctx.textAlign="center"; ctx.textBaseline="middle"; ctx.fillText(BLD[b.t].emo||"❓",x,y-TH*.1); return; }
+  const [x,y]=P(b.x+.5,b.y+.5); ctx.fillStyle="#425657"; ctx.strokeStyle=OUT; ctx.lineWidth=1.5; ctx.beginPath(); ctx.ellipse(x,y,TW*.21,TH*.23,0,0,7); ctx.fill(); ctx.stroke();
   ctx.beginPath(); ctx.arc(x,y-TH*.15,TW*.06,0,7); ctx.fillStyle="#d6ad59"; ctx.fill(); ctx.stroke(); }
 function drawBuildingLevel(b){
   const size=BLD[b.t].size, scale=W/(cv.clientWidth||W);

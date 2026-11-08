@@ -2,7 +2,7 @@
 let simulating = false;
 
 function raidTick(now){
-  if(!S.nextRaid || now<S.nextRaid || placing || tutActive()) return;
+  if(!S.nextRaid || now<S.nextRaid || placing || tutActive() || typeof EDIT!=="undefined"&&EDIT) return; // never raid a half-edited ground
   if(S.shield>now){ S.nextRaid=S.shield+(3+Math.random()*7)*60000; return; }
   if(th()<2 && S.trophies<30){ S.nextRaid=now+10*60000; return; } // go easy on brand-new clubs
   runRaid(); S.nextRaid=now+(8+Math.random()*12)*60000; save();
@@ -11,7 +11,7 @@ function raidTick(now){
 // Snapshot your ground as a battle map, with what an attacker could steal.
 function homeBattleBase(){
   const tough=1+cardBonus("def");
-  const list=S.buildings.filter(built).map(b=>{ const d=BLD[b.t], hp=Math.round(d.hp[b.lv-1]*(d.trap?1:tough)); return {id:b.id,t:b.t,x:b.x,y:b.y,lv:b.lv,hp,max:hp,cd:0,armed:d.trap?true:undefined}; });
+  const list=S.buildings.filter(built).map(b=>{ const d=BLD[b.t], hp=Math.round(d.hp[b.lv-1]*(d.trap?1:tough)); return {id:b.id,t:b.t,x:b.x,y:b.y,lv:b.lv,hp,max:hp,cd:0,armed:d.trap?true:undefined,res:b.t==="clubhouse"?reservesReady():undefined}; });
   const pw=list.filter(b=>b.t==="piewarmer"), es=list.filter(b=>b.t==="esky"), ch=list.find(b=>b.t==="clubhouse");
   pw.forEach(b=>b.loot={pies:Math.floor(S.pies*.2/pw.length),drink:0});
   es.forEach(b=>b.loot={pies:0,drink:Math.floor(S.drink*.2/es.length)});
@@ -54,6 +54,7 @@ function runRaid(){
   const saved=BT, sm=shake; simulating=true; BT=raidBattle(raid,"raid");
   let steps=0; while(steps++<6000 && !battleStep(1/30)){}
   const stars=starsNow(), p=Math.round(pct()), sc=scoreNow();
+  if(BT.reservesOut) S.resUsedAt=Date.now(); // your Reserves defended; the bench refills in 6 hours
   // what was taken from each building
   const lost={pies:0,drink:0};
   for(const b of BT.buildings){ if(!b.loot) continue; const f=1-Math.max(0,b.hp)/b.max; const tp=Math.floor(b.loot.pies*f), td=Math.floor(b.loot.drink*f);

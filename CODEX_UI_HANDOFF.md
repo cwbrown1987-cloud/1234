@@ -117,3 +117,18 @@ Also paint **league badges** for the weekly Ranked leagues: `art/ui/league-<n>.w
 - Don't change any JS or CSS. Only add files and list them in the manifest. If something can't be done without code, say so in the PR.
 - **Test:** serve the folder with `python3 -m http.server 8080`, open http://localhost:8080, and check each hub, Profile, Pass, Events and the Builder Menu at phone size (390×844) and tablet landscape.
 - **PR:** include before and after screenshots of every screen above.
+
+## Ground Edit Mode (our copy of Clash's Village Edit Mode)
+
+Open it with Build → Buildings → 📋 → ✏️. The layout and sizes already match Clash's Village Edit Mode (wiki screenshot `NewVillageEditMode.png`). Every size is measured against the **short side** of the screen (1u = 1% of it), so a phone held upright and a tablet held sideways look like Clash. The code is in `js/layouts.js` (`editUI`) and the styles are under "All sizes come from Clash" in `style.css`. Only add art; the hooks are already in place.
+
+| Piece | Where | Size on screen | Art file (`art/ui/`) | Paint at |
+|---|---|---|---|---|
+| Title "Ground Edit Mode" + pencil | top left | text 4u, pencil 4.5u | `vem-pencil.webp` (icon) | 128×128 |
+| Toolbar tab (shows/hides toolbar) | left edge of toolbar | 5.3u × 17u | `vem-tab.webp` (bg), `vem-wrench.webp` (icon) | 64×204, 128×128 |
+| Toolbar buttons | right side, stacked, 2.3u apart | 29.3u × 6.7u | `vem-btn-green.webp`, `vem-btn-grey.webp` (Remove All, Finish later), `vem-btn-red.webp` (Cancel), `vem-btn-on.webp` (a mode that's switched on) | 440×100 each, stretched to fit, so leave about 12 px of plain edge |
+| Toolbar icons | left of each label, 5u | 5u | `vem-erase`, `vem-all`, `vem-move`, `vem-walls`, `vem-scout`, `vem-photo`, `vem-later`, `vem-save`, `vem-cancel` (.webp) | 128×128 |
+| Move All pad | bottom left, above the hint | 9u squares | `vem-arrow.webp`, `vem-rotate.webp` (bg; the game prints the arrow) | 108×108 |
+| Inventory cards | bottom strip, 19u tall | 17.3u square | `vem-card.webp` (bg; Clash's blue card) | 208×208 |
+
+The text the game prints (keep it out of the art): the button labels, "Drag buildings from the inventory to place them", "x30" at the top of each card and "Level 5" at the bottom. The building picture on each card is drawn by the game.

@@ -8,9 +8,9 @@ const C0 = Math.floor(N/2); // map centre
 // AI base layout for clubhouse level d. Fence rings around a core, defences in the middle band, collectors outside.
 // tier: "easy" (online bots: lower levels, fewer defences and fences), "hard" (boss bots: next Clubhouse's defences, maxed, double loot),
 // "boss" (boss battles at your level: this Clubhouse's defences, all maxed, 1.75x loot), or "scale" (a normal ground at your level).
-const BOSS_HP={1:1.2,2:1.2,3:1.2,4:1.2,5:1.2,6:1.2}, BOSS_EXTRA={3:1,5:1}; // boss battles: extra defence health, and an extra of each defence where the level tables are thin // extra defence health on boss battles, tuned by simulated attacks
+const BOSS_HP={1:1.5,2:1.6,3:1,4:.95,5:1.2,6:1.5,7:1.1}, BOSS_EXTRA={2:1,3:1,5:1,6:1}; // boss battles: extra defence health, and an extra of each defence where the level tables are thin // extra defence health on boss battles, tuned by simulated attacks
 function genBase(d, seed, tier){
-  const dd = tier==="hard"||(tier==="boss"&&d<=5) ? Math.min(MAX_TH,d+1) : d;
+  const dd = tier==="hard"||(tier==="boss"&&d>=3&&d<=5) ? Math.min(MAX_TH,d+1) : d;
   const lvd = tier==="boss" ? Math.min(MAX_TH,d+1) : dd; // boss battles: next Clubhouse's levels (and its number of buildings up to Clubhouse 5)
   const r=rng(seed), list=[], occ=new Set(), key=(i,j)=>i+","+j;
   const ring=(lo,hi)=>{ const c=[]; for(let i=lo;i<=hi;i++) c.push([i,lo]); for(let j=lo+1;j<=hi;j++) c.push([hi,j]); for(let i=hi-1;i>=lo;i--) c.push([i,hi]); for(let j=hi-1;j>lo;j--) c.push([lo,j]); return c; };
@@ -37,6 +37,7 @@ function genBase(d, seed, tier){
     const b={id:list.length+1,t,x,y,lv,hp,max:hp,cd:r()}; list.push(b); return b; };
   const place=(t,zones)=>{ const s=BLD[t].size; for(const z of zones) for(let k=0;k<400;k++){ const x=1+(r()*(N-2-s))|0, y=1+(r()*(N-2-s))|0; if(fits(x,y,s,z,z!=="core")) return put(t,x,y); } return null; };
   if(style!=="farm") put("clubhouse",C0-2,C0-2);
+  const hasRes = tier==="hard"||tier==="boss" ? true : r()<.5; // like Clash: not every base has clan castle troops
   const n0=t=>isDef(t)&&!BLD[t].trap&&MAXC[t][dd-1]>0;
   const cnt=t=>{ const n=MAXC[t][dd-1]+(tier==="boss"&&n0(t)?BOSS_EXTRA[d]||0:0); return tier==="easy"&&n>1&&(isDef(t)||t==="fence") ? Math.ceil(n*(t==="fence"?.5:.65)) : n; };
   if(style==="trophy"||style==="compact") for(const t of ["catapult","floodlight","siren"]) if(cnt(t)) place(t,["core"]);
@@ -59,7 +60,9 @@ function genBase(d, seed, tier){
   if(style==="messy") for(let k=0;k<400&&budget>2;k++){ const len=3+(r()*4|0), h=r()<.5, x=2+(r()*(N-4-len))|0, y=2+(r()*(N-4-len))|0;
     const cells=[...Array(len)].map((_,n)=>h?[x+n,y]:[x,y+n]); if(cells.some(([i,j])=>occ.has(key(i,j))||occ.has("b"+key(i,j)))) continue;
     cells.forEach(([i,j])=>{ occ.add(key(i,j)); addFence(i,j); }); budget-=len; }
+  for(const t of ["sendoff","flooder","swoop","kite","streaker","gust","spark"]) for(let n=0;n<cnt(t);n++) { const b=place(t,["mid","core","out"]); if(b){ b.armed=true; b.hp=b.max=1; } }
   for(let n=0;n<cnt("sprinkler");n++) for(let k=0;k<200;k++){ const i=C0-9+(r()*19|0), j=C0-9+(r()*19|0); if(zone(i,j)==="mid"&&!occ.has(key(i,j))&&!occ.has("b"+key(i,j))){ occ.add("b"+key(i,j)); list.push({id:list.length+1,t:"sprinkler",x:i,y:j,lv:Math.max(1,Math.min(5,d-2)),hp:1,max:1,armed:true}); break; } }
+  const chB=list.find(b=>b.t==="clubhouse"); if(chB) chB.res=hasRes;
   // Loot on offer grows with Clubhouse level like Clash (a few thousand at level 1, a few hundred thousand at 8)
   const lm=tier==="hard"?2:tier==="boss"?1.75:1;
   const total={pies:Math.round((800+600*d*d*d)*(.7+r()*.6)*lm), drink:Math.round((800+600*d*d*d)*(.7+r()*.6)*lm)};
@@ -85,8 +88,9 @@ function searching(work){
   let el=$("searchFx");
   if(!el){ el=document.createElement("div"); el.id="searchFx";
     el.innerHTML=`<div class="cl c1"></div><div class="cl c2"></div><div class="cl c3"></div><div class="cl c4"></div><div class="cl c5"></div>
-      <div class="sbox"><div class="sfoot">🏉</div><div class="stxt">Searching for opponent<span class="sdots"></span></div><button class="btn red" id="searchCancel">Cancel</button></div>`;
+      <div class="sbox"><div class="sfoot"><i class="uia" data-ui="ico-search">🏉</i></div><div class="stxt">Searching for opponent<span class="sdots"></span></div><button class="btn red" id="searchCancel">Cancel</button></div>`;
     document.body.appendChild(el); }
+  if(typeof applyUiArt==="function") applyUiArt(el);
   el.classList.add("on"); sfx("whistle",.3);
   let cancel; const cancelled=new Promise((_,rej)=>{ cancel=()=>rej({cancelled:true}); });
   $("searchCancel").onclick=()=>cancel();
@@ -154,6 +158,39 @@ function spawnUnit(kind,x,y){
     heal:(st.heal||0)*m, hero:!!hero, armor:hero&&st.gear?st.gear.armor:0, pos:st.pos, name:st.name, cd:.3, face:1, rage:0, shield:0, path:null, tgt:null, club:CLUBS[BT.atkClub]};
   BT.units.push(u); return u;
 }
+// ---------- defenders: players who come out to defend mid-battle ----------
+// Sources: the Clubhouse's Reserves (when attackers get close), the Streaker trap's stewards, and heroes at home.
+function spawnDefender(kind,x,y,lv,heroKey){
+  BT.defs=BT.defs||[];
+  let st, hp, dps;
+  if(heroKey){ st=heroStats(heroKey,CLUBS[BT.club],lv>1?lv:undefined); hp=st.hp; dps=st.dps; }
+  else { st=UNITS[kind]; const m=unitMul(Math.max(1,Math.min(UNIT_MAX,lv))); hp=Math.round(st.hp*m); dps=st.dps*m; }
+  const d={id:++BT.uid,def:true,kind:heroKey?"hero":kind,heroKey,x,y,hx:x,hy:y,hp,max:hp,dps,spd:st.spd*.9,range:st.range||.8,ranged:!!st.ranged,air:false,hero:!!heroKey,pos:st.pos,name:st.name,cd:.5,face:1,rage:0,shield:0,club:CLUBS[BT.club],moving:false,atk:0};
+  BT.defs.push(d); return d;
+}
+function updateDefender(d,dt){
+  if(d.hp<=0) return; d.cd-=dt; d.atk=Math.max(0,d.atk-dt);
+  let t=null, td=1e9; for(const u of BT.units){ if(u.hp<=0||(u.air&&!d.ranged)) continue; const k=Math.hypot(u.x-d.x,u.y-d.y); if(k<td&&Math.hypot(u.x-d.hx,u.y-d.hy)<11){ td=k; t=u; } }
+  if(!t){ const k=Math.hypot(d.hx-d.x,d.hy-d.y); d.moving=k>.3; if(d.moving){ d.x+=(d.hx-d.x)/k*d.spd*dt; d.y+=(d.hy-d.y)/k*d.spd*dt; } return; }
+  d.face=(t.x-d.x)-(t.y-d.y)>=0?1:-1;
+  if(td>d.range+.3){ d.moving=true; d.x+=(t.x-d.x)/td*d.spd*dt; d.y+=(t.y-d.y)/td*d.spd*dt; return; }
+  d.moving=false; if(d.cd<=0){ d.cd=1; d.atk=.25; if(d.ranged){ const tt=t; BT.proj.push({k:"footy",x0:d.x,y0:d.y,x1:t.x,y1:t.y,t:0,dur:.45,hit:()=>damageUnit(tt,d.dps)}); } else damageUnit(t,d.dps); }
+}
+function hurtDefender(d,dmg){ d.hp-=dmg; if(d.hp<=0){ BT.fx.push({k:"poof",x:d.x,y:d.y,t:0}); sfx("boom",.2); } }
+// The Clubhouse sends out its Reserves once attackers get within 7 tiles (like a clan castle); heroes at home come out too.
+function checkReserves(){
+  if(BT.reservesOut||BT.mode==="attack"&&BT.visit) return;
+  const ch=BT.buildings.find(b=>b.t==="clubhouse"); if(!ch||ch.hp<=0||ch.res===false) return; // empty Reserves bench: nobody comes out
+  const [cx,cy]=cen(ch); if(!BT.units.some(u=>u.hp>0&&Math.hypot(u.x-cx,u.y-cy)<7)) return;
+  BT.reservesOut=true; const d=BT.d||ch.lv||1;
+  if(d>=2){ const n=Math.min(8,d+1); for(let i=0;i<n;i++){ const k=i===0&&d>=5?"ruck":i%3===2?"forward":"rover"; spawnDefender(k,cx+Math.cos(i*2.4)*1.2,cy+Math.sin(i*2.4)*1.2,d); } }
+  // your own heroes defend AI raids on your ground; everyone else's ground gets their captain from Clubhouse 4
+  const mine=BT.homeHeroes&&(BT.mode==="raid"||BT.mode==="replay"&&BT.raid&&!BT.raid.real);
+  if(mine){ for(const h of Object.keys(BT.homeHeroes)) if(BT.homeHeroes[h]) spawnDefender(null,cx+1.5,cy-1.5,1,h); }
+  else if(d>=4) spawnDefender(null,cx+1.5,cy-1.5,Math.max(2,d*2),"captain");
+  BT.fx.push({k:"poof",x:cx,y:cy,t:0}); sfx("whistle",.4);
+  if(BT.mode==="attack") toast("📣 Their Reserves are off the bench!");
+}
 function pickTarget(u){
   const alive=BT.buildings.filter(b=>b.hp>0&&!BLD[b.t].trap);
   const by=f=>{ let best=null,bd=1e9; for(const b of alive){ if(!f(b)) continue; const d=rectDist(u.x,u.y,b); if(d<bd){bd=d;best=b;} } return best; };
@@ -193,6 +230,7 @@ function damageUnit(u,dmg){ if(u.hp<=0||u.immune>0) return; if(u.shield>0) dmg*=
 
 function updateUnit(u,dt){
   if(u.hp<=0) return;
+  if(u.stun>0){ u.stun-=dt; return; } // held up by a trap
   u.cd-=dt; u.rage=Math.max(0,u.rage-dt); u.shield=Math.max(0,u.shield-dt); u.immune=Math.max(0,(u.immune||0)-dt); u.atk=Math.max(0,(u.atk||0)-dt);
   const spd=u.spd*(u.rage>0?1.4:1), mul=u.rage>0?1.6:1;
   if(u.pref==="heal"){
@@ -201,6 +239,10 @@ function updateUnit(u,dt){
     if(u.cd<=0){ u.cd=.5; let any=false; for(const o of BT.units) if(o.hp>0&&o!==u&&o.hp<o.max&&Math.hypot(o.x-u.x,o.y-u.y)<=3){ healUnit(o,u.heal*.5); any=true; } if(any) BT.fx.push({k:"heal",x:u.x,y:u.y,t:0,r:3}); }
     return;
   }
+  if(BT.defs&&BT.defs.length){ let f=null,fd=1e9; for(const d of BT.defs){ if(d.hp<=0) continue; const k=Math.hypot(d.x-u.x,d.y-u.y); if(k<fd){fd=k;f=d;} }
+    if(f&&fd<=Math.max(u.range+.4,u.ranged?u.range:2.2)){ u.face=(f.x-u.x)-(f.y-u.y)>=0?1:-1;
+      if(fd>u.range+.4&&!u.air){ u.moving=true; u.x+=(f.x-u.x)/fd*spd*dt; u.y+=(f.y-u.y)/fd*spd*dt; return; }
+      u.moving=false; if(u.cd<=0){ u.cd=1; u.atk=.25; const dmg=u.dps*mul; if(u.ranged){ const ff=f; BT.proj.push({k:"footy",x0:u.x,y0:u.y,x1:f.x,y1:f.y,t:0,dur:.45,hit:()=>hurtDefender(ff,dmg)}); } else hurtDefender(f,dmg); } return; } }
   if(!u.tgt||u.tgt.hp<=0){ u.tgt=pickTarget(u); u.path=null; u.blocker=null; if(!u.tgt){ u.moving=false; return; } }
   const tgt=u.blocker&&u.blocker.hp>0?u.blocker:u.tgt;
   const [cx,cy]=cen(tgt);
@@ -247,9 +289,31 @@ function updateDefence(b,dt){
   else { BT.proj.push({k:d.shot,x0:cx,y0:cy,x1:t.x,y1:t.y,z0:b.t==="goalpost"?goalTowerHeight(b.lv)*.7:1.2,z1:t.air?2.4:0,t:0,dur:d.shot==="siren"?.25:.45,arc:d.shot==="footy"?2:.3,tu:t,hit:()=>damageUnit(t,dmg)}); if(d.shot==="siren") sfx("siren",.25); else sfx("kick",.25); }
 }
 function updateTrap(b,dt){
+  if(b.t!=="sprinkler") return updateTrap2(b,dt);
   if(!b.armed) return;
   if(b.fuse!==undefined){ b.fuse-=dt; if(b.fuse<=0){ b.armed=false; b.hp=0; const x=b.x+.5,y=b.y+.5,r=1.6; BT.fx.push({k:"splash",x,y,t:0,r}); sfx("splash"); for(const u of BT.units) if(u.hp>0&&!u.air&&Math.hypot(u.x-x,u.y-y)<=r) damageUnit(u,BLD.sprinkler.dmg[b.lv-1]); } return; }
   for(const u of BT.units) if(u.hp>0&&!u.air&&Math.hypot(u.x-b.x-.5,u.y-b.y-.5)<.9){ b.sprung=true; b.fuse=.4; break; }
+}
+
+// The other traps. b.on = seconds left for traps that keep working after they're sprung.
+function updateTrap2(b,dt){
+  const d=BLD[b.t], lv=b.lv-1, s=d.size, cx=b.x+s/2, cy=b.y+s/2, near=(r,air)=>BT.units.filter(u=>u.hp>0&&(air===undefined||!!u.air===air)&&Math.hypot(u.x-cx,u.y-cy)<=r);
+  if(b.on!==undefined){ b.on-=dt;
+    if(b.t==="gust") for(const u of near(3.2)){ if(u.hero&&u.air) continue; const dx=cx-u.x, dy=cy-u.y, m=Math.hypot(dx,dy)||1; if(m>.4){ u.x+=dx/m*dt*1.6; u.y+=dy/m*dt*1.6; } u.stun=Math.max(u.stun||0,.15); }
+    if(b.t==="spark"){ b.cd=(b.cd||0)-dt; if(b.cd<=0){ const t=near(6).sort((a,c)=>Math.hypot(a.x-cx,a.y-cy)-Math.hypot(c.x-cx,c.y-cy))[0]; if(t){ b.cd=.6; BT.fx.push({k:"bolt",x:t.x,y:t.y,t:0}); damageUnit(t,d.dmg[lv]); } } }
+    if(b.on<=0){ b.armed=false; b.hp=0; delete b.on; } return; }
+  if(!b.armed) return;
+  const trig = d.air ? near(4,true)[0] : b.t==="spark" ? near(5)[0] : near(.9*s,false)[0];
+  if(!trig) return;
+  b.sprung=true; sfx("boom",.4);
+  if(b.t==="sendoff"){ let cap=d.cap[lv]; for(const u of near(1.2,false)){ const sp=(UNITS[u.kind]||{}).space||1; if(u.hero||sp>cap) continue; cap-=sp; u.hp=0; BT.fx.push({k:"poof",x:u.x,y:u.y,t:0}); } b.armed=false; b.hp=0; return; }
+  if(b.t==="flooder"){ BT.fx.push({k:"splash",x:cx,y:cy,t:0,r:3}); for(const u of near(3,false)) damageUnit(u,d.dmg[lv]); b.armed=false; b.hp=0; return; }
+  if(b.t==="swoop"){ BT.fx.push({k:"boom",x:trig.x,y:trig.y,t:0,s:1.3}); for(const u of BT.units) if(u.hp>0&&u.air&&Math.hypot(u.x-trig.x,u.y-trig.y)<=2.5) damageUnit(u,d.dmg[lv]); b.armed=false; b.hp=0; return; }
+  if(b.t==="kite"){ const big=near(4,true).sort((a,c)=>c.max-a.max)[0]; BT.fx.push({k:"boom",x:big.x,y:big.y,t:0,s:1}); damageUnit(big,d.dmg[lv]); b.armed=false; b.hp=0; return; }
+  if(b.t==="streaker"){ for(const u of near(2.5,false)) u.stun=Math.max(u.stun||0,1.5); for(let i=0;i<d.guards[lv];i++) spawnDefender("rover",cx+Math.cos(i*2.1)*.8,cy+Math.sin(i*2.1)*.8,Math.max(1,(BT.d||3)-1));
+    BT.fx.push({k:"poof",x:cx,y:cy,t:0}); b.armed=false; b.hp=0; return; }
+  if(b.t==="gust"){ b.on=d.dur[lv]; return; }
+  if(b.t==="spark"){ b.on=8; b.cd=0; return; }
 }
 
 // ---------- spells & hero abilities ----------
@@ -331,7 +395,8 @@ function scoreNow(){
   return {a:{g:ag,b:ab,p:ag*6+ab}, h:{g:hg,b:hb,p:hg*6+hb}};
 }
 // ★ = win, ★★ = win + Clubhouse down, ★★★ = whole ground flattened
-function starsNow(){ const sc=scoreNow(); if(sc.a.p<=sc.h.p) return 0; const ch=BT.buildings.find(b=>b.t==="clubhouse"); return 1+(ch&&ch.hp<=0?1:0)+(pct()>=100?1:0); }
+// Stars like Clash: one for 50% destroyed, one for the Clubhouse, one for 100%. (The footy score is shown alongside for fun.)
+function starsNow(){ const p=pct(), ch=BT.buildings.find(b=>b.t==="clubhouse"); return (p>=50?1:0)+(ch&&ch.hp<=0?1:0)+(p>=100?1:0); }
 function battleStep(dt){
   BT.mask=Math.max(0,BT.mask-dt);
   if(BT.dirty) rebuildGrid();
@@ -339,6 +404,7 @@ function battleStep(dt){
   if(BT.plan) while(BT.plan.length && BT.plan[0].t<=BT.elapsed){ const p=BT.plan.shift(); if(p.k==="ability"){ useAbility(p.v); continue; } deployAt(p.k,p.v,p.x,p.y); if(p.k==="hero"&&p.ability) BT.abilityAt={h:p.v,t:BT.elapsed+p.ability}; }
   if(BT.abilityAt&&BT.elapsed>=BT.abilityAt.t){ useAbility(BT.abilityAt.h); BT.abilityAt=null; }
   for(const u of BT.units) updateUnit(u,dt);
+  checkReserves(); if(BT.defs) for(const d of BT.defs) updateDefender(d,dt);
   for(const b of BT.buildings){ if(BLD[b.t].trap) updateTrap(b,dt); else updateDefence(b,dt); }
   updateZones(dt);
   for(const p of BT.proj){ p.t+=dt/p.dur; if(p.tu&&p.tu.hp>0){ p.x1=p.tu.x; p.y1=p.tu.y; } if(p.t>=1&&!p.done){ p.done=true; p.hit(); } }
@@ -420,6 +486,7 @@ function renderBattle(){
   for(const b of BT.buildings) ents.push({k:b.hp<=0?-1e3+b.x+b.y:b.x+b.y+BLD[b.t].size,f:()=>drawBuilding(b,club,BT.buildings,{hideTraps:BT.mode==="attack",hideAmbient:!BT.visit,fill:.6,heroes:BT.homeHeroes||{captain:club}})});
   addGroundCrew(ents,BT.buildings,club,BT.started?BT.elapsed:null);
   for(const {u,x,y} of battlePlayerPositions()) ents.push({k:x+y+(u.air?40:0),f:()=>drawUnitB(u,x,y)});
+  if(BT.defs) for(const d of BT.defs) if(d.hp>0) ents.push({k:d.x+d.y,f:()=>drawUnitB(d,d.x,d.y)});
   // knocked-out players play their KO animation, lie there a moment, then fade
   if(BT.kos){ const now=performance.now(); BT.kos=BT.kos.filter(o=>now-o.at<1600);
     for(const o of BT.kos) ents.push({k:o.u.x+o.u.y,f:()=>drawKO(o,now)}); }

@@ -122,6 +122,7 @@ function updateHUD(force){
     const replay=BT.mode==="replay";
     $("bBadge").src=badgeURL(CLUBS[replay?BT.atkClub:BT.club],96);
     $("bVs").textContent=replay?`${BT.raid&&BT.raid.attacker?BT.raid.attacker+" · ":""}${CLUBS[BT.atkClub].name}`:BT.opp?`vs ${BT.opp.name} · ${CLUBS[BT.club].short}`:"vs "+CLUBS[BT.club].name;
+    const cp=$("bCopy"); if(cp) cp.style.display=BT.visit||(BT.kind==="pvp"&&!BT.started&&!replay)?"block":"none";
     const nx=$("bNext"); if(nx){ nx.style.display=(BT.kind==="pvp"||BT.visit)&&!BT.started&&!replay?"block":"none"; nx.textContent=BT.visit?"⚔️ Attack":"Next ⏭"; }
     $("bEnd").textContent=BT.visit?"🏠 Home":$("bEnd").dataset.sure?"Tap to confirm":"End Match";
     $("cards").style.display=BT.visit?"none":"";
@@ -224,9 +225,11 @@ function buildOffer(t){
 function openShop(tab){
   shopTab=tab||shopTab;
   const sTabs=typeof shopTabsFor==="function"?shopTabsFor():Object.keys(SHOP_TABS);
-  const actions=shopTab!=="Deals"&&!tutActive()?'<div class="action-copy" id="shopChoice" aria-live="polite">Choose a building</div><button class="btn gold" id="shopPlace" disabled>Place building</button>':"";
+  const actions=shopTab!=="Deals"&&!tutActive()?'<button class="btn blue" id="shopLayouts" title="Copy and share layouts"><i class="uia" data-ui="ico-layouts">📋</i></button><div class="action-copy" id="shopChoice" aria-live="polite">Choose a building</div><button class="btn gold" id="shopPlace" disabled>Place building</button>':"";
   modal(`${hubCtx?"":"<h2>Shop</h2>"}${sTabs.length?tabsHTML(sTabs,shopTab):""}<div class="grid" id="shopGrid"></div>`,{actions});
   bindTabs(openShop); tut("shop"); tut("tab-"+shopTab);
+  if(typeof applyUiArt==="function") applyUiArt();
+  if($("shopLayouts")) $("shopLayouts").onclick=sub(()=>openLayouts(),()=>openHub("build","Buildings"));
   const g=$("shopGrid");
   if(shopTab==="Deals") return shopDeals(g);
   let choice=null;
@@ -493,6 +496,7 @@ $("buyMedals").onclick=e=>{ e.stopPropagation(); openHub("build","Shop"); };
 // (buttons below are optional: a missing one must never stop touch controls from loading)
 
 $("cardsIco").src=cardsButtonIcon();
+$("bCopy").onclick=()=>{ if(!BT||!(BT.visit||BT.kind==="pvp"&&!BT.started)) return; layoutToSlot(BT.opp.name+"'s ground", layoutOf(BT.origBase||BT.buildings), BT.d); };
 $("bNext").onclick=()=>{ if(BT&&BT.visit){ const id=BT.opp.id; leaveBattle(); attackPlayer(id,"friend"); } else nextOpponent(); };
 $("placeYes").onclick=confirmPlace;
 $("placeNo").onclick=()=>{ placing=null; refreshUI(); };
@@ -576,6 +580,7 @@ function homeTap(gx,gy){
   if(!S) return;
   if(placing){ const s=BLD[placing.t].size; placing.x=Math.round(gx-s/2); placing.y=Math.round(gy-s/2); return; }
   const h=hitHome(gx,gy);
+  if(typeof EDIT!=="undefined"&&EDIT&&editTap(h)) return;
   if(h&&BLD[h.t]&&BLD[h.t].makes&&!h.busy&&h.store>=1&&selected!==h){ collect(h); }
   else if(h) sfx("tap",.3);
   selected = h===selected?null:h; refreshUI();

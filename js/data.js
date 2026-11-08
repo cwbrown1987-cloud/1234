@@ -1,5 +1,5 @@
 // ---------- Game data ----------
-const VERSION = "2026.11.11.26";
+const VERSION = "2026.11.11.31";
 // Club names + colours. Logos: drop PNGs named <abbr>.png (e.g. coll.png) into the logos/ folder and they're used everywhere.
 // Player names checked against the 2026 trade period and retirements (lists for the 2027 season); edit freely.
 const CLUBS = [
@@ -109,6 +109,21 @@ const BLD = {
     dps:geo(80,1.22,7), range:9, rate:1, shot:"beam", def:true, air:true, desc:"Blinding lights that knock flyers out of the sky. Air only."},
   sprinkler:{name:"Sprinkler Trap", size:1, res:"pies", hp:[1,1,1,1,1], cost:[400,1000,10000,100000,500000], time:[0,900,7200,28800,86400], dmg:geo(60,1.3,5), trap:true,
     desc:"Hidden from attackers. Soaks anyone who runs over it."},
+  // More hidden traps, one for each job a base-builder needs (our own AFL takes; placeholder art until Codex paints them)
+  sendoff:{name:"Send-Off Gate", size:1, res:"pies", hp:[1,1,1,1,1], cost:[2000,15000,60000,200000,600000], time:[0,1800,7200,28800,86400], cap:[6,8,10,12,14], trap:true, emo:"🟥",
+    desc:"Hidden. The umpire sends off ground players who step on it, up to a squad size limit."},
+  flooder:{name:"Pitch Flooder", size:2, res:"pies", hp:[1,1,1,1,1], cost:[12000,60000,200000,500000,900000], time:[0,3600,14400,43200,86400], dmg:geo(180,1.3,5), trap:true, emo:"🌊",
+    desc:"Hidden. A huge soaking for a whole pack of ground players."},
+  swoop:{name:"Magpie Swoop", size:1, res:"pies", hp:[1,1,1,1,1], cost:[4000,20000,80000,250000,600000], time:[0,1800,7200,28800,86400], dmg:geo(100,1.3,5), trap:true, air:true, emo:"🐦",
+    desc:"Hidden. Swoops on flyers that come close, hitting everything nearby in the air."},
+  kite:{name:"Kite Catcher", size:1, res:"pies", hp:[1,1,1,1,1], cost:[15000,70000,220000,550000,950000], time:[0,3600,14400,43200,86400], dmg:geo(420,1.3,5), trap:true, air:true, emo:"🪁",
+    desc:"Hidden. Snags one big flyer and hits it hard."},
+  streaker:{name:"Streaker", size:1, res:"pies", hp:[1,1,1,1,1], cost:[6000,25000,90000,300000,700000], time:[0,1800,7200,28800,86400], guards:[2,3,4,5,6], trap:true, emo:"🏃",
+    desc:"Hidden. A streaker runs on, everyone nearby stops to watch, and security stewards chase down the attackers."},
+  gust:{name:"Wind Gust", size:1, res:"pies", hp:[1,1,1,1,1], cost:[100000,300000,700000,1000000,1500000], time:[0,14400,43200,86400,172800], dur:[5,6,7,8,9], trap:true, emo:"🌪️",
+    desc:"Hidden. A swirling gust that drags players in and holds them in one spot."},
+  spark:{name:"Hidden Scoreboard", size:2, res:"pies", hp:[1,1,1,1,1], cost:[50000,150000,400000,800000,1300000], time:[0,7200,28800,64800,129600], dmg:geo(45,1.25,5), trap:true, emo:"⚡",
+    desc:"Hidden until players get close, then it pops up and zaps them for a while."},
   fence:{name:"Fence", size:1, res:"pies", hp:geo(300,1.5,8), cost:[50,1000,5000,10000,20000,50000,100000,200000], time:[0,0,0,0,0,0,0,0], desc:"Slows attackers down."},
 };
 // How many of each you can have, by clubhouse level 1..8
@@ -116,18 +131,19 @@ const MAXC = {
   clubhouse:[1,1,1,1,1,1,1,1], pieshop:[1,2,3,4,5,6,6,7], drinktap:[1,2,3,4,5,6,6,7], piewarmer:[1,1,2,2,3,3,4,4], esky:[1,1,2,2,3,3,4,4],
   oval:[1,1,2,2,3,3,4,4], bench:[1,1,2,2,3,3,4,4], physio:[0,0,1,1,1,1,1,1], coachbox:[0,0,1,1,1,1,1,1], locker:[0,1,1,1,1,1,1,1], office:[0,0,0,0,1,1,1,1], kitroom:[0,0,0,1,1,1,1,1], herohall:[0,0,0,0,0,1,1,1],
   shed:[6,6,6,6,6,6,6,6], goalpost:[1,1,2,3,4,5,5,6], siren:[1,2,2,3,3,4,5,5], catapult:[0,0,1,1,2,2,3,3], floodlight:[0,0,0,1,2,2,3,3],
-  sprinkler:[0,2,4,6,6,8,8,10], fence:[25,50,75,100,125,150,175,200],
+  sprinkler:[0,2,4,6,6,8,8,10], sendoff:[0,0,0,2,2,3,3,4], flooder:[0,0,0,0,1,1,2,2], swoop:[0,0,0,1,2,2,3,3], kite:[0,0,0,0,0,1,2,2],
+  streaker:[0,0,0,0,1,2,2,2], gust:[0,0,0,0,0,0,1,1], spark:[0,0,0,0,1,2,3,4], fence:[25,50,75,100,125,150,175,200],
 };
 // What each building is called in Clash of Clans (shown in the shop for players who know Clash)
 const CLASH_NAME = {clubhouse:"Town Hall", pieshop:"Gold Mine", drinktap:"Elixir Collector", piewarmer:"Gold Storage", esky:"Elixir Storage",
   oval:"Barracks", bench:"Army Camp", physio:"Spell Factory", coachbox:"Laboratory", locker:"Hero Hall", office:"Hero Hall",
-  shed:"Builder's Hut", kitroom:"Blacksmith", herohall:"Hero Hall", goalpost:"Archer Tower", siren:"Cannon", catapult:"Mortar", floodlight:"Air Defense", sprinkler:"Bomb", fence:"Wall"};
+  shed:"Builder's Hut", kitroom:"Blacksmith", herohall:"Hero Hall", goalpost:"Archer Tower", siren:"Cannon", catapult:"Mortar", floodlight:"Air Defense", sprinkler:"Bomb", sendoff:"Spring Trap", flooder:"Giant Bomb", swoop:"Air Bomb", kite:"Seeking Air Mine", streaker:"Skeleton Trap", gust:"Tornado Trap", spark:"Hidden Tesla", fence:"Wall"};
 const levels = t => BLD[t].hp.length;
 const maxLevel = (t, th) => t==="clubhouse" ? MAX_TH : t==="herohall" ? Math.max(0,Math.min(levels(t),th-5)) : t==="fence" ? Math.min(levels(t),th) : Math.min(levels(t), th+(th>=5?2:1));
 const SHED_COST = [0,250,500,1000,2000,2000]; // by sheds already owned: the 2nd costs 250 Brownlow votes, like Clash
 const SHOP_TABS = {
   "Resources":["pieshop","drinktap","piewarmer","esky","shed"],
-  "Defence":["goalpost","siren","catapult","floodlight","sprinkler","fence"],
+  "Defence":["goalpost","siren","catapult","floodlight","sprinkler","sendoff","flooder","swoop","kite","streaker","gust","spark","fence"],
   "Squad":["oval","bench","physio","coachbox","locker","office","kitroom","herohall"],
   "Deals":[],
 };

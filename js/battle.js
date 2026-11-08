@@ -474,6 +474,7 @@ function renderBattle(){
   const sx=shake>0?(Math.random()-.5)*shake*30:0, sy=shake>0?(Math.random()-.5)*shake*30:0;
   ctx.save(); ctx.translate(sx,sy);
   drawGround();
+  for(const b of BT.buildings) groundPatch(b);
   const club=CLUBS[BT.club];
   if(BT.mode==="attack"&&!BT.visit&&BT.mask>0){ if(BT.dirty) rebuildGrid(); ctx.save(); ctx.globalAlpha=Math.min(.35,BT.mask*.3); // like Clash: the red zone flashes when you tap where you can't deploy
     for(let j=0;j<N;j++) for(let i=0;i<N;i++) if(BT.noDeploy[j*N+i]) diamond(i,j,1,1,"#e8503a"); ctx.restore(); }
@@ -482,7 +483,8 @@ function renderBattle(){
     if(z.k==="rain") rainDrops(z); }
   const ents=[];
   // Knocked-down buildings are flat rubble on the ground: draw them first so players never hide behind them.
-  for(const b of BT.buildings) ents.push({k:b.hp<=0?-1e3+b.x+b.y:b.x+b.y+BLD[b.t].size,f:()=>drawBuilding(b,club,BT.buildings,{hideTraps:BT.mode==="attack",fill:.6,heroes:BT.homeHeroes||{captain:club}})});
+  for(const b of BT.buildings) ents.push({k:b.hp<=0?-1e3+b.x+b.y:b.x+b.y+BLD[b.t].size,f:()=>drawBuilding(b,club,BT.buildings,{hideTraps:BT.mode==="attack",hideAmbient:!BT.visit,fill:.6,heroes:BT.homeHeroes||{captain:club}})});
+  addGroundCrew(ents,BT.buildings,club,BT.started?BT.elapsed:null);
   for(const {u,x,y} of battlePlayerPositions()) ents.push({k:x+y+(u.air?40:0),f:()=>drawUnitB(u,x,y)});
   if(BT.defs) for(const d of BT.defs) if(d.hp>0) ents.push({k:d.x+d.y,f:()=>drawUnitB(d,d.x,d.y)});
   // knocked-out players play their KO animation, lie there a moment, then fade

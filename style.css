@@ -345,9 +345,23 @@ p.clash{color:#8a6d45;font-size:13px;margin:-4px 0 6px}
 @media (min-width:600px) and (orientation:landscape){
   .cardview-main{grid-template-columns:auto minmax(0,1fr);gap:14px;padding:0 36px 0 0}
 }
-.flipcard{width:200px;aspect-ratio:180/252;position:relative;perspective:900px;cursor:pointer}
+.flipcard{width:200px;aspect-ratio:180/252;position:relative;perspective:900px;cursor:grab;touch-action:none;user-select:none;
+  transform-origin:50% 50%;transform:perspective(760px) rotateX(var(--card-rx,0deg)) rotateY(var(--card-ry,0deg));transition:transform .24s ease-out}
+.flipcard.tilting{cursor:grabbing;transition:none}
+.flipcard img{-webkit-user-drag:none;pointer-events:none}
+.flipcard:focus-visible{outline:3px solid #239bea;outline-offset:4px;border-radius:10px}
 .flipcard .ff,.flipcard .fb{position:absolute;inset:0;backface-visibility:hidden;-webkit-backface-visibility:hidden;transition:transform .5s}
 .flipcard .ff img{width:100%;height:100%;border-radius:10px}
+.flipcard.foil .ff::after{content:"";position:absolute;inset:4%;border-radius:8px;pointer-events:none;mix-blend-mode:screen;
+  background:radial-gradient(ellipse at var(--foil-x,50%) var(--foil-y,50%),#fff9dbd9 0%,#ffb8788c 14%,#7676ed4d 29%,transparent 58%),
+    repeating-linear-gradient(125deg,transparent 0 12%,#83eaff55 14%,#e592d65e 16%,transparent 19% 35%);
+  opacity:var(--foil-opacity,0);transition:opacity .23s}
+.flipcard.foil.tilting .ff::after{transition:none}
+.flipcard.fritsch-tribute .ff::after{background:
+  radial-gradient(ellipse at var(--foil-x,50%) var(--foil-y,50%),#fff4cde8 0%,#ffbf65ad 15%,#ec405b82 29%,#587aff59 44%,transparent 63%),
+  repeating-linear-gradient(126deg,transparent 0 14%,#ff91537a 16%,#7658e275 19%,transparent 21% 37%)}
+.cardview-front .card-tribute-label{color:#ffd978;background:#172448;border:1px solid #9e783a;border-radius:8px;padding:2px 7px;font-size:11px}
+@media(prefers-reduced-motion:reduce){.flipcard{transform:none;transition:none}.flipcard .ff,.flipcard .fb,.flipcard.foil .ff::after{transition:none}}
 .flipcard .fb{transform:rotateY(180deg)}
 .flipcard.flipped .ff{transform:rotateY(180deg)}.flipcard.flipped .fb{transform:rotateY(360deg)}
 .cardback{height:100%;box-sizing:border-box;border-radius:10px;border:6px solid var(--ca);background:#fffdf6;color:#222;text-shadow:none;padding:6px;font-size:11px;display:flex;flex-direction:column;gap:3px}

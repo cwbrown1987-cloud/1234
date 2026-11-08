@@ -159,6 +159,7 @@ function refreshVisibleCardFaces(path) {
 }
 const cardFaceImage = (c, t, className = "") =>
   `<img class="${className}" data-card-id="${c.id}" data-card-tier="${t}" src="${cardFace(c, t)}" alt="${c.name}">`;
+const isFritschTribute = c => c.name === "Bayley Fritsch" && CLUBS[c.club].abbr === "melb";
 
 // ---------- card artwork (layout from docs/card-style-reference.png) ----------
 const roleFor = pos => ({mid:"rover", fwd:"forward", ruck:"ruck", def:"shepherd"})[pos] || "rover";
@@ -244,6 +245,20 @@ function cardFace(c, t) {
   // 7. big club badge, bottom-left over the portrait
   g.save(); g.fillStyle = "#0b0d12cc"; g.strokeStyle = "#ffffffcc"; g.lineWidth = 2.5; g.beginPath(); g.roundRect(22, H - 150, 64, 64, 12); g.fill(); g.stroke(); g.restore();
   drawBadge(g, 54, H - 118, 27, club);
+  if (isFritschTribute(c)) {
+    g.save();
+    g.beginPath();
+    g.arc(W - 51, H - 124, 20, 0, Math.PI * 2);
+    g.fillStyle = "#101b3b";
+    g.fill();
+    g.strokeStyle = "#ffd978";
+    g.lineWidth = 3;
+    g.stroke();
+    g.fillStyle = "#fff1b9";
+    g.font = '22px "Lilita One",sans-serif';
+    g.fillText("31", W - 51, H - 123);
+    g.restore();
+  }
   // 8. name plate + position strip
   const pl = g.createLinearGradient(0, H - 88, 0, H - 44); pl.addColorStop(0, "#343843"); pl.addColorStop(1, "#14161c");
   g.fillStyle = pl; g.strokeStyle = accent; g.lineWidth = 2.5; g.beginPath(); g.roundRect(22, H - 88, W - 44, 42, 9); g.fill(); g.stroke();
@@ -330,19 +345,58 @@ function openAlbum(club) { menuBack = null; hubCtx=null;
 const packImg = kind => (cardImg(`art/packs/${kind}.webp`) || {}).src || packArt(kind);
 function dupInfo(c) { if (c.special) return ""; const n = TIER_ORDER.reduce((a, t) => a + Math.max(0, have(c.id, t) - (t === bestTier(c) ? 1 : 0)), 0); return n ? `<span class="dup">+${n}</span>` : ""; }
 // Full card view: flip for the back, stat bars, and upgrades. back() returns to wherever you came from.
+function bindCardTilt(card) {
+  let drag=null, didDrag=false;
+  const flip=()=>{
+    card.setAttribute("aria-pressed",String(card.classList.toggle("flipped")));
+  };
+  card.onpointerdown=e=>{
+    if(!e.isPrimary || e.button!==0) return;
+    const bounds=card.getBoundingClientRect();
+    drag={id:e.pointerId,x:e.clientX,y:e.clientY,w:bounds.width,h:bounds.height};
+    didDrag=false;
+    card.classList.add("tilting");
+    card.setPointerCapture(e.pointerId);
+  };
+  card.onpointermove=e=>{
+    if(!drag || e.pointerId!==drag.id) return;
+    const dx=e.clientX-drag.x, dy=e.clientY-drag.y;
+    if(!didDrag && Math.hypot(dx,dy)<5) return;
+    didDrag=true;
+    const x=Math.max(-1,Math.min(1,dx/(drag.w*.45)));
+    const y=Math.max(-1,Math.min(1,dy/(drag.h*.38)));
+    card.style.setProperty("--card-rx",`${-y*19}deg`);
+    card.style.setProperty("--card-ry",`${x*24}deg`);
+    card.style.setProperty("--foil-x",`${50+x*62}%`);
+    card.style.setProperty("--foil-y",`${50+y*62}%`);
+    card.style.setProperty("--foil-opacity",String(.25+Math.min(1,Math.hypot(x,y))*.65));
+  };
+  const finish=e=>{
+    if(!drag || e.pointerId!==drag.id) return;
+    drag=null;
+    card.classList.remove("tilting");
+    for(const prop of ["--card-rx","--card-ry","--foil-x","--foil-y","--foil-opacity"]) card.style.removeProperty(prop);
+  };
+  card.onpointerup=card.onpointercancel=card.onlostpointercapture=finish;
+  card.onclick=()=>{ if(!didDrag) flip(); };
+  card.onkeydown=e=>{
+    if((e.key==="Enter" || e.key===" ") && !e.repeat){ e.preventDefault(); flip(); }
+  };
+}
 function showAlbumCard(c, t, back) {
   t = t || bestTier(c);
   if (!t) return toast(c.special ? `${SPECIALS[c.kind].name}: comes from the special slot in packs` : `Not collected yet. Keep opening packs!`);
   const r = cardRatings(c);
+  const tribute=isFritschTribute(c), foil=tribute||c.special||t!=="c";
   const ups = c.special ? `<p class="center tiny">${SPECIALS[c.kind].name} cards can't be upgraded.</p>` : TIER_ORDER.filter(x => have(c.id, x)).map(x => `<div class="stat"><span>${TIERS[x].name}</span><b>×${have(c.id, x)} ${canUpgrade(c, x) ? `<button class="btn gold" data-up="${x}">Upgrade to ${TIERS[TIERS[x].next].name}</button>` : TIERS[x].next ? `<small>${Math.max(0, UPGRADE_COST + 1 - have(c.id, x))} more to upgrade</small>` : ""}</b></div>`).join("");
   menuBack = back ? null : () => openAlbum(c.special ? "sp" : c.club);
-  modal(`<div class="cardview"><div class="cardview-main"><div class="cardview-front"><div class="flipcard" id="flipc"><div class="ff">${cardFaceImage(c, t)}</div><div class="fb">${cardBack(c)}</div></div>
-    <p class="tiny center">Tap the card to flip it</p></div>
+  modal(`<div class="cardview"><div class="cardview-main"><div class="cardview-front"><div class="flipcard${foil?" foil":""}${tribute?" fritsch-tribute":""}" id="flipc" role="button" tabindex="0" aria-label="Flip ${c.name}'s card" aria-pressed="false"><div class="ff">${cardFaceImage(c, t)}</div><div class="fb">${cardBack(c)}</div></div>
+    <p class="tiny center">Drag to tilt · Tap to flip</p>${tribute?'<p class="card-tribute-label center">No. 31 Tribute</p>':""}</div>
     <div class="spinfo wide"><h4>Card stats · ${r.ovr} overall</h4>${r.bars.map(b => `<div class="sbar"><span><i class="si">${b.icon}</i>${b.label}</span><i><b style="width:${b.v}%;background:${b.col}"></b></i><em>${b.v}</em></div>`).join("")}</div>
     </div>
     ${back ? "" : ups}
     <div class="center"><button class="btn" id="backAlb">${back ? "Back to pack" : "Back to album"}</button></div></div>`, {noClose:!!back});
-  $("flipc").onclick = () => $("flipc").classList.toggle("flipped");
+  bindCardTilt($("flipc"));
   $("backAlb").onclick = back || goBack;
   document.querySelectorAll("[data-up]").forEach(b => b.onclick = () => { if (upgradeCard(c, b.dataset.up)) { toast(`Upgraded to ${TIERS[TIERS[b.dataset.up].next].name}!`); showAlbumCard(c); } });
 }

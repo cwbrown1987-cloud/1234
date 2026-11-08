@@ -34,7 +34,7 @@ document.getElementById("installGo").onclick = async () => {
 };
 document.getElementById("installLater").onclick = hideInstall;
 
-if ("serviceWorker" in navigator && location.protocol.startsWith("http")) navigator.serviceWorker.register("sw.js").catch(()=>{});
+if ("serviceWorker" in navigator && location.protocol.startsWith("http")) navigator.serviceWorker.register("sw.js",{updateViaCache:"none"}).catch(()=>{});
 // first visit: give Chrome a moment to offer its install event, then ask
 setTimeout(() => showInstall(false), 1500);
 
@@ -44,7 +44,5 @@ async function forceUpdate(){
   toast("Getting the latest version…");
   try{ if(window.caches) for(const k of await caches.keys()) await caches.delete(k); }catch(e){}
   try{ if(navigator.serviceWorker) for(const r of await navigator.serviceWorker.getRegistrations()) await r.unregister(); }catch(e){}
-  const files=["index.html","style.css","manifest.webmanifest","art/sheets.js",...[...document.scripts].map(s=>s.getAttribute("src")).filter(Boolean)];
-  try{ await Promise.all(files.map(f=>fetch(f,{cache:"reload"}).catch(()=>{}))); }catch(e){}
   location.replace(location.pathname+"?v="+Date.now());
 }

@@ -77,6 +77,7 @@ function buildingArtScale(type,sprite) {
   const maxHeight = type==="goalpost"?4.5:type==="clubhouse"?3.75:type==="floodlight"?3.48:2.8;
   return Math.min(BLD[type].size*width/sprite.w,maxHeight/sprite.h);
 }
+const mirrorBuilding = type => type==="esky" || type==="bench";
 
 // Level art: art/buildings/<type>-lv<N>.webp is used from level N up (so buildings can grow or change look as they level).
 function levelSprite(t, lv){ for (let n = lv || 1; n >= 1; n--) { const s = artSprites.get(t + "-lv" + n); if (s) return s; } return artSprites.get(t) || null; }
@@ -92,7 +93,8 @@ function drawBuildingArt(b, club, opts) {
   const [x,y] = P(b.x+s/2,b.y+s/2);
   const face = b.t==="siren" || b.t==="catapult" ? (Math.cos(b.ang??-2.6)<0?-1:1) : 1;
   const recoil = (b.recoil||0)*TW*.13;
-  paintArt(sprite,x-face*recoil,y,scale,anchor,b.t==="siren"?-face:face);
+  const spriteFace=b.t==="siren" || mirrorBuilding(b.t)?-face:face;
+  paintArt(sprite,x-face*recoil,y,scale,anchor,spriteFace);
   const height = sprite.h*scale*anchor/TH;
 
   if (b.t==="clubhouse") {
@@ -120,16 +122,19 @@ function drawBuildingArt(b, club, opts) {
     if (homeClub) drawHeroStatue(b.x+s*.75,b.y+s*.76,.08,homeClub,hero);
     else txt(opts.heroes?.busy?.[hero]?"🔧":"💤",x+TW*.54,y-TH*.35,TH*.7);
   }
-  if (b.t==="oval") {
+  if (b.t==="oval" && !opts.hideAmbient) {
     const phase = performance.now()/2200;
     for (let i=0,n=Math.min(6,b.lv||1); i<n; i++) {
       const a = phase+i*Math.PI*2/n;
       drawPlayer(x+Math.cos(a)*TW*.72,y+Math.sin(a)*TH*.44,TW*.093,club,{moving:true,id:i,face:Math.sin(a)>0?-1:1});
     }
   }
-  if (b.t==="bench") {
+  if (b.t==="bench" && !opts.hideAmbient) {
     const count = Math.min(6,Math.ceil((opts.fill??.5)*6));
-    for (let i=0; i<count; i++) drawPlayer(x+(i-(count-1)/2)*TW*.235,y+TH*.2,TW*.086,club,{id:i});
+    for (let i=0; i<count; i++) {
+      const along=(i-(count-1)/2)*TW*.235;
+      drawPlayer(x+along,y+TH*.2+along*.36,TW*.086,club,{id:i,face:spriteFace});
+    }
   }
   if (BLD[b.t].stores && opts.fill!==undefined) {
     bar(x,y+TH*.46,opts.fill,b.t==="esky"?"#54cffa":"#f4b84a",TW*.75);

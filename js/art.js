@@ -351,11 +351,12 @@ async function loadArtManifest() {
     const {files,sheets={}} = await response.json();
     if (!Array.isArray(files)) return;
     for (const path of files) {
-      const match = typeof path === "string" && path.match(/^art\/(units|heroes|portraits|buildings)\/([a-z0-9-]+)\.webp$/);
+      const match = typeof path === "string" && path.match(/^art\/(units|heroes|portraits|buildings|scenery|stadium)\/([a-z0-9-]+)\.webp$/);
       if (!match) continue;
       const [,group,key] = match;
-      if (group==="portraits" || group==="buildings") {
-        loadArtSheet(path,1,1,[group==="portraits"?"refresh-portrait-"+key:key],2);
+      if (group!=="units" && group!=="heroes") {
+        const prefix = group==="portraits" ? "refresh-portrait-" : group==="buildings" ? "" : group+"-";
+        loadArtSheet(path,1,1,[prefix+key],2);
         continue;
       }
       const sheet = sheets[path];

@@ -798,3 +798,21 @@ body:not(.ffui) .albummode .rwd{background:linear-gradient(#2a2e37,#16181e);bord
 #frList .fx:has(.btn:nth-of-type(3)){flex-wrap:wrap;row-gap:6px}
 #frList .fx:has(.btn:nth-of-type(3)) .nm{flex:1 1 calc(100% - 64px)}
 #frList .fx:has(.btn:nth-of-type(3)) .btn:first-of-type{margin-left:auto}
+
+/* Clash-style "Searching for opponent" clouds */
+#searchFx{position:fixed;inset:0;z-index:900;display:none;overflow:hidden;background:linear-gradient(#5fb2ec,#b9e2fb)}
+#searchFx.on{display:block}
+#searchFx .cl{position:absolute;border-radius:50%;background:#fff;box-shadow:60px 20px 0 10px #fff,-60px 25px 0 0 #fff,120px 40px 0 -5px #f3f9ff;opacity:.95;animation:sfCloud 6s linear infinite}
+#searchFx .c1{width:160px;height:110px;top:12%;left:-20%}
+#searchFx .c2{width:220px;height:140px;top:38%;left:-35%;animation-duration:7.5s;animation-delay:-2s}
+#searchFx .c3{width:140px;height:95px;top:66%;left:-25%;animation-duration:5s;animation-delay:-3.5s}
+#searchFx .c4{width:190px;height:120px;top:4%;left:-30%;animation-duration:8s;animation-delay:-5s}
+#searchFx .c5{width:170px;height:115px;top:80%;left:-30%;animation-duration:6.5s;animation-delay:-1s}
+@keyframes sfCloud{to{transform:translateX(170vw)}}
+#searchFx .sbox{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);text-align:center;width:min(86vw,360px)}
+#searchFx .sfoot{font-size:64px;animation:sfSpin 1s linear infinite;filter:drop-shadow(0 4px 0 rgba(0,0,0,.25))}
+@keyframes sfSpin{to{transform:rotate(360deg)}}
+#searchFx .stxt{margin:14px 0 22px;font:900 24px/1.2 inherit;color:#fff;text-shadow:0 3px 0 #13314d,0 0 6px #13314d;-webkit-text-stroke:1px #13314d}
+#searchFx .sdots::after{content:"";animation:sfDots 1.2s steps(4) infinite}
+@keyframes sfDots{0%{content:""}25%{content:"."}50%{content:".."}75%{content:"..."}}
+#searchFx .btn{min-width:140px}

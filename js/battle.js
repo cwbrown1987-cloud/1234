@@ -12,7 +12,15 @@ function genBase(d, seed, tier){
   const r=rng(seed), list=[], occ=new Set(), key=(i,j)=>i+","+j;
   const ring=(lo,hi)=>{ const c=[]; for(let i=lo;i<=hi;i++) c.push([i,lo]); for(let j=lo+1;j<=hi;j++) c.push([hi,j]); for(let i=hi-1;i>=lo;i--) c.push([i,hi]); for(let j=hi-1;j>lo;j--) c.push([lo,j]); return c; };
   const R1=ring(C0-6,C0+6), R2=ring(C0-10,C0+10), R3=ring(C0-14,C0+14);
-  const rings=[R1,R2,R3];
+  // Online bots build like real players, each with its own style (single-player grounds stay "classic").
+  const style = tier ? ["classic","trophy","farm","compact","spread","messy"][Math.abs(seed|0)%6] : "classic";
+  const Z = {classic:{store:["core","mid"],def:["mid","out","core"],army:["out","mid","edge"],coll:["edge","out"]},
+    trophy:{store:["out","mid"],def:["core","mid","out"],army:["edge","out"],coll:["edge","out"]},
+    farm:{store:["core","mid"],def:["mid","core","out"],army:["edge","out"],coll:["out","edge"]},
+    compact:{store:["core","mid"],def:["core","mid","out"],army:["out","edge"],coll:["out","edge"]},
+    spread:{store:["mid","out"],def:["out","mid","core"],army:["edge","out"],coll:["edge"]},
+    messy:{store:["mid","out","core"],def:["out","mid","edge"],army:["mid","out","edge"],coll:["core","mid","out","edge"]}}[style];
+  const rings={classic:[R1,R2,R3],trophy:[R1,R2,R3],farm:[R2,R3],compact:[R1,R2],spread:[R2,R3],messy:[]}[style];
   rings.flat().forEach(([i,j])=>occ.add(key(i,j)));
   const zone=(i,j)=>{ const m=Math.max(Math.abs(i-C0),Math.abs(j-C0)); return m<=5?"core":m<=9?"mid":m<=13?"out":"edge"; };
   const fits=(x,y,s,z,gap)=>{ if(x<1||y<1||x+s>N-1||y+s>N-1) return false;
@@ -24,22 +32,28 @@ function genBase(d, seed, tier){
     for(let i=x;i<x+s;i++) for(let j=y;j<y+s;j++){ occ.add(key(i,j)); occ.add("b"+key(i,j)); }
     const b={id:list.length+1,t,x,y,lv,hp,max:hp,cd:r()}; list.push(b); return b; };
   const place=(t,zones)=>{ const s=BLD[t].size; for(const z of zones) for(let k=0;k<400;k++){ const x=1+(r()*(N-2-s))|0, y=1+(r()*(N-2-s))|0; if(fits(x,y,s,z,z!=="core")) return put(t,x,y); } return null; };
-  put("clubhouse",C0-2,C0-2);
+  if(style!=="farm") put("clubhouse",C0-2,C0-2);
   const cnt=t=>{ const n=MAXC[t][dd-1]; return tier==="easy"&&n>1&&(isDef(t)||t==="fence") ? Math.ceil(n*(t==="fence"?.5:.65)) : n; };
-  for(const t of ["piewarmer","esky"]) for(let i=0;i<cnt(t);i++) place(t,["core","mid"]);
-  if(cnt("catapult")) place("catapult",["core","mid"]);
-  if(cnt("floodlight")) place("floodlight",["core","mid"]);
-  for(const t of ["goalpost","siren","catapult","floodlight"]) for(let i=list.filter(b=>b.t===t).length;i<cnt(t);i++) place(t,["mid","out","core"]);
-  for(const t of ["locker","office","coachbox","physio","oval"]) for(let i=0;i<cnt(t);i++) place(t,["out","mid","edge"]);
-  for(const t of ["pieshop","drinktap","bench"]) for(let i=0;i<cnt(t);i++) place(t,["edge","out"]);
+  if(style==="trophy"||style==="compact") for(const t of ["catapult","floodlight","siren"]) if(cnt(t)) place(t,["core"]);
+  for(const t of ["piewarmer","esky"]) for(let i=0;i<cnt(t);i++) place(t,Z.store);
+  if(style==="farm"&&!place("clubhouse",["mid"])) put("clubhouse",C0-2,C0-2);
+  if(style==="classic"){ if(cnt("catapult")) place("catapult",["core","mid"]); if(cnt("floodlight")) place("floodlight",["core","mid"]); }
+  for(const t of ["goalpost","siren","catapult","floodlight"]) for(let i=list.filter(b=>b.t===t).length;i<cnt(t);i++) place(t,Z.def);
+  for(const t of ["locker","office","coachbox","physio","oval"]) for(let i=0;i<cnt(t);i++) place(t,Z.army);
+  for(const t of ["pieshop","drinktap","bench"]) for(let i=0;i<cnt(t);i++) place(t,Z.coll);
   place("shed",["edge"]); place("shed",["edge"]);
+  const addFence=(i,j)=>{ const lv=tier==="hard"?maxLevel("fence",dd):Math.max(1,Math.min(maxLevel("fence",d),d-(r()<.3?1:0))-(tier==="easy"?1:0)), hp=BLD.fence.hp[lv-1]; list.push({id:list.length+1,t:"fence",x:i,y:j,lv,hp,max:hp}); occ.add("b"+key(i,j)); };
   let budget=cnt("fence");
   for(const R of rings){ if(budget<=0) break;
     const take=Math.min(R.length,budget); if(take<R.length*.5) break; budget-=take;
     // a part ring is built as one unbroken stretch, like a Clash wall still being finished (never scattered posts)
     const start=Math.floor(r()*R.length);
     R.forEach(([i,j],n)=>{ const gapHere = take<R.length && ((n-start+R.length)%R.length)>=take;
-      if(!gapHere && !occ.has("b"+key(i,j))){ const lv=tier==="hard"?maxLevel("fence",dd):Math.max(1,Math.min(maxLevel("fence",d),d-(r()<.3?1:0))-(tier==="easy"?1:0)), hp=BLD.fence.hp[lv-1]; list.push({id:list.length+1,t:"fence",x:i,y:j,lv,hp,max:hp}); occ.add("b"+key(i,j)); } }); }
+      if(!gapHere && !occ.has("b"+key(i,j))) addFence(i,j); }); }
+  // a messy ground: short stretches of fence dotted around instead of full rings
+  if(style==="messy") for(let k=0;k<400&&budget>2;k++){ const len=3+(r()*4|0), h=r()<.5, x=2+(r()*(N-4-len))|0, y=2+(r()*(N-4-len))|0;
+    const cells=[...Array(len)].map((_,n)=>h?[x+n,y]:[x,y+n]); if(cells.some(([i,j])=>occ.has(key(i,j))||occ.has("b"+key(i,j)))) continue;
+    cells.forEach(([i,j])=>{ occ.add(key(i,j)); addFence(i,j); }); budget-=len; }
   for(let n=0;n<cnt("sprinkler");n++) for(let k=0;k<200;k++){ const i=C0-9+(r()*19|0), j=C0-9+(r()*19|0); if(zone(i,j)==="mid"&&!occ.has(key(i,j))&&!occ.has("b"+key(i,j))){ occ.add("b"+key(i,j)); list.push({id:list.length+1,t:"sprinkler",x:i,y:j,lv:Math.max(1,Math.min(5,d-2)),hp:1,max:1,armed:true}); break; } }
   // Loot on offer grows with Clubhouse level like Clash (a few thousand at level 1, a few hundred thousand at 8)
   const lm=tier==="hard"?2:1;
@@ -60,6 +74,20 @@ function makeBattle(o){
 }
 // Attacking a friend is a normal match for part of the loot: 1/8 of a small ground's loot, rising to 1/4 once there's 300,000+ on offer.
 const friendLootShare = lt => { const pool=Math.max(lt.pies,lt.drink); return pool<=50000 ? 1/8 : pool>=300000 ? 1/4 : 1/8+(pool-50000)/250000/8; };
+// Clash-style "Searching for opponent" clouds, shown for a random 1.2-3 seconds (or until the search finishes, if longer).
+// Resolves to the work's result, or throws {cancelled:true} if the player taps Cancel.
+function searching(work){
+  let el=$("searchFx");
+  if(!el){ el=document.createElement("div"); el.id="searchFx";
+    el.innerHTML=`<div class="cl c1"></div><div class="cl c2"></div><div class="cl c3"></div><div class="cl c4"></div><div class="cl c5"></div>
+      <div class="sbox"><div class="sfoot">🏉</div><div class="stxt">Searching for opponent<span class="sdots"></span></div><button class="btn red" id="searchCancel">Cancel</button></div>`;
+    document.body.appendChild(el); }
+  el.classList.add("on"); sfx("whistle",.3);
+  let cancel; const cancelled=new Promise((_,rej)=>{ cancel=()=>rej({cancelled:true}); });
+  $("searchCancel").onclick=()=>cancel();
+  const wait=new Promise(res=>setTimeout(res,1200+Math.random()*1800));
+  return Promise.race([Promise.all([work,wait]).then(([v])=>v),cancelled]).finally(()=>el.classList.remove("on"));
+}
 function startBattle(o){
   if(!Object.values(S.army).some(n=>n>0)) return toast("Train some players first!");
   const heroes={}; for(const h of heroPicked()) if(heroReady(h)) heroes[h]=true;

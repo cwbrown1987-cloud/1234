@@ -88,3 +88,16 @@ UPDATE users SET name='Macca' WHERE id='bot17' AND bot=1;
 UPDATE profiles SET name='Macca' WHERE user_id='bot17' AND bot=1;
 UPDATE users SET name='Grace 07' WHERE id='bot20' AND bot=1;
 UPDATE profiles SET name='Grace 07' WHERE user_id='bot20' AND bot=1;
+-- Bots that scale to whoever they play: their Clubhouse level and trophies match the attacker's.
+INSERT OR IGNORE INTO users(id,name,email,pass,salt,recovery,bot,created) VALUES('bot52','Hayden_T',NULL,NULL,NULL,NULL,1,0);
+INSERT OR IGNORE INTO profiles(user_id,name,club,th,trophies,base,shield_until,last_seen,bot) VALUES('bot52','Hayden_T',17,3,438,'{"gen":60717356,"tier":"scale"}',0,0,1);
+INSERT OR IGNORE INTO users(id,name,email,pass,salt,recovery,bot,created) VALUES('bot53','Bella R',NULL,NULL,NULL,NULL,1,0);
+INSERT OR IGNORE INTO profiles(user_id,name,club,th,trophies,base,shield_until,last_seen,bot) VALUES('bot53','Bella R',16,4,297,'{"gen":60643908,"tier":"scale"}',0,0,1);
+INSERT OR IGNORE INTO users(id,name,email,pass,salt,recovery,bot,created) VALUES('bot54','jordo',NULL,NULL,NULL,NULL,1,0);
+INSERT OR IGNORE INTO profiles(user_id,name,club,th,trophies,base,shield_until,last_seen,bot) VALUES('bot54','jordo',16,5,443,'{"gen":24784692,"tier":"scale"}',0,0,1);
+INSERT OR IGNORE INTO users(id,name,email,pass,salt,recovery,bot,created) VALUES('bot55','Archie.W',NULL,NULL,NULL,NULL,1,0);
+INSERT OR IGNORE INTO profiles(user_id,name,club,th,trophies,base,shield_until,last_seen,bot) VALUES('bot55','Archie.W',5,6,248,'{"gen":84541428,"tier":"scale"}',0,0,1);
+INSERT OR IGNORE INTO users(id,name,email,pass,salt,recovery,bot,created) VALUES('bot56','Tahlia05',NULL,NULL,NULL,NULL,1,0);
+INSERT OR IGNORE INTO profiles(user_id,name,club,th,trophies,base,shield_until,last_seen,bot) VALUES('bot56','Tahlia05',9,3,272,'{"gen":59940719,"tier":"scale"}',0,0,1);
+INSERT OR IGNORE INTO users(id,name,email,pass,salt,recovery,bot,created) VALUES('bot57','MattyG',NULL,NULL,NULL,NULL,1,0);
+INSERT OR IGNORE INTO profiles(user_id,name,club,th,trophies,base,shield_until,last_seen,bot) VALUES('bot57','MattyG',17,4,221,'{"gen":12169594,"tier":"scale"}',0,0,1);

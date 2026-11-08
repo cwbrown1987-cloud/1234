@@ -160,15 +160,14 @@ function oppBuildings(opp) {
 async function findOnlineMatch(skip = [], ranked = false) {
   if (!Object.values(S.army).some(n => n > 0)) return toast("Train some players first!");
   const cost = 50 * th(); if (!pay("pies", cost)) return toast("Not enough 🥧");
-  toast("Finding an opponent…");
   try {
-    await pushSave();
-    const r = await api("/match?mode=" + (ranked ? "ranked" : "battle") + (skip.length ? "&skip=" + skip.join(",") : ""));
-    const o = r.opponent; closeModal();
+    closeModal();
+    const r = await searching(pushSave().catch(() => {}).then(() => api("/match?mode=" + (ranked ? "ranked" : "battle") + (skip.length ? "&skip=" + skip.join(",") : ""))));
+    const o = r.opponent;
     startBattle({ kind: "pvp", ranked, club: o.club, d: o.th, buildings: oppBuildings(o), opp: { id: o.id, name: o.name, bot: o.bot, trophies: o.trophies }, seen: skip.concat(o.id) });
     BT.skip = skip.concat(o.id);
     if (o.base && o.base.tier === "hard") toast("💀 Boss ground! Maxed defences, double loot");
-  } catch (e) { S.pies += cost; toast(e.message); }
+  } catch (e) { S.pies += cost; if (!e.cancelled) toast(e.message); }
 }
 function nextOpponent() { if (!BT || BT.started || BT.kind !== "pvp") return; const skip = BT.skip || [], ranked = BT.ranked; leaveBattle(); findOnlineMatch(skip, ranked); }
 async function attackPlayer(id, kind) {
@@ -304,7 +303,7 @@ async function renderLeaderboard(soc) {
   if(soc!==$("soc")) return;
   $("soc").innerHTML = (signedIn() ? "" : `<div class="banner">Sign in to appear on the leaderboard. <button class="btn green" id="lbSign">Play online</button></div>`) +
     `<div class="ladwrap"><table class="ladder"><tr><th>#</th><th></th><th>Player</th><th>Club</th><th>🏆</th></tr>${r.players.map((p, i) =>
-      `<tr class="${p.id === meId ? "me" : ""}"><td>${i + 1}</td><td>${badgeImg(CLUBS[p.club] || CLUBS[0], "xs")}</td><td>${esc(p.name)}${p.bot ? ' <span class="tag bot">BOT</span>' : ""}${p.squadName ? `<br><small>${esc(p.squadName)}</small>` : ""}</td><td>CH ${p.th}</td><td><b>${p.trophies}</b></td></tr>`).join("")}</table></div>
+      `<tr class="${p.id === meId ? "me" : ""}"><td>${i + 1}</td><td>${badgeImg(CLUBS[p.club] || CLUBS[0], "xs")}</td><td>${esc(p.name)}${p.squadName ? `<br><small>${esc(p.squadName)}</small>` : ""}</td><td>CH ${p.th}</td><td><b>${p.trophies}</b></td></tr>`).join("")}</table></div>
     <p class="tiny center">Bots are computer clubs so there's always someone to play while the league fills up.</p>`;
   const b = $("lbSign"); if (b) b.onclick = sub(() => openAccount(), () => openSocial("Leaderboard"));
 }

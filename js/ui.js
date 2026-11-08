@@ -121,7 +121,7 @@ function updateHUD(force){
   } else if(BT){
     const replay=BT.mode==="replay";
     $("bBadge").src=badgeURL(CLUBS[replay?BT.atkClub:BT.club],96);
-    $("bVs").textContent=replay?`${BT.raid&&BT.raid.attacker?BT.raid.attacker+" · ":""}${CLUBS[BT.atkClub].name}`:BT.opp?`vs ${BT.opp.name}${BT.opp.bot?" (bot)":""} · ${CLUBS[BT.club].short}`:"vs "+CLUBS[BT.club].name;
+    $("bVs").textContent=replay?`${BT.raid&&BT.raid.attacker?BT.raid.attacker+" · ":""}${CLUBS[BT.atkClub].name}`:BT.opp?`vs ${BT.opp.name} · ${CLUBS[BT.club].short}`:"vs "+CLUBS[BT.club].name;
     const nx=$("bNext"); if(nx){ nx.style.display=(BT.kind==="pvp"||BT.visit)&&!BT.started&&!replay?"block":"none"; nx.textContent=BT.visit?"⚔️ Attack":"Next ⏭"; }
     $("bEnd").textContent=BT.visit?"🏠 Home":$("bEnd").dataset.sure?"Tap to confirm":"End Match";
     $("cards").style.display=BT.visit?"none":"";
@@ -352,7 +352,7 @@ function openLog(){
   h+=`<div class="live-attacks" id="liveAttacks" aria-live="polite">${(typeof NET!=="undefined"&&NET.liveAttacks||[]).map(a=>`<div class="liverow">🔴 <b>${esc(a.name)}</b> is attacking your ground <button class="btn red" data-live="${esc(a.attackerId)}">👀 Watch</button></div>`).join("")}</div>`;
   if(!S.raids.length) h+=`<p class="center">No visitors yet. They will come…</p>`;
   for(const r of S.raids){ const c=CLUBS[r.club]||CLUBS[0], ago=fmtTime((Date.now()-r.at)/1000);
-    const who=r.attacker?`${esc(r.attacker)}${r.real?"":' <span class="tag bot">BOT</span>'} <small>${c.short}</small>`:c.name;
+    const who=r.attacker?`${esc(r.attacker)} <small>${c.short}</small>`:c.name;
     h+=`<div class="raid ${r.stars?"lost":"won"}">${badgeImg(c)}<div class="grow"><div><b>${who}</b> ${r.friendly?'<span class="tag fr">FRIENDLY</span>':r.friend?'<span class="tag fr">FRIEND</span>':""} ${r.seen?"":'<span class="tag">NEW</span>'}</div>
       <div class="tiny">${ago} ago · ${r.sc?`${c.short} ${fmtScore(r.sc.a)} v ${myClub().short} ${fmtScore(r.sc.h)}`:r.pct+"% destroyed"} · <span class="stars">${"★".repeat(r.stars)}<span class="dim">${"★".repeat(3-r.stars)}</span></span></div>
       <div class="tiny">${r.stars?`Lost 🥧 ${fmt(r.lost.pies)} 💧 ${fmt(r.lost.drink)}`:"Defence win!"} · ${r.tro>0?"+":""}${r.tro} 🏆</div></div>
@@ -408,7 +408,8 @@ function openMatch(){
   const find=ranked=>{ if(online) return findOnlineMatch([],ranked);
     if(!Object.values(S.army).some(n=>n>0)) return toast("Train some players first!"); if(!tutActive()&&!pay("pies",cost)) return toast("Not enough 🥧");
     let c; do{ c=Math.random()*18|0; }while(c===S.club); const d=Math.max(1,Math.min(MAX_TH,th()+(tutActive()?-1:ranked?(Math.random()*3|0)-1:0)));
-    closeModal(); startBattle({kind:"match",ranked,club:c,d,seed:Math.random()*1e9|0}); };
+    closeModal(); const go=()=>startBattle({kind:"match",ranked,club:c,d,seed:Math.random()*1e9|0});
+    if(tutActive()) go(); else searching(Promise.resolve()).then(go,()=>{ S.pies+=cost; }); };
   document.querySelectorAll("[data-rev]").forEach(b=>b.onclick=()=>{ if(!Object.values(S.army).some(n=>n>0)) return toast("Train some players first!"); revenge(S.raids.find(r=>r.id==b.dataset.rev)); });
   $("findMatch").onclick=()=>find(false); $("findRanked").onclick=sub(()=>rankedConfirm(()=>find(true)),()=>openHub("battle","Play"));
   $("rkTable").onclick=sub(openRankedTable,openMatch); if(rk.last){ delete rk.last; save(); }
@@ -430,7 +431,7 @@ function openInfo(b){
 function scoreboard(away,home,sc){ return `<div class="board"><div class="${sc.a.p>sc.h.p?"won":""}">${badgeImg(away,"sm")}<span>${away.short}</span><b>${fmtScore(sc.a)}</b></div><div class="${sc.h.p>=sc.a.p?"won":""}">${badgeImg(home,"sm")}<span>${home.short}</span><b>${fmtScore(sc.h)}</b></div></div>`; }
 function showResult(r){
   const win=r.stars>0, margin=Math.abs(r.sc.a.p-r.sc.h.p), draw=r.sc.a.p===r.sc.h.p;
-  modal(`<div class="result"><h2>${draw?"It's a draw!":win?"You win!":"Siren. You lost"}</h2>${r.opp?`<div class="tiny">${r.friendly?"Friendly ":BT&&BT.kind==="friend"?"Friend match ":""}vs ${esc(r.opp.name)}${r.opp.bot?" (bot)":""}</div>`:""}
+  modal(`<div class="result"><h2>${draw?"It's a draw!":win?"You win!":"Siren. You lost"}</h2>${r.opp?`<div class="tiny">${r.friendly?"Friendly ":BT&&BT.kind==="friend"?"Friend match ":""}vs ${esc(r.opp.name)}</div>`:""}
     <div class="tiny">${r.fixture?r.fixture+" · ":""}${draw?"Scores level":"by "+margin+" point"+(margin===1?"":"s")} · ${r.p}% knocked down</div>
     ${scoreboard(r.away,r.home,r.sc)}
     <div class="stars">${"★".repeat(r.stars)}<span class="dim">${"★".repeat(3-r.stars)}</span></div>

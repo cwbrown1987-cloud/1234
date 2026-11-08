@@ -74,10 +74,11 @@ function editUI(){
   let el = $("editUI"); if (!el) { el = document.createElement("div"); el.id = "editUI"; document.body.appendChild(el); }
   const inv = {}; for (const b of S.buildings) if (inTray(b)) { const k = b.t + "|" + b.lv; (inv[k] = inv[k] || []).push(b); }
   const done = !S.buildings.some(inTray), E = EDIT, club = myClub();
-  const g = (id, ico, txt, cls = "") => `<button class="vem-b ${cls}" id="${id}"><i>${ico}</i>${txt}</button>`;
+  const bg = cls => cls === "grey" ? "vem-btn-grey" : cls === "red" ? "vem-btn-red" : cls === "on" ? "vem-btn-on" : "vem-btn-green";
+  const g = (id, ico, txt, cls = "") => `<button class="vem-b ${cls}" id="${id}" data-uibg="${bg(cls)}"><i class="uia" data-ui="vem-${id.slice(3).toLowerCase()}">${ico}</i><span>${txt}</span></button>`;
   el.className = (E.hideBar ? "barhide " : "") + (E.photo ? "photo" : "");
-  el.innerHTML = `<div class="vem-title">✏️Ground Edit Mode</div>
-    <div class="vem-bar"><button class="vem-tab" id="vemTab">🔧</button><div class="vem-list">
+  el.innerHTML = `<div class="vem-title"><i class="uia" data-ui="vem-pencil">✏️</i>Ground Edit Mode</div>
+    <div class="vem-bar"><button class="vem-tab" id="vemTab" data-uibg="vem-tab"><i class="uia" data-ui="vem-wrench">🔧</i></button><div class="vem-list">
       ${g("vemErase", "🧽", E.erase ? "Erase On" : "Erase Off", E.erase ? "on" : "")}
       ${g("vemAll", "📦", E.sureAll ? "Sure?" : "Remove All", "grey")}
       ${g("vemMove", "✥", "Move All", E.move ? "on" : "")}
@@ -87,9 +88,10 @@ function editUI(){
       <div class="vem-gap"></div>
       ${done ? g("vemSave", "💾", "Save Ground") : g("vemLater", "✔", "Finish later", "grey")}
       ${g("vemCancel", "✖", "Cancel", "red")}</div></div>
-    ${E.move ? `<div class="vem-move"><button data-mv="-1,0">↖</button><button data-mv="0,-1">↗</button><button data-rot="-1">⟲</button><button data-rot="1">⟳</button><button data-mv="0,1">↙</button><button data-mv="1,0">↘</button></div>` : ""}
+    ${E.move ? `<div class="vem-move"><button data-mv="-1,0" data-uibg="vem-arrow">↖</button><button data-mv="0,-1" data-uibg="vem-arrow">↗</button><button data-rot="-1" data-uibg="vem-rotate">⟲</button><button data-rot="1" data-uibg="vem-rotate">⟳</button><button data-mv="0,1" data-uibg="vem-arrow">↙</button><button data-mv="1,0" data-uibg="vem-arrow">↘</button></div>` : ""}
     <div class="vem-hint">${done ? "" : "Drag buildings from the inventory to place them"}</div>
-    <div class="vem-inv">${Object.entries(inv).map(([k, list]) => `<div class="vem-card" data-inv="${k}">${list.length > 1 ? `<b>x${list.length}</b>` : ""}<canvas width="160" height="160"></canvas><span>Level ${list[0].lv}</span></div>`).join("")}</div>`;
+    <div class="vem-inv">${Object.entries(inv).map(([k, list]) => `<div class="vem-card" data-inv="${k}" data-uibg="vem-card">${list.length > 1 ? `<b>x${list.length}</b>` : ""}<canvas width="160" height="160"></canvas><span>Level ${list[0].lv}</span></div>`).join("")}</div>`;
+  if (typeof applyUiArt === "function") applyUiArt(el);
   el.querySelectorAll("[data-inv]").forEach(c => { const [t, lv] = c.dataset.inv.split("|"); const th = thumb(t, club, +lv); c.querySelector("canvas").getContext("2d").drawImage(th, 0, 0);
     c.onpointerdown = e => { e.preventDefault(); const b = S.buildings.find(x => inTray(x) && x.t === t && x.lv === +lv); if (b) invDrag(b, e); }; });
   const tog = (id, k) => $(id).onclick = () => { E[k] = !E[k]; editUI(); };

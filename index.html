@@ -22,7 +22,7 @@
 <!-- top bar -->
 <div id="top">
   <div class="tl">
-    <div class="badge" id="clubBadge">
+    <div class="badge" id="clubBadge" data-uibg="profile-badge"><i class="dot hide" id="profDot"></i>
       <img class="badgeimg" id="g" alt="">
       <div><div class="nmrow"><span class="lvl" id="lvlBadge" title="Experience level">1</span><span id="clubName">Footy Fortress</span></div><div class="sub">🏆 <span id="tro">0</span> · <span id="lg"></span></div></div>
     </div>
@@ -31,24 +31,23 @@
   <div class="tr">
     <div class="res" data-r="pies"><div class="fill" style="background:linear-gradient(#ffd96a,#e9a92a)"></div><span class="v"></span><span class="cap"></span><i>🥧</i></div>
     <div class="res" data-r="drink"><div class="fill" style="background:linear-gradient(#7fe3ff,#1aa3d6)"></div><span class="v"></span><span class="cap"></span><i>💧</i></div>
-    <div class="res medals" data-r="medals"><span class="v"></span><i>🏅</i></div>
+    <div class="res medals" data-r="medals"><span class="v"></span><i>🏅</i><button class="plus" id="buyMedals" aria-label="Shop">+</button></div>
   </div>
 </div>
 
 <!-- home buttons -->
 <div id="homeBtns">
-  <button class="round attack" id="btnAttack"><b>⚔️</b><span>Match</span></button>
-  <button class="round" id="btnSquad"><b>🏉</b><span>Squad</span></button>
-  <button class="round shop" id="btnShop"><b>🛒</b><span>Shop</span></button>
+  <button class="round attack" id="btnAttack" data-uibg="btn-battle"><b>⚔️</b><span>Battle</span><i class="dot hide" id="logDot"></i></button>
+  <button class="round shop" id="btnShop" data-uibg="btn-build"><b>🔨</b><span>Build</span><i class="dot hide" id="buildDot"></i></button>
 </div>
 <div id="side">
   <button class="sidebtn" id="btnCards"><img id="cardsIco" alt="" width="30" height="30"><span>Cards</span><i class="dot hide" id="cardDot"></i></button>
-  <button class="sidebtn" id="btnTasks">📋<span>Tasks</span><i class="dot hide" id="taskDot"></i></button>
-  <button class="sidebtn" id="btnLog">🛡️<span>Home</span><i class="dot hide" id="logDot"></i></button>
-  <button class="sidebtn" id="btnSocial">🏟️<span>Online</span><i class="dot hide" id="socialDot"></i></button>
-  <button class="sidebtn" id="btnSettings">⚙️<span>Settings</span></button>
+  <button class="sidebtn" id="btnTasks" data-uibg="side-pass">🎫<span>Pass</span><i class="dot hide" id="taskDot"></i></button>
+  <button class="sidebtn" id="btnEvents" data-uibg="side-events">📅<span>Events</span><i class="dot hide" id="eventDot"></i></button>
+  <button class="sidebtn" id="btnSocial" data-uibg="side-online">🏟️<span>Online</span><i class="dot hide" id="socialDot"></i></button>
 </div>
 <div id="eventBanner" class="hide"></div>
+<div id="rotateMsg" class="hide"><div>📱<b>Turn your phone upright</b></div></div>
 
 <div id="selPanel"></div>
 <div id="placePanel"><button class="btn red" id="placeNo">✖</button><span id="placeName"></span><button class="btn green" id="placeYes">✔</button></div>
@@ -85,6 +84,7 @@
 <script src="js/cardset.js"></script>
 <script src="js/cards.js"></script>
 <script src="js/gear.js"></script>
+<script src="js/hubs.js"></script>
 <script src="js/tutorial.js"></script>
 <script src="js/net.js"></script>
 <div id="installPrompt" class="hide"><div class="ipcard"><img src="icons/icon-192.png" alt=""><h2>Install Footy Fortress</h2><div id="installSteps"></div><div class="ipbtns"><button class="btn green big hide" id="installGo">Install</button><button class="btn" id="installLater">Not now</button></div></div></div>

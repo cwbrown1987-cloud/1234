@@ -302,7 +302,9 @@ function endBattle(){
   const mul=BT.lootMul||1;
   const got={pies:addRes("pies",Math.floor(BT.loot.pies*mul)), drink:addRes("drink",Math.floor(BT.loot.drink*mul))};
   const friendly=BT.kind==="friendly";
-  let tro = !BT.ranked ? 0 : stars ? Math.round((8+stars*6)*(BT.d>=th()?1.2:.8)) : -10;
+  let tro = BT.ranked&&!BT.visit ? rankedTrophies(stars,p) : 0;
+  if(BT.ranked){ const rk=ensureRanked(); rk.attacks++; rk.tro+=tro; }
+  if(stars&&!friendly) bumpStat("stars",stars);
   if(BT.revenge){ const r=S.raids.find(x=>x.id===BT.revenge); if(r&&r.lost){ // revenge always gets back at least what they took, like Clash
     for(const k of ["pies","drink"]){ const short=Math.max(0,(r.lost[k]||0)-got[k]); if(short) got[k]+=addRes(k,short); } } }
   const starRes = ["match","pvp","revenge","season","friend"].includes(BT.kind)&&!friendly&&stars ? addStars(stars) : null;

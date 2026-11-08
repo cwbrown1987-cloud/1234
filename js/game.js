@@ -129,7 +129,7 @@ function removeObstacle(o){
   if(!pay(d.res,d.cost)) return toast(`Clearing costs ${fmt(d.cost)} ${resIcon(d.res)}`);
   o.busy={end:Date.now()+d.time*1000,total:d.time}; sfx("tap"); selected=null; save(); refreshUI();
 }
-function obstacleCleared(o){
+function obstacleCleared(o){ track("clear",1);
   const d=obsInfo(o), s=o.s||1;
   S.obstacles=S.obstacles.filter(x=>x!==o); const [lo,hi]=d.votes, m=lo+Math.floor(Math.random()*(hi-lo+1)); S.medals+=m;
   if(typeof addXP==="function") addXP(s*2);
@@ -243,8 +243,8 @@ function ensureDaily(){
   while(tasks.length<3){ const t=pool.splice(r()*pool.length|0,1)[0]; const goal=Math.round(t.goal*(1+(th()-1)*.4)); tasks.push({k:t.k,goal,n:0,claimed:false}); }
   S.daily={day:today(),tasks,bonus:false};
 }
-function track(k,n){ if(!S) return; ensureDaily(); for(const t of S.daily.tasks) if(t.k===k&&!t.claimed) t.n=Math.min(t.goal,t.n+n); uiDirty=true; }
-function claimTask(i){ const t=S.daily.tasks[i]; if(t.claimed||t.n<t.goal) return; t.claimed=true; S.medals+=3; floatText(C0,C0,"+3 🏅");
+function track(k,n){ if(!S) return; if(typeof bumpStat==="function"){ bumpStat(k,n); passPoints(k,n); } ensureDaily(); for(const t of S.daily.tasks) if(t.k===k&&!t.claimed) t.n=Math.min(t.goal,t.n+n); uiDirty=true; }
+function claimTask(i){ const t=S.daily.tasks[i]; if(t.claimed||t.n<t.goal) return; t.claimed=true; if(typeof passPoints==="function") passPoints("task",1); S.medals+=3; floatText(C0,C0,"+3 🏅");
   if(S.daily.tasks.every(x=>x.claimed)&&!S.daily.bonus){ S.daily.bonus=true; earnTokens(2); toast("All tasks done! +2 🎟️ Footy Tokens"); }
   sfx("collect"); save(); }
 const tasksReady = () => S.daily&&S.daily.tasks.filter(t=>t.n>=t.goal&&!t.claimed).length;

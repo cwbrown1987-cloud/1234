@@ -57,7 +57,9 @@ function refreshUI(){
   if(bat&&!replay) buildCards();
   if(S&&home){ const u=S.raids.filter(r=>!r.seen).length, tr=tasksReady()||0;
     $("logDot").textContent=u; $("logDot").classList.toggle("hide",!u);
-    $("taskDot").textContent=tr; $("taskDot").classList.toggle("hide",!tr);
+    const pr=tr+passReady(); $("taskDot").textContent=pr; $("taskDot").classList.toggle("hide",!pr);
+    const ar=achReady(); const bd=$("profDot"); if(bd){ bd.textContent=ar; bd.classList.toggle("hide",!ar); }
+    const ev=eventNow(); $("eventDot").textContent="!"; $("eventDot").classList.toggle("hide",!ev);
     const pk=Math.floor((S.tokens||0)/PACK_COST)+(S.prizePacks||0)+(dailyReady()?1:0); $("cardDot").textContent=pk; $("cardDot").classList.toggle("hide",!pk);
     $("lvlBadge").textContent=S.lvl; }
   updateHUD(true);
@@ -69,7 +71,7 @@ function updateHUD(force){
     for(const el of document.querySelectorAll(".res")){ const r=el.dataset.r; const v=r==="medals"?S.medals:S[r];
       el.querySelector(".v").textContent=fmt(v);
       if(r!=="medals"){ const cap=capOf(r); el.querySelector(".fill").style.width=Math.min(100,100*v/Math.max(1,cap))+"%"; el.querySelector(".cap").textContent="Max: "+fmt(cap); } }
-    $("tro").textContent=S.trophies; $("lg").textContent=league(S.trophies);
+    $("tro").textContent=S.trophies; $("lg").textContent=rkName(ensureRanked().tier);
     $("builders").textContent=`👷 ${sheds()-busyBuilders()}/${sheds()}`;
     $("seasonCd").textContent=seasonCountdown();
     const sh=S.shield-Date.now(); $("shield").classList.toggle("hide",sh<=0); if(sh>0) $("shield").textContent="🛡️ "+fmtTime(sh/1000);
@@ -125,8 +127,8 @@ function buildCards(){
 
 // ---------- modals ----------
 let modalTick=null;
-function modal(html, opts={}){ $("modal").querySelector(".card").classList.remove("albummode"); $("modalBody").innerHTML=html; $("modal").classList.add("show"); $("modalX").style.display=opts.noClose?"none":"block"; modalTick=opts.tick||null; }
-function closeModal(){ $("modal").classList.remove("show"); modalTick=null; refreshUI(); }
+function modal(html, opts={}){ $("modal").querySelector(".card").classList.remove("albummode"); $("modalBody").innerHTML=(typeof hubBarHTML==="function"?hubBarHTML():"")+html; if(hubCtx) bindHubBar(); $("modal").classList.add("show"); $("modalX").style.display=opts.noClose?"none":"block"; modalTick=opts.tick||null; }
+function closeModal(){ if(typeof hubCtx!=="undefined") hubCtx=null; $("modal").classList.remove("show"); modalTick=null; refreshUI(); }
 setInterval(()=>{ if(modalTick&&$("modal").classList.contains("show")) modalTick(); },1000);
 $("modalX").onclick=closeModal;
 $("modal").addEventListener("pointerdown",e=>{ if(e.target.id==="modal"&&$("modalX").style.display!=="none") closeModal(); });
@@ -142,7 +144,8 @@ function showClubPicker(){
 let shopTab="Resources";
 function openShop(tab){
   shopTab=tab||shopTab;
-  modal(`<h2>Shop</h2>${tabsHTML(Object.keys(SHOP_TABS),shopTab)}<div class="grid" id="shopGrid"></div>`);
+  const sTabs=typeof shopTabsFor==="function"?shopTabsFor():Object.keys(SHOP_TABS);
+  modal(`${hubCtx?"":"<h2>Shop</h2>"}${sTabs.length?tabsHTML(sTabs,shopTab):""}<div class="grid" id="shopGrid"></div>`);
   bindTabs(openShop); tut("shop"); tut("tab-"+shopTab);
   const g=$("shopGrid");
   if(shopTab==="Deals") return shopDeals(g);
@@ -170,7 +173,7 @@ let squadTab="Train";
 function openSquad(tab){
   squadTab=tab||squadTab;
   const render=()=>{
-    let h=`<h2>Squad</h2>${tabsHTML(["Train","Spells","Heroes","Coaching"],squadTab)}`;
+    const qTabs=typeof squadTabsFor==="function"?squadTabsFor():["Train","Spells","Heroes","Coaching"]; let h=`${hubCtx?"":"<h2>Squad</h2>"}${qTabs.length?tabsHTML(qTabs,squadTab):""}`;
     if(squadTab==="Train"){
       const cap=armySpace(), used=usedSpace();
       h+=`<div>Squad size: <b>${used}</b> / ${cap} <span class="tiny">· training is free and instant, like Clash</span></div><div class="bar"><div style="width:${100*used/Math.max(1,cap)}%"></div></div>`;
@@ -222,7 +225,7 @@ function openSquad(tab){
     }
     const sc=$("modalBody").parentElement.scrollTop;
     modal(h,{tick:render}); $("modalBody").parentElement.scrollTop=sc;
-    bindTabs(t=>{ squadTab=t; render(); }); tut("squad");
+    bindTabs(t=>{ squadTab=t; if(hubCtx) hubCtx.tab=t==="Coaching"?"Research":hubCtx.kind==="build"?"Heroes":"Army"; render(); }); tut("squad");
     document.querySelectorAll("[data-u]").forEach(el=>el.onclick=()=>{ const k=el.dataset.u; if(!unlockedUnits().includes(k)) return toast("Upgrade your Training Oval to unlock"); trainUnit(k); render(); });
     document.querySelectorAll("[data-rm]").forEach(el=>el.onclick=()=>{ untrain(el.dataset.rm); render(); });
     document.querySelectorAll("[data-unbrew]").forEach(el=>el.onclick=()=>{ unbrew(el.dataset.unbrew); render(); });
@@ -254,7 +257,7 @@ function openLog(){
     h+=`<div class="raid ${r.stars?"lost":"won"}">${badgeImg(c)}<div class="grow"><div><b>${who}</b> ${r.friendly?'<span class="tag fr">FRIENDLY</span>':r.friend?'<span class="tag fr">FRIEND</span>':""} ${r.seen?"":'<span class="tag">NEW</span>'}</div>
       <div class="tiny">${ago} ago · ${r.sc?`${c.short} ${fmtScore(r.sc.a)} v ${myClub().short} ${fmtScore(r.sc.h)}`:r.pct+"% destroyed"} · <span class="stars">${"★".repeat(r.stars)}<span class="dim">${"★".repeat(3-r.stars)}</span></span></div>
       <div class="tiny">${r.stars?`Lost 🥧 ${fmt(r.lost.pies)} 💧 ${fmt(r.lost.drink)}`:"Defence win!"} · ${r.tro>0?"+":""}${r.tro} 🏆</div></div>
-      <div class="col"><button class="btn blue" data-replay="${r.id}">▶ Replay</button>${r.stars&&!r.revenged&&!r.friendly&&!r.friend?`<button class="btn red" data-rev="${r.id}">Revenge</button>`:""}</div></div>`; }
+      <div class="col"><button class="btn blue" data-replay="${r.id}">▶ Replay</button>${r.stars&&!r.revenged&&!r.friendly&&!r.friend&&!r.ranked?`<button class="btn red" data-rev="${r.id}">Revenge</button>`:""}</div></div>`; }
   modal(h);
   S.raids.forEach(r=>r.seen=true); save(); uiDirty=true;
   document.querySelectorAll("[data-replay]").forEach(b=>b.onclick=()=>watchReplay(S.raids.find(r=>r.id==b.dataset.replay)));
@@ -266,14 +269,16 @@ function showReplayEnd(){
   const rv=$("rv2"); if(rv) rv.onclick=()=>{ closeModal(); leaveBattle(); revenge(r); };
 }
 function openMatch(){
-  let h=`<h2>Match Day</h2><div class="center">🏆 ${S.trophies} · ${league(S.trophies)}${S.shield>Date.now()?` · <span class="tiny">attacking ends your shield</span>`:""}</div>`;
+  const rk=ensureRanked();
+  let h=`${rk.last?`<div class="banner">Last week: ${ordinal(rk.last.pos)} of ${rk.last.n}. ${rk.last.to>rk.last.from?"⬆ Promoted to ":rk.last.to<rk.last.from?"⬇ Moved down to ":"Staying in "}<b>${rkName(rk.last.to)}</b></div>`:""}<div class="center">🏆 ${S.trophies} · <b>${rkName(rk.tier)}</b> · ${rkAttacks(rk.tier)-rk.attacks}/${rkAttacks(rk.tier)} ranked attacks left${S.shield>Date.now()?` · <span class="tiny">attacking ends your shield</span>`:""}</div>`;
   const cost=50*th();
   const online=typeof signedIn==="function"&&signedIn();
   const sb=S.starBonus||{stars:0,until:0}, sbWait=sb.until>Date.now();
   h+=`<div class="starbonus"><span>⭐ Star Bonus</span><div class="bar"><div style="width:${Math.min(100,100*sb.stars/STAR_GOAL)}%"></div></div><span>${Math.min(sb.stars,STAR_GOAL)}/${STAR_GOAL}${sbWait?` · ready in ${fmtTime((sb.until-Date.now())/1000)}`:""}</span></div>
     <p class="tiny center">Win 5 stars in Battles or Ranked for +${fmt(starBonusLoot().pies)} 🥧 and +${fmt(starBonusLoot().drink)} 💧. Resets 24 hours after you collect.</p>`;
   h+=`<div class="modes"><button class="btn gold big" id="findMatch">⚔️ Battle<small>${cost} 🥧 · loot and Star Bonus, no trophies</small></button>
-    <button class="btn blue big" id="findRanked">🏆 Ranked<small>${cost} 🥧 · trophies, and it counts on the Season ladder</small></button></div>`;
+    <button class="btn blue big" id="findRanked">🏆 Ranked<small>${cost} 🥧 · weekly league, and it counts on the Season ladder</small></button></div>
+    <div class="center"><button class="btn" id="rkTable">📊 ${rkName(rk.tier)} table</button></div>`;
   if(typeof NET!=="undefined"&&NET.online) h+= online?`<div class="center tiny">Playing online as <b>${esc(NET.user.name)}</b> · <a href="#" id="lbLink">Leaderboard</a></div>`:`<div class="banner">Play real people and climb the leaderboard. <button class="btn green" id="goOnline">Play online</button></div>`;
   ensureSeason(); const s=S.season, f=nextFixture(), pos=ladderPos(S.club), L=s.ladder[S.club];
   h+=`<h3>Season ${s.year}${S.premierships?` · 🏆×${S.premierships}`:""}</h3><div class="seasonbar"><span>${s.finals?"Finals":`Round ${Math.min(s.round+1,ROUNDS)} of ${ROUNDS}`}</span><span>${L.w+L.l+L.d?`${ordinal(pos)} on the ladder · ${L.w}W ${L.l}L${L.d?" "+L.d+"D":""}`:"First bounce coming up"}</span><button class="btn blue" id="ladder">Ladder</button></div>`;
@@ -287,8 +292,9 @@ function openMatch(){
     if(!Object.values(S.army).some(n=>n>0)) return toast("Train some players first!"); if(!tutActive()&&!pay("pies",cost)) return toast("Not enough 🥧");
     let c; do{ c=Math.random()*18|0; }while(c===S.club); const d=Math.max(1,Math.min(MAX_TH,th()+(tutActive()?-1:ranked?(Math.random()*3|0)-1:0)));
     closeModal(); startBattle({kind:"match",ranked,club:c,d,seed:Math.random()*1e9|0}); };
-  $("findMatch").onclick=()=>find(false); $("findRanked").onclick=()=>find(true);
-  const pr=$("playRound"); if(pr) pr.onclick=()=>find(true);
+  $("findMatch").onclick=()=>find(false); $("findRanked").onclick=()=>rankedConfirm(()=>find(true));
+  $("rkTable").onclick=openRankedTable; if(rk.last){ delete rk.last; save(); }
+  const pr=$("playRound"); if(pr) pr.onclick=()=>tutActive()?find(true):rankedConfirm(()=>find(true));
   $("ladder").onclick=openLadder; const ns=$("newSeason"); if(ns) ns.onclick=startNextSeason;
 }
 function openInfo(b){
@@ -342,14 +348,15 @@ function openSettings(){
     try{localStorage.removeItem(SAVE_KEY);}catch(e){} S=null; selected=null; closeModal(); showClubPicker(); };
 }
 
-$("btnShop").onclick=()=>openShop();
-$("btnSquad").onclick=()=>openSquad();
-$("btnAttack").onclick=openMatch;
-$("btnSettings").onclick=openSettings;
-$("btnCards").onclick=()=>openAlbum();
-$("btnTasks").onclick=openTasks;
-$("btnLog").onclick=openLog;
-$("btnSocial").onclick=()=>openSocial();
+$("btnShop").onclick=()=>openHub("build","Buildings");
+$("btnAttack").onclick=()=>openHub("battle","Play");
+$("btnCards").onclick=()=>{ hubCtx=null; openAlbum(); };
+$("btnTasks").onclick=()=>openPass();
+$("btnEvents").onclick=()=>openEvents();
+$("btnSocial").onclick=()=>{ hubCtx=null; openSocial(); };
+$("clubBadge").onclick=()=>openProfile();
+$("builders").onclick=()=>openBuilders();
+$("buyMedals").onclick=e=>{ e.stopPropagation(); openHub("build","Shop"); };
 // (buttons below are optional: a missing one must never stop touch controls from loading)
 
 $("cardsIco").src=cardsButtonIcon();
@@ -368,13 +375,15 @@ const toCanvas = e => [e.clientX*W/innerWidth, e.clientY*H/innerHeight];
 // What did you tap? Anything whose picture covers the tap counts (like Clash), not just the ground tiles under it.
 // The front-most one wins, because it's drawn on top.
 function hitHome(gx,gy){
-  const [sx,sy]=P(gx,gy); let best=null, bk=-1e9;
+  // A tap on something's own ground always wins; otherwise the front-most picture under the finger.
+  const [sx,sy]=P(gx,gy); let best=null, bk=-1e9, foot=null;
   const test=(o,s,h)=>{ const x=o.x,y=o.y, left=P(x,y+s)[0], right=P(x+s,y)[0], bottom=P(x+s,y+s)[1], top=P(x,y)[1]-h*TH;
     const inFoot=gx>=x&&gx<x+s&&gy>=y&&gy<y+s, inPic=sx>=left+TW*.12&&sx<=right-TW*.12&&sy>=top&&sy<=bottom;
-    if((inFoot||inPic)&&x+y+s>bk){ bk=x+y+s; best=o; } };
+    if(inFoot) foot=o;
+    if(inPic&&x+y+s>bk){ bk=x+y+s; best=o; } };
   for(const b of S.buildings){ const s=BLD[b.t].size; test(b,s,b.t==="fence"?.6:BLD[b.t].trap?0:b.t==="clubhouse"?s*1.15:s*.85); }
   for(const o of S.obstacles){ const s=o.s||1; test(o,s,s*.6); }
-  return best;
+  return foot||best;
 }
 cv.addEventListener("pointerdown",e=>{
   cv.setPointerCapture(e.pointerId); const [px,py]=toCanvas(e); ptrs.set(e.pointerId,{x:px,y:py,sx:px,sy:py});

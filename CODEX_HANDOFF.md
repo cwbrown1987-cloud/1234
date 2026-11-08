@@ -1,8 +1,99 @@
-# Footy Fortress: complete art handoff for Codex
+# Footy Fortress: art handoff for Codex (updated 8 November 2026)
 
-You're new to this project, so this file tells you everything: what the game is, how it works, where things are, exactly what art to make and how to plug it in, and what **not** to touch. Read it all before you start.
+You're new to this project, so this file tells you everything: what the game is, where things are, exactly what art is still needed and how to deliver it, and what **not** to touch. **Start with section 0**: it says what's already done and what's left.
 
-The owner has also attached a picture: the **style reference**, saved in the repo as `docs/card-style-reference.png`. It's the look we want. Section 4 explains how to read it.
+The owner has also attached the **style reference** picture (in the repo as `docs/card-style-reference.png`). Section 4 explains how to read it.
+
+---
+
+## 0. Start here: status and to-do list
+
+### Already done and live (don't redo these)
+The first art pass (PR #28) is merged and live:
+- All 24 field-unit sheets (rover, forward, ruck, tagger and shepherd in variants a–d, trainer a–b), plus seagulls and blimp.
+- Max Gawn (`captain-melb`) and the Head Coach: animation sheets and portraits.
+- Kit Room levels 1–5 and Hero Hall levels 1–3.
+- 9 card portraits: 004, 026, 043, 068, 114, 133, 168, 180, 188.
+- All 9 card frames, the card back and both packs.
+
+**The code that loads art is already written.** Any file you add, list in `art/manifest.json`, and name exactly as below shows up in the game automatically:
+- The game reads these from the manifest: `art/units/<unit>-<a-d>.webp`, `art/heroes/<key>-<club>.webp`, `art/portraits/<key>-<club>.webp`, `art/players/<NNN>.webp`, `art/cards/*`, `art/packs/*` and `art/ui/*`.
+- For these jobs you only add files and manifest entries. Don't change any JS, **except** for jobs C and D below, which need small drawing hooks.
+
+### Still to do, in priority order
+
+**A. 189 card portraits:** `art/players/<NNN>.webp`, 512 × 640, spec in section 5D. Missing, by club:
+- **adel** (Adelaide Crows): 001 Ben Keays, 002 Sam Berry, 003 Josh Rachele, 005 Jake Soligo, 006 Brayden Cook, 007 Max Michalanney, 008 Izak Rankine, 009 Josh Worrell, 010 Alex Neal-Bullen, 011 Lachlan McAndrew
+- **bris** (Brisbane Lions): 012 Kai Lohmann, 013 Jaspa Fletcher, 014 Josh Dunkley, 015 Will Ashcroft, 016 Lachie Neale, 017 Levi Ashcroft, 018 Logan Morris, 019 Cam Rayner, 020 Charlie Cameron, 021 Zac Bailey, 022 Darcy Wilmot
+- **carl** (Carlton Blues): 023 Lachlan Cowan, 024 Adam Cerra, 025 Jagga Smith, 027 Harry McKay, 028 Mitch McGovern, 029 Ben Ainsworth, 030 Oliver Florent, 031 Brodie Kemp, 032 Sam Walsh, 033 Francis Evans
+- **coll** (Collingwood Magpies): 034 Jordan de Goey, 035 Josh Daicos, 036 Lachie Schultz, 037 Dan Houston, 038 Daniel McStay, 039 Darcy Cameron, 040 Billy Frampton, 041 Jack Crisp, 042 Beau McCreery, 044 Ned Long
+- **ess** (Essendon Bombers): 045 Andrew McGrath, 046 Jacob Farrow, 047 Kyle Langford, 048 Zach Merrett, 049 Archie Roberts, 050 Sam Durham, 051 Jaxon Prior, 052 Xavier Duursma, 053 Nate Caddy, 054 Zach Reid, 055 Archer Day-Wicks
+- **freo** (Fremantle Dockers): 056 Caleb Serong, 057 Jordan Clark, 058 Andrew Brayshaw, 059 Luke Jackson, 060 Shai Bolton, 061 Luke Ryan, 062 Karl Worner, 063 Neil Erasmus, 064 Josh Treacy, 065 Isaiah Dudley, 066 Matthew Johnson
+- **geel** (Geelong Cats): 067 Bailey Smith, 069 Shaun Mannagh, 070 Connor OSullivan, 071 Lawson Humphries, 072 Oliver Dempsey, 073 Tom Atkins, 074 Shannon Neale, 075 Oisin Mullin, 076 Oliver Henry, 077 Zach Guthrie
+- **gcs** (Gold Coast Suns): 078 Mac Andrew, 079 John Noble, 080 Bodhi Uwland, 081 Leo Lombard, 082 Touk Miller, 083 Noah Anderson, 084 Joel Jeffrey, 085 Matt Rowell, 086 Ben Long, 087 Sam Collins, 088 Ben King
+- **gws** (GWS Giants): 089 Harvey Thomas, 090 Stephen Coniglio, 091 Toby Greene, 092 Lachie Whitfield, 093 Lachie Ash, 094 Ryan Angwin, 095 Clayton Oliver, 096 Jake Stringer, 097 Harry Himmelberg, 098 Joe Fonti, 099 Connor Idun
+- **haw** (Hawthorn Hawks): 100 Mitch Lewis, 101 Jai Newcombe, 102 Jarman Impey, 103 James Sicily, 104 Dylan Moore, 105 Connor Macdonald, 106 Blake Hardwick, 107 Massimo DAmbrosio, 108 Lloyd Meek, 109 Josh Ward, 110 Jack Ginnivan
+- **melb** (Melbourne Demons): 111 Harvey Langford, 112 Jake Lever, 113 Jack Steele, 115 Koltyn Tholstrup, 116 Ed Langdon, 117 Harry Sharp, 118 Bayley Fritsch, 119 Tom Sparrow, 120 Kysaiah Pickett, 121 Kade Chandler
+- **nmfc** (North Melbourne): 122 Harry Sheezel, 123 Caleb Daniel, 124 Luke Davies-Uniacke, 125 Colby McKercher, 126 Jy Simpkin, 127 Dylan Stephens, 128 Nick Larkey, 129 Luke Parker, 130 Charlie Comben, 131 Cameron Zurhaar, 132 Cooper Trembath
+- **port** (Port Adelaide Power): 134 Joe Berry, 135 Jase Burgoyne, 136 Jack Whitlock, 137 Jason Horne-Francis, 138 Mitch Georgiades, 139 Aliir Aliir, 140 Jordon Sweet, 141 Willem Drew, 142 Darcy Byrne-Jones, 143 Corey Durdin
+- **rich** (Richmond Tigers): 144 Nick Vlastuin, 145 Jack Ross, 146 Ben Miller, 147 Tim Taranto, 148 Jayden Short, 149 Sam Grlj, 150 Patrick Retschko, 151 Nathan Broad, 152 Mykelti Lefau, 153 Seth Campbell, 154 Steely Green
+- **stk** (St Kilda Saints): 155 Marcus Windhager, 156 Jack Silvagni, 157 Nasiah Wanganeen-Milera, 158 Bradley Hill, 159 Rowan Marshall, 160 Darcy Wilson, 161 Mattaes Phillipou, 162 Hugo Garcia, 163 Max Hall, 164 Cooper Sharman, 165 Callum Wilkie
+- **syd** (Sydney Swans): 166 Chad Warner, 167 Brodie Grundy, 169 Logan McDonald, 170 James Rowbottom, 171 Jai Serong, 172 Callum Mills, 173 Nick Blakey, 174 Tom McCartin, 175 Charlie Curnow, 176 Jake Lloyd
+- **wce** (West Coast Eagles): 177 Willem Duursma, 178 Jake Waterman, 179 Elliot Yeo, 181 Tim Kelly, 182 Liam Duggan, 183 Tom McCarthy, 184 Brady Hough, 185 Tylar Young, 186 Jobe Shanahan, 187 Hamish Davis
+- **wb** (Western Bulldogs): 189 Cooper Hynes, 190 Matthew Kennedy, 191 Ryley Sanders, 192 Rhylee West, 193 Ed Richards, 194 Buku Khamis, 195 Joel Freijah, 196 Lachlan Bramble, 197 Aaron Naughton, 198 Michael Sellwood
+
+**B. 71 hero sets:** each one is an animation sheet `art/heroes/<key>-<club>.webp` plus a 256×256 portrait `art/portraits/<key>-<club>.webp`. Spec in section 5B.
+- **17 captains** (`captain-<club>`): every club except melb (done). Names are in the table in section 3.
+- **54 Hero Hall heroes** (`vice-`, `star-` and `rleg-<club>`) for all 18 clubs. Names are in the table in section 5B.
+- Keep each player's face the same on their card portrait and their hero sprite.
+
+**C. Scenery:** branch `art/scenery`. This job needs small code hooks in `js/render.js` and `js/stadium.js`, always with the current drawing kept as a fallback.
+1. **Obstacles** (`art/scenery/<key>.webp`, one picture filling the whole footprint, same isometric angle as the buildings):
+   - `bush` 1×1 (wattle, yellow flowers), 256²
+   - `stump` 2×2, 512²
+   - `tree` 2×2 (gum tree), 512²
+   - `bigtree` 3×3 (river red gum), 512²
+   - `rock` 2×2, 512²
+   - `bigrock` 3×3 (boulder), 512²
+
+   Hook: `drawObstacle()` and `OBS_LAYOUT` in `js/render.js`.
+2. **Stadium** (`art/stadium/`): replaces the code-drawn bowl in `drawStadiumBowl()` in `js/stadium.js`.
+   - a tiling crowd/stand texture
+   - a light tower
+   - a roof section
+   - the advertising-board strip
+
+   Keep the oval shape, and keep the stands raking outward so they never cover the playing area.
+3. **Birds flying over the ground** (`art/units/`, 128 px cells):
+   - `ambient-seagull.webp`: 8-frame glide/flap
+   - `ambient-magpie.webp`: an Australian magpie, 8-frame flap plus 4-frame swoop
+
+   Hook: the sky birds in `js/render.js` (search for "seagulls"). Mix magpies in with the gulls, on the home screen and in matches.
+
+**D. Painted fences (optional):** branch `art/fences`.
+- Files:
+  - `art/buildings/fence-pillar-<1|2|3>.webp`
+  - `art/buildings/fence-wall-x-<1|2|3>.webp`
+  - `art/buildings/fence-wall-y-<1|2|3>.webp`
+- Canvas 256 × 256, with the tile centre at x 128, y 190.
+- Looks by fence level: 1 = levels 1–2, 2 = levels 3–5, 3 = levels 6–8.
+- Paint the wall panel navy `#1b2a6b` with gold trim, so it recolours per club. No banners: the game adds them.
+- Hook: `drawFence()` in `js/render.js`. Keep these rules: pillars at ends, corners and every 3rd piece; banners on straight runs of 5 or more.
+
+**E. Menu and button art:** branch `art/ui`. Everything is in **`CODEX_UI_HANDOFF.md`**, including the 10 Ranked league badges. No code needed.
+
+### Changed since the first handoff (so the old screenshots are out of date)
+- **Home screen:** Clash October 2026 layout.
+  - **Battle** hub (Play, Army, Recipes, Log) on the left and **Build** hub (Buildings, Heroes, Research, Shop) on the right.
+  - Profile opens from the club badge, the Builder Menu from 👷.
+  - Side buttons: Cards, Pass, Events, Online.
+- **Ranked** is now weekly leagues (Auskick → Hall of Fame).
+- **Orientation:** phones play portrait; tablets and computers play landscape.
+- **Ground and fences:** buildings sit on darker grass (not dirt), and fences are painted stone walls with automatic club banners.
+- **Cards:** the album is a binder, and a club's 11 cards sit on one spread.
+
+### One PR per job
+Use one branch and one PR per job (A and B can share `art/full-refresh-2`). Include before and after screenshots, and **don't merge or deploy**. Bump `CACHE` in `sw.js` and `VERSION` in `js/data.js` to any new value.
 
 ---
 
@@ -315,39 +406,15 @@ Paths are relative to the site root, with no leading slash.
 
 ---
 
-## 7. Wiring it in (code changes allowed only here)
+## 7. Wiring
 
-The current art keeps working as the fallback: if a new file is missing or fails to load, the old art shows. Make all of your code changes in **`js/art.js`**, plus the one drawing line in `js/battle.js` described below.
+The loaders are already written (`loadArtManifest()` in `js/art.js`, `cardImg()` in `js/cards.js`, `uiArt()` in `js/hubs.js`). Jobs A, B and E need **no code**: add the files with the exact names, list them in `art/manifest.json` (including the `sheets` entry for animation sheets), and they appear.
 
-1. **Loader.** On start, fetch `art/manifest.json`. If it's there, load each sheet and cut its frames into `artSprites`, using names like `rover-a-run-front-3`, `captain-coll-attack-2` or `kitroom-4`.
-   - `artSprites` is the Map that `loadArtSheet` fills. Reuse its trimming logic.
-   - Keep the existing names working.
-   - When the art finishes loading, clear `iconCache`, the same way `loadArtSheet` does.
-2. **Players.** `drawPlayerArt(x, y, k, club, opts)` draws every person.
-   - `opts` already has:
-     - `kind` (unit name) and `moving`, `atk` and `face` (±1)
-     - `hero` and `heroKey`, plus `id` (a unique number per unit; use `id % 4` to pick variant a–d)
-   - Choose the frame:
-     - `moving` → `run`
-     - `atk` → `attack`
-     - otherwise → `idle`
-     - `opts.ko` → `ko`
-   - Use time: `performance.now()` at about 12 fps for run and 10 fps for attack.
-   - Run **recoloured** sprites through `clubKit(name, club)` (it caches per club).
-   - **Heroes:**
-     - `heroKey` `captain` → `captain-<club.abbr>`
-     - `vice`/`star`/`rleg` → `<key>-<club.abbr>`
-     - the coach (`kind === "coach"`) → `coach`
-     - remove the gold-star placeholder only when the real sprite exists
-3. **Front or back direction.** In `js/battle.js` → `drawUnitB(u)`, you may pass one extra **visual-only** field: `back: u.y < (u.prevY ?? u.y)`, tracking `u.prevY` there.
-   - Don't change any other battle code.
-   - If you'd rather not touch `battle.js`, always use the `-front` rows.
-4. **Portraits.** The menu icons come from `playerIcon()` in `js/ui.js`, which calls `drawArtIcon("portrait-...")` in `js/art.js`. Make `drawArtIcon` prefer `art/portraits/...` when it's loaded. Don't change `ui.js` beyond that.
-5. **Buildings.** In `drawBuildingArt`, use `kitroom-<lv>` / `herohall-<lv>` when loaded; right now they borrow the Coach's Office and Captain's Locker art. Keep the footprint anchoring (the `artBuildings` table).
-6. **Cards and packs.** No code needed; `js/cards.js` picks them up from the manifest. Check it works (section 8).
-7. **Release.** Bump `CACHE` in `sw.js` (e.g. `footy-fortress-v20`) and `VERSION` in `js/data.js` (the date-like string). Those are the only edits allowed in `data.js`.
-
----
+Jobs C and D need small hooks:
+- Load the image only if it's listed in the manifest.
+- Draw it in place of the current code drawing.
+- Keep the current drawing as the fallback when a file is missing.
+- Don't change gameplay, saves or the menus.
 
 ## 8. Test before you open the PR
 

@@ -135,8 +135,9 @@ function hurt(b,dmg){
 }
 const healUnit = (u,amt) => { u.hp=Math.min(u.max,u.hp+amt); };
 function damageUnit(u,dmg){ if(u.hp<=0||u.immune>0) return; if(u.shield>0) dmg*=.5;
-  const rl=BT.heroU&&BT.heroU.rleg; if(rl&&rl.hp>0&&Math.hypot(rl.x-u.x,rl.y-u.y)<=3) dmg*=.85; // Ruck Legend's aura if(u.armor) dmg*=1-u.armor; u.hp-=dmg;
-  if(u.hp<=0){ BT.fx.push({k:"poof",x:u.x,y:u.y,t:0,air:u.air}); if(u.hero||(UNITS[u.kind]&&UNITS[u.kind].space>=5)) BT.koBig=(BT.koBig||0)+1; else BT.koSmall=(BT.koSmall||0)+1; } }
+  const rl=BT.heroU&&BT.heroU.rleg; if(rl&&rl.hp>0&&Math.hypot(rl.x-u.x,rl.y-u.y)<=3) dmg*=.85; // Ruck Legend's aura
+  if(u.armor) dmg*=1-u.armor; u.hp-=dmg;
+  if(u.hp<=0){ if(!u.air) (BT.kos=BT.kos||[]).push({u,at:performance.now(),stub:{y:u.y,atk:0}}); else BT.fx.push({k:"poof",x:u.x,y:u.y,t:0,air:u.air}); if(u.hero||(UNITS[u.kind]&&UNITS[u.kind].space>=5)) BT.koBig=(BT.koBig||0)+1; else BT.koSmall=(BT.koSmall||0)+1; } }
 
 function updateUnit(u,dt){
   if(u.hp<=0) return;
@@ -339,6 +340,9 @@ function renderBattle(){
   // Knocked-down buildings are flat rubble on the ground: draw them first so players never hide behind them.
   for(const b of BT.buildings) ents.push({k:b.hp<=0?-1e3+b.x+b.y:b.x+b.y+BLD[b.t].size,f:()=>drawBuilding(b,club,BT.buildings,{hideTraps:BT.mode==="attack",fill:.6,heroes:BT.homeHeroes||{captain:club}})});
   for(const u of BT.units) if(u.hp>0) ents.push({k:u.x+u.y+(u.air?40:0),f:()=>drawUnitB(u)});
+  // knocked-out players play their KO animation, lie there a moment, then fade
+  if(BT.kos){ const now=performance.now(); BT.kos=BT.kos.filter(o=>now-o.at<1600);
+    for(const o of BT.kos) ents.push({k:o.u.x+o.u.y,f:()=>drawKO(o,now)}); }
   ents.sort((a,b)=>a.k-b.k).forEach(e=>e.f());
   for(const p of BT.proj){ if(p.t<0) continue; const x=p.x0+(p.x1-p.x0)*p.t, y=p.y0+(p.y1-p.y0)*p.t;
     const z=p.k==="drop"?(p.z0*(1-p.t)):(1.2+Math.sin(p.t*Math.PI)*(p.arc||1))+(p.z1||0)*p.t, [px,py]=P(x,y,z);
@@ -364,16 +368,23 @@ function drawUnitB(u){
   if(u.air) return drawFlyer(u);
   const [x,y]=P(u.x,u.y);
   const k = TW*(u.hero?.5:u.kind==="ruck"?.42:u.kind==="trainer"?.4:u.kind==="tagger"?.3:.33);
-  drawPlayer(x,y,k,u.club,{id:u.id,moving:u.moving,face:u.face,atk:u.atk>0,kind:u.pos==="coach"?"coach":u.kind,hero:u.hero,heroKey:u.heroKey,ranged:u.ranged,rage:u.rage>0});
+  drawPlayer(x,y,k,u.club,{id:u.id,moving:u.moving,face:u.face,atk:u.atk>0,kind:u.pos==="coach"?"coach":u.kind,hero:u.hero,heroKey:u.heroKey,ranged:u.ranged,rage:u.rage>0,unit:u,ko:u.hp<=0});
   if(u.immune>0){ ctx.save(); ctx.globalAlpha=.35; ctx.fillStyle="#ffd34d"; ctx.beginPath(); ctx.ellipse(x,y-k*1.4,k*1.2,k*1.9,0,0,7); ctx.fill(); ctx.restore(); }
   if(u.shield>0){ ctx.save(); ctx.globalAlpha=.3; ctx.fillStyle="#7fd3ff"; ctx.beginPath(); ctx.ellipse(x,y-k*1.4,k*1.1,k*1.8,0,0,7); ctx.fill(); ctx.restore(); }
   if(u.hp<u.max||u.hero) bar(x,y-k*(u.hero?4:3.5),u.hp/u.max,u.hero?GOLD:"#5fd16b",u.hero?TW*1.3:TW*.8);
   if(u.hero) txt(u.name.split(" ").pop(),x,y-k*4.5,TH*.55,GOLD);
 }
+function drawKO(o,now){
+  const u=o.u, [x,y]=P(u.x,u.y), k=TW*(u.hero?.5:u.kind==="ruck"?.42:u.kind==="trainer"?.4:u.kind==="tagger"?.3:.33);
+  ctx.save(); ctx.globalAlpha=Math.max(0,Math.min(1,(1600-(now-o.at))/500));
+  if(!drawPlayerArt(x,y,k,u.club,{id:u.id,face:u.face,kind:u.pos==="coach"?"coach":u.kind,hero:u.hero,heroKey:u.heroKey,unit:o.stub,ko:true})){
+    ctx.fillStyle="#ddd"; const t=Math.min(1,(now-o.at)/600); for(let i=0;i<4;i++){ ctx.beginPath(); ctx.arc(x+(i-1.5)*TW*.15,y-TH*(.5+t*2),TW*.15*(1-t),0,7); ctx.fill(); } }
+  ctx.restore();
+}
 function drawFlyer(u){
   const [gx,gy]=P(u.x,u.y), [x,y]=P(u.x,u.y,2.4+Math.sin(performance.now()/300+u.id)*.15);
   ctx.save(); ctx.globalAlpha=.25; ctx.fillStyle="#000"; ctx.beginPath(); ctx.ellipse(gx,gy,TW*.35,TH*.25,0,0,7); ctx.fill(); ctx.restore();
-  if(!drawFlyerArt(x,y,u.kind,u.face)) {
+  if(!drawFlyerArt(x,y,u.kind,u.face,u.atk>0)) {
     if(u.kind==="seagulls") seagullFlock(x,y,u);
     else blimp(x,y,u);
   }

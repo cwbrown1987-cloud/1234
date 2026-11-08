@@ -6,10 +6,13 @@ const namedHeroArt = {
   port:"rozee", rich:"taranto", stk:"wanganeen-milera", syd:"heeney", wce:"reid", wb:"bontempelli"
 };
 const kitSprites = new Map();
+const motionArt = new Map();
+const unitDirection = new WeakMap();
 
-function loadArtSheet(sheet, columns, rows, names, priority = 0, rowStops = null) {
+function loadArtSheet(sheet, columns, rows, names, priority = 0, rowStops = null, cell = 0) {
   const image = new Image();
   image.onload = () => {
+    if (cell && (image.width !== columns*cell || image.height !== rows*cell)) return;
     const canvas = document.createElement("canvas");
     canvas.width = image.width;
     canvas.height = image.height;
@@ -32,7 +35,7 @@ function loadArtSheet(sheet, columns, rows, names, priority = 0, rowStops = null
         bottom = Math.max(bottom,py);
       }
       if (right < left || bottom < top) continue;
-      artSprites.set(name,{image,x:x+left,y:y+top,w:right-left+1,h:bottom-top+1,priority});
+      artSprites.set(name,{image,x:x+left,y:y+top,w:right-left+1,h:bottom-top+1,priority,cell,left,top});
     }
     for (const key of Object.keys(iconCache)) delete iconCache[key];
     refreshArtHUD();
@@ -60,6 +63,11 @@ const artBuildings = {
   coachbox: [.9,.84], locker: [.89,.82], office: [.89,.82], shed: [.95,.82],
   goalpost: [.85,.89], siren: [.87,.81], catapult: [.89,.83], floodlight: [.84,.92]
 };
+const heroPlinths = [
+  [[158,384],[251,399],[344,384]],
+  [[175,411],[256,417],[337,411]],
+  [[172,413],[256,425],[339,413]]
+];
 
 function buildingArtScale(type,sprite) {
   const width = artBuildings[type][0];
@@ -68,11 +76,14 @@ function buildingArtScale(type,sprite) {
 }
 
 function drawBuildingArt(b, club, opts) {
-  const sprite = artSprites.get(b.t==="kitroom"?"office":b.t==="herohall"?"locker":b.t);
+  const isNewBuilding = b.t==="kitroom" || b.t==="herohall";
+  const level = b.t==="kitroom" ? 5 : 3;
+  const refreshed = isNewBuilding && clubKit(b.t+"-"+Math.min(level,b.lv||1),club,"building");
+  const sprite = refreshed || artSprites.get(b.t==="kitroom"?"office":b.t==="herohall"?"locker":b.t);
   if (!sprite) return 0;
-  const anchor = artBuildings[b.t][1];
   const s = BLD[b.t].size;
-  const scale = TW*buildingArtScale(b.t,sprite);
+  const anchor = refreshed ? 1-sprite.w/(4*sprite.h) : artBuildings[b.t][1];
+  const scale = TW*(refreshed ? s/sprite.w : buildingArtScale(b.t,sprite));
   const [x,y] = P(b.x+s/2,b.y+s/2);
   const face = b.t==="siren" || b.t==="catapult" ? (Math.cos(b.ang??-2.6)<0?-1:1) : 1;
   const recoil = (b.recoil||0)*TW*.13;
@@ -85,8 +96,17 @@ function drawBuildingArt(b, club, opts) {
   }
   if (b.t==="herohall") {
     const ks=["vice","star","rleg"];
-    ks.forEach((hk,i)=>{ const hc=opts.heroes?.[hk]; const ox=b.x+s*(.35+i*.25), oy=b.y+s*(.85-i*.08);
-      if (hc) drawHeroStatue(ox,oy,.08,hc,hk,true); });
+    ks.forEach((hk,i)=>{
+      const hc = opts.heroes?.[hk];
+      if (!hc) return;
+      if (refreshed) {
+        const [px,py] = heroPlinths[Math.min(3,b.lv||1)-1][i];
+        const [ox,oy] = unIso(x+(px-256)*scale,y+(py-364)*scale);
+        drawHeroStatue(ox,oy,0,hc,hk,true,.2); // small statues standing on the three plinths
+      } else {
+        drawHeroStatue(b.x+s*(.35+i*.25),b.y+s*(.85-i*.08),.08,hc,hk,true,.24);
+      }
+    });
     if (!ks.some(hk=>opts.heroes?.[hk])) txt(ks.some(hk=>opts.heroes?.busy?.[hk])?"🔧":"💤",x+TW*.54,y-TH*.35,TH*.7);
   }
   if (b.t==="locker" || b.t==="office") {
@@ -131,12 +151,12 @@ function drawBuildingArt(b, club, opts) {
 }
 
 // Recolour the jersey panel once per pose and club, retaining its sculpted shading.
-function clubKit(key, club) {
+function clubKit(key, club, material) {
   const sprite = artSprites.get(key);
   if (!sprite || key==="trainer" || key==="coach") return sprite;
   const cacheKey = key + ":" + club.abbr;
   if (kitSprites.has(cacheKey)) return kitSprites.get(cacheKey);
-  const {image,x,y,w,h} = sprite;
+  const {image,x,y,w,h,cell,top} = sprite;
   const canvas = document.createElement("canvas");
   canvas.width = w;
   canvas.height = h;
@@ -145,32 +165,101 @@ function clubKit(key, club) {
   const kit = context.getImageData(0,0,w,h);
   const pixels = kit.data;
   const primary = rgb(club.a), accent = rgb(club.b);
-  for (let py=Math.floor(h*.29); py<h*.63; py++) for (let px=0; px<w; px++) {
+  const start = material === "building" ? 0 : Math.max(0,Math.floor((cell||h)*.29)-(cell?top:0));
+  const end = material === "building" ? h : Math.min(h,Math.ceil((cell||h)*.63)-(cell?top:0));
+  for (let py=start; py<end; py++) for (let px=0; px<w; px++) {
     const i = (py*w+px)*4, r=pixels[i], g=pixels[i+1], b=pixels[i+2];
     if (!pixels[i+3] || r>b+12 && r>g+15) continue;
     const low = Math.min(r,g,b), high = Math.max(r,g,b);
     const navy = b>r+12 && b>g+5 && high<172;
-    if (!navy && (high-low>32 || high<72)) continue;
-    const color = navy || Math.abs(px/w-.53)<.075 ? accent : primary;
+    let color, weight = 1;
+    if (material) {
+      const blueCloth = Math.min((b-r-8)/12,(b-g-3)/8,(197-high)/30);
+      const whiteTrim = Math.min((low-172)/33,(29-high+low)/12);
+      weight = Math.min(1,Math.max(blueCloth,whiteTrim));
+      if (weight <= 0) continue;
+      color = blueCloth > whiteTrim ? primary : accent;
+      if (blueCloth > whiteTrim && material==="guernsey") {
+        const across = px/w;
+        const down = (py-start)/(end-start);
+        const sash = key.includes("-back-") ? .25+down*.5 : .75-down*.5;
+        if (club.abbr==="rich" && Math.abs(across-sash)<.1) color = accent;
+        if (club.abbr==="coll" && Math.floor(across*9)%2===1) color = accent;
+      }
+    } else {
+      if (!navy && (high-low>32 || high<72)) continue;
+      color = navy || Math.abs(px/w-.53)<.075 ? accent : primary;
+    }
     const light = high/230;
-    for (let c=0; c<3; c++) pixels[i+c] = Math.min(255,color[c]*(.48+light*.56)+high*.09);
+    for (let c=0; c<3; c++) {
+      const tint = Math.min(255,color[c]*(.48+light*.56)+high*.09);
+      pixels[i+c] += (tint-pixels[i+c])*weight;
+    }
   }
   context.putImageData(kit,0,0);
-  const tinted = {image:canvas,x:0,y:0,w,h};
+  const tinted = {...sprite,image:canvas,x:0,y:0};
   kitSprites.set(cacheKey,tinted);
   return tinted;
 }
 
 // Placeholder bodies for the Hero Hall heroes until their own sprites arrive (see ART_HANDOFF.md).
 const HERO_ART = {captain:"captain", vice:"rover", star:"forward", rleg:"ruck"};
+
+function motionFrame(key, row, clock, fps, single = false) {
+  const count = motionArt.get(key)?.[row];
+  if (!count) return "";
+  const elapsed = Math.floor(Math.max(0,clock)*fps/1000);
+  return key+"-"+row+"-"+(single ? Math.min(elapsed,count-1) : elapsed%count);
+}
+
+function playerMotion(club, opts, base, now) {
+  const heroKey = opts.heroKey || "captain";
+  const hero = base==="coach" || opts.hero;
+  const variants = base==="trainer" ? 2 : 4;
+  const variant = String.fromCharCode(97+Math.abs(opts.id||0)%variants);
+  const key = base==="coach" ? "coach" : hero ? heroKey+"-"+club.abbr : base+"-"+variant;
+  if (!motionArt.has(key)) return null;
+  let action = opts.ko ? "ko" : opts.atk ? "attack" : opts.moving ? "run" : "idle";
+  let direction = opts.back ? "-back" : "-front";
+  let elapsed = now + (opts.id||0)*83;
+  if (opts.unit) {
+    const previous = unitDirection.get(opts.unit);
+    const dy = opts.unit.y-(previous?.y ?? opts.unit.y);
+    const back = dy === 0 ? previous?.back : dy < 0;
+    if (action==="idle" && previous?.action==="attack") {
+      const row = hero ? "attack" : back ? "attack-back" : "attack-front";
+      if (now-previous.since < (motionArt.get(key)[row]||0)*100) action = "attack";
+    }
+    const since = previous?.action === action && !(action==="attack" && opts.unit.atk > previous.atk) ? previous.since : now;
+    unitDirection.set(opts.unit,{y:opts.unit.y,back,action,since,atk:opts.unit.atk});
+    direction = back ? "-back" : "-front";
+    if (action==="attack" || action==="ko") elapsed = now-since;
+  }
+  const row = !hero && (action==="run" || action==="attack") ? action+direction : action;
+  const name = motionFrame(key,row,elapsed,action==="run"?12:10,!!opts.unit && (action==="attack" || action==="ko"));
+  return hero || base==="trainer" ? artSprites.get(name) : clubKit(name,club,"guernsey");
+}
+
+function paintMotion(sprite,x,y,scale,face=1,anchor=124) {
+  const {image,x:sx,y:sy,w,h,cell,left,top} = sprite;
+  ctx.save();
+  ctx.translate(x,y);
+  if (face < 0) ctx.scale(-1,1);
+  ctx.drawImage(image,sx,sy,w,h,(left-cell/2)*scale,(top-anchor)*scale,w*scale,h*scale);
+  ctx.restore();
+}
+
 function drawPlayerArt(x,y,k,club,opts) {
   const base = opts.kind==="coach"?"coach":opts.hero?(HERO_ART[opts.heroKey]||"captain"):opts.kind||"rover";
-  const phase = performance.now()/95+(opts.id||0);
+  const now = performance.now();
+  const motion = playerMotion(club,opts,base,now);
+  const phase = now/95+(opts.id||0);
   const stride = opts.moving && Math.sin(phase)>-.15;
   const action = opts.atk && artSprites.has(base+"-attack");
   const pose = action ? base+"-attack" : stride ? base+"-run" : base;
   const named = base==="captain" && (!opts.heroKey||opts.heroKey==="captain") && namedHeroArt[club.abbr];
-  const sprite = (named && artSprites.get(named+(stride||opts.atk?"-run":"-body"))) || clubKit(pose,club) || clubKit(base,club);
+  if (opts.ko && !motion) return false;
+  const sprite = motion || (named && artSprites.get(named+(stride||opts.atk?"-run":"-body"))) || clubKit(pose,club) || clubKit(base,club);
   if (!sprite) return false;
   const bob = opts.moving ? Math.abs(Math.sin(phase))*k*.10 : 0;
   const lean = opts.atk ? (opts.face||1)*k*(base==="forward"?.08:.23) : 0;
@@ -178,8 +267,9 @@ function drawPlayerArt(x,y,k,club,opts) {
   ctx.beginPath();
   ctx.ellipse(x,y,k*.74,k*.26,0,0,Math.PI*2);
   ctx.fill();
-  paintArt(sprite,x+lean,y-bob,k*(opts.hero?3.30:3.15)/sprite.h,1,opts.face);
-  if (opts.hero) txt(named==="daicos"?"35":"★",x,y-k*3.37,k*.52,GOLD);
+  if (motion) paintMotion(motion,x,y,k*(opts.hero?3.62:3.15)/108,opts.face);
+  else paintArt(sprite,x+lean,y-bob,k*(opts.hero?3.30:3.15)/sprite.h,1,opts.face);
+  if (opts.hero && !motion) txt(named==="daicos"?"35":"★",x,y-k*3.37,k*.52,GOLD);
   if (opts.rage) {
     if (named==="daicos") drawDaicosBurst(x,y,k,phase);
     else {
@@ -250,6 +340,36 @@ function loadFootyArt() {
   loadCaptainSheet("captainsC",["gcs","gws","haw"]);
   loadCaptainSheet("captainsD",["nmfc","port","rich"]);
   loadCaptainSheet("captainsE",["stk","syd","wce"]);
+  loadArtManifest();
+}
+
+async function loadArtManifest() {
+  if (location.protocol === "file:") return;
+  try {
+    const response = await fetch("art/manifest.json");
+    if (!response.ok) return;
+    const {files,sheets={}} = await response.json();
+    if (!Array.isArray(files)) return;
+    for (const path of files) {
+      const match = typeof path === "string" && path.match(/^art\/(units|heroes|portraits|buildings)\/([a-z0-9-]+)\.webp$/);
+      if (!match) continue;
+      const [,group,key] = match;
+      if (group==="portraits" || group==="buildings") {
+        loadArtSheet(path,1,1,[group==="portraits"?"refresh-portrait-"+key:key],2);
+        continue;
+      }
+      const sheet = sheets[path];
+      if (sheet?.cell!==128 || sheet.cols!==8 || !Array.isArray(sheet.rows) ||
+          !Array.isArray(sheet.frames) || sheet.rows.length!==sheet.frames.length ||
+          !sheet.rows.length || sheet.rows.length>6 ||
+          sheet.frames.some(n=>!Number.isInteger(n) || n<1 || n>sheet.cols)) continue;
+      const names = sheet.rows.flatMap((row,i)=>Array.from({length:sheet.cols},(_,j)=>j<sheet.frames[i]?key+"-"+row+"-"+j:null));
+      motionArt.set(key,Object.fromEntries(sheet.rows.map((row,i)=>[row,sheet.frames[i]])));
+      loadArtSheet(path,sheet.cols,sheet.rows.length,names,2,null,sheet.cell);
+    }
+  } catch {
+    // Separate art is optional. The embedded sheets still load if it is unavailable.
+  }
 }
 
 function loadCaptainSheet(key,clubs,rowStops) {
@@ -274,8 +394,11 @@ function drawPitchMarkings() {
   ctx.restore();
 }
 
-function drawFlyerArt(x,y,kind,face) {
-  const sprite = artSprites.get(kind);
+function drawFlyerArt(x,y,kind,face,attacking) {
+  const row = attacking ? (kind==="seagulls"?"swoop":"drop") : (kind==="seagulls"?"flap":"float");
+  const motion = artSprites.get(motionFrame(kind,row,performance.now(),kind==="seagulls"?12:8)) ||
+    artSprites.get(motionFrame(kind,kind==="seagulls"?"flap":"float",performance.now(),kind==="seagulls"?12:8));
+  const sprite = motion || artSprites.get(kind);
   if (!sprite) return false;
   const width = kind==="seagulls"?.93:1.9;
   const tilt = Math.sin(performance.now()/(kind==="seagulls"?130:450))*.10;
@@ -320,7 +443,12 @@ function portraitKit(key, club) {
 }
 
 function drawArtIcon(key, context, x, y, width, height, club) {
-  const sprite = key.startsWith("portrait-") && club ? portraitKit(key,club) : artSprites.get(key);
+  const namedClub = !club && Object.keys(namedHeroArt).find(abbr=>namedHeroArt[abbr]===key);
+  const portrait = key==="portrait-coach" ? "coach" : namedClub ? "captain-"+namedClub :
+    key==="portrait-captain" && club ? "captain-"+club.abbr : null;
+  const flyer = (key==="seagulls"||key==="blimp") && artSprites.get(key+(key==="seagulls"?"-flap-0":"-float-0"));
+  const sprite = flyer || (portrait && artSprites.get("refresh-portrait-"+portrait)) ||
+    (key.startsWith("portrait-") && club ? portraitKit(key,club) : artSprites.get(key));
   if (!sprite) return false;
   const {image,x:sx,y:sy,w,h} = sprite;
   const scale = Math.min(width/w,height/h);

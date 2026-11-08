@@ -1,0 +1,560 @@
+{
+  "version": 1,
+  "files": [
+    "art/buildings/herohall-1.webp",
+    "art/buildings/herohall-2.webp",
+    "art/buildings/herohall-3.webp",
+    "art/buildings/kitroom-1.webp",
+    "art/buildings/kitroom-2.webp",
+    "art/buildings/kitroom-3.webp",
+    "art/buildings/kitroom-4.webp",
+    "art/buildings/kitroom-5.webp",
+    "art/cards/back.webp",
+    "art/cards/frame-24k-gold.webp",
+    "art/cards/frame-best-fairest.webp",
+    "art/cards/frame-common.webp",
+    "art/cards/frame-epic.webp",
+    "art/cards/frame-future-legend.webp",
+    "art/cards/frame-goal-kicker.webp",
+    "art/cards/frame-legendary.webp",
+    "art/cards/frame-rare.webp",
+    "art/cards/frame-star-wildcard.webp",
+    "art/heroes/captain-melb.webp",
+    "art/heroes/coach.webp",
+    "art/packs/footy.webp",
+    "art/packs/prize.webp",
+    "art/players/004.webp",
+    "art/players/026.webp",
+    "art/players/043.webp",
+    "art/players/068.webp",
+    "art/players/114.webp",
+    "art/players/133.webp",
+    "art/players/168.webp",
+    "art/players/180.webp",
+    "art/players/188.webp",
+    "art/portraits/captain-melb.webp",
+    "art/portraits/coach.webp",
+    "art/units/blimp.webp",
+    "art/units/forward-a.webp",
+    "art/units/forward-b.webp",
+    "art/units/forward-c.webp",
+    "art/units/forward-d.webp",
+    "art/units/rover-a.webp",
+    "art/units/rover-b.webp",
+    "art/units/rover-c.webp",
+    "art/units/rover-d.webp",
+    "art/units/ruck-a.webp",
+    "art/units/ruck-b.webp",
+    "art/units/ruck-c.webp",
+    "art/units/ruck-d.webp",
+    "art/units/seagulls.webp",
+    "art/units/shepherd-a.webp",
+    "art/units/shepherd-b.webp",
+    "art/units/shepherd-c.webp",
+    "art/units/shepherd-d.webp",
+    "art/units/tagger-a.webp",
+    "art/units/tagger-b.webp",
+    "art/units/tagger-c.webp",
+    "art/units/tagger-d.webp",
+    "art/units/trainer-a.webp",
+    "art/units/trainer-b.webp"
+  ],
+  "sheets": {
+    "art/heroes/captain-melb.webp": {
+      "cell": 128,
+      "cols": 8,
+      "rows": [
+        "run",
+        "attack",
+        "idle",
+        "ko"
+      ],
+      "frames": [
+        8,
+        6,
+        4,
+        4
+      ]
+    },
+    "art/heroes/coach.webp": {
+      "cell": 128,
+      "cols": 8,
+      "rows": [
+        "run",
+        "attack",
+        "idle",
+        "ko"
+      ],
+      "frames": [
+        8,
+        6,
+        4,
+        4
+      ]
+    },
+    "art/units/blimp.webp": {
+      "cell": 128,
+      "cols": 8,
+      "rows": [
+        "float",
+        "drop"
+      ],
+      "frames": [
+        4,
+        4
+      ]
+    },
+    "art/units/forward-a.webp": {
+      "cell": 128,
+      "cols": 8,
+      "rows": [
+        "run-front",
+        "run-back",
+        "attack-front",
+        "attack-back",
+        "idle",
+        "ko"
+      ],
+      "frames": [
+        8,
+        8,
+        6,
+        6,
+        4,
+        4
+      ]
+    },
+    "art/units/forward-b.webp": {
+      "cell": 128,
+      "cols": 8,
+      "rows": [
+        "run-front",
+        "run-back",
+        "attack-front",
+        "attack-back",
+        "idle",
+        "ko"
+      ],
+      "frames": [
+        8,
+        8,
+        6,
+        6,
+        4,
+        4
+      ]
+    },
+    "art/units/forward-c.webp": {
+      "cell": 128,
+      "cols": 8,
+      "rows": [
+        "run-front",
+        "run-back",
+        "attack-front",
+        "attack-back",
+        "idle",
+        "ko"
+      ],
+      "frames": [
+        8,
+        8,
+        6,
+        6,
+        4,
+        4
+      ]
+    },
+    "art/units/forward-d.webp": {
+      "cell": 128,
+      "cols": 8,
+      "rows": [
+        "run-front",
+        "run-back",
+        "attack-front",
+        "attack-back",
+        "idle",
+        "ko"
+      ],
+      "frames": [
+        8,
+        8,
+        6,
+        6,
+        4,
+        4
+      ]
+    },
+    "art/units/rover-a.webp": {
+      "cell": 128,
+      "cols": 8,
+      "rows": [
+        "run-front",
+        "run-back",
+        "attack-front",
+        "attack-back",
+        "idle",
+        "ko"
+      ],
+      "frames": [
+        8,
+        8,
+        6,
+        6,
+        4,
+        4
+      ]
+    },
+    "art/units/rover-b.webp": {
+      "cell": 128,
+      "cols": 8,
+      "rows": [
+        "run-front",
+        "run-back",
+        "attack-front",
+        "attack-back",
+        "idle",
+        "ko"
+      ],
+      "frames": [
+        8,
+        8,
+        6,
+        6,
+        4,
+        4
+      ]
+    },
+    "art/units/rover-c.webp": {
+      "cell": 128,
+      "cols": 8,
+      "rows": [
+        "run-front",
+        "run-back",
+        "attack-front",
+        "attack-back",
+        "idle",
+        "ko"
+      ],
+      "frames": [
+        8,
+        8,
+        6,
+        6,
+        4,
+        4
+      ]
+    },
+    "art/units/rover-d.webp": {
+      "cell": 128,
+      "cols": 8,
+      "rows": [
+        "run-front",
+        "run-back",
+        "attack-front",
+        "attack-back",
+        "idle",
+        "ko"
+      ],
+      "frames": [
+        8,
+        8,
+        6,
+        6,
+        4,
+        4
+      ]
+    },
+    "art/units/ruck-a.webp": {
+      "cell": 128,
+      "cols": 8,
+      "rows": [
+        "run-front",
+        "run-back",
+        "attack-front",
+        "attack-back",
+        "idle",
+        "ko"
+      ],
+      "frames": [
+        8,
+        8,
+        6,
+        6,
+        4,
+        4
+      ]
+    },
+    "art/units/ruck-b.webp": {
+      "cell": 128,
+      "cols": 8,
+      "rows": [
+        "run-front",
+        "run-back",
+        "attack-front",
+        "attack-back",
+        "idle",
+        "ko"
+      ],
+      "frames": [
+        8,
+        8,
+        6,
+        6,
+        4,
+        4
+      ]
+    },
+    "art/units/ruck-c.webp": {
+      "cell": 128,
+      "cols": 8,
+      "rows": [
+        "run-front",
+        "run-back",
+        "attack-front",
+        "attack-back",
+        "idle",
+        "ko"
+      ],
+      "frames": [
+        8,
+        8,
+        6,
+        6,
+        4,
+        4
+      ]
+    },
+    "art/units/ruck-d.webp": {
+      "cell": 128,
+      "cols": 8,
+      "rows": [
+        "run-front",
+        "run-back",
+        "attack-front",
+        "attack-back",
+        "idle",
+        "ko"
+      ],
+      "frames": [
+        8,
+        8,
+        6,
+        6,
+        4,
+        4
+      ]
+    },
+    "art/units/seagulls.webp": {
+      "cell": 128,
+      "cols": 8,
+      "rows": [
+        "flap",
+        "swoop"
+      ],
+      "frames": [
+        6,
+        4
+      ]
+    },
+    "art/units/shepherd-a.webp": {
+      "cell": 128,
+      "cols": 8,
+      "rows": [
+        "run-front",
+        "run-back",
+        "attack-front",
+        "attack-back",
+        "idle",
+        "ko"
+      ],
+      "frames": [
+        8,
+        8,
+        6,
+        6,
+        4,
+        4
+      ]
+    },
+    "art/units/shepherd-b.webp": {
+      "cell": 128,
+      "cols": 8,
+      "rows": [
+        "run-front",
+        "run-back",
+        "attack-front",
+        "attack-back",
+        "idle",
+        "ko"
+      ],
+      "frames": [
+        8,
+        8,
+        6,
+        6,
+        4,
+        4
+      ]
+    },
+    "art/units/shepherd-c.webp": {
+      "cell": 128,
+      "cols": 8,
+      "rows": [
+        "run-front",
+        "run-back",
+        "attack-front",
+        "attack-back",
+        "idle",
+        "ko"
+      ],
+      "frames": [
+        8,
+        8,
+        6,
+        6,
+        4,
+        4
+      ]
+    },
+    "art/units/shepherd-d.webp": {
+      "cell": 128,
+      "cols": 8,
+      "rows": [
+        "run-front",
+        "run-back",
+        "attack-front",
+        "attack-back",
+        "idle",
+        "ko"
+      ],
+      "frames": [
+        8,
+        8,
+        6,
+        6,
+        4,
+        4
+      ]
+    },
+    "art/units/tagger-a.webp": {
+      "cell": 128,
+      "cols": 8,
+      "rows": [
+        "run-front",
+        "run-back",
+        "attack-front",
+        "attack-back",
+        "idle",
+        "ko"
+      ],
+      "frames": [
+        8,
+        8,
+        6,
+        6,
+        4,
+        4
+      ]
+    },
+    "art/units/tagger-b.webp": {
+      "cell": 128,
+      "cols": 8,
+      "rows": [
+        "run-front",
+        "run-back",
+        "attack-front",
+        "attack-back",
+        "idle",
+        "ko"
+      ],
+      "frames": [
+        8,
+        8,
+        6,
+        6,
+        4,
+        4
+      ]
+    },
+    "art/units/tagger-c.webp": {
+      "cell": 128,
+      "cols": 8,
+      "rows": [
+        "run-front",
+        "run-back",
+        "attack-front",
+        "attack-back",
+        "idle",
+        "ko"
+      ],
+      "frames": [
+        8,
+        8,
+        6,
+        6,
+        4,
+        4
+      ]
+    },
+    "art/units/tagger-d.webp": {
+      "cell": 128,
+      "cols": 8,
+      "rows": [
+        "run-front",
+        "run-back",
+        "attack-front",
+        "attack-back",
+        "idle",
+        "ko"
+      ],
+      "frames": [
+        8,
+        8,
+        6,
+        6,
+        4,
+        4
+      ]
+    },
+    "art/units/trainer-a.webp": {
+      "cell": 128,
+      "cols": 8,
+      "rows": [
+        "run-front",
+        "run-back",
+        "attack-front",
+        "attack-back",
+        "idle",
+        "ko"
+      ],
+      "frames": [
+        8,
+        8,
+        6,
+        6,
+        4,
+        4
+      ]
+    },
+    "art/units/trainer-b.webp": {
+      "cell": 128,
+      "cols": 8,
+      "rows": [
+        "run-front",
+        "run-back",
+        "attack-front",
+        "attack-back",
+        "idle",
+        "ko"
+      ],
+      "frames": [
+        8,
+        8,
+        6,
+        6,
+        4,
+        4
+      ]
+    }
+  }
+}

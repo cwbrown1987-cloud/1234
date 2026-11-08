@@ -123,8 +123,8 @@ const cardArt = {files:new Set(), imgs:{}, ready:false};
 (function loadCardManifest(){
   if (typeof fetch !== "function" || location.protocol === "file:") return;
   const take = list => { for (const f of (Array.isArray(list) ? list : list && (list.files || Object.keys(list))) || []) cardArt.files.add(typeof f === "string" ? f.replace(/^\.?\//, "") : (f.file || f.path || "").replace(/^\.?\//, "")); };
-  Promise.all(["art/manifest.json", "art/cards/manifest.json"].map(u => fetch(u).then(r => r.ok ? r.json() : null).catch(() => null)))
-    .then(([a, b]) => { take(a); take(b); cardArt.ready = true; if (cardArt.files.size) for (const k of Object.keys(iconCache)) if (k.startsWith("cf")) delete iconCache[k]; });
+  Promise.all(["art/manifest.json"].map(u => fetch(u).then(r => r.ok ? r.json() : null).catch(() => null)))
+    .then(([a, b]) => { take(a); take(b); cardArt.ready = true; ["art/cards/back.webp", "art/packs/footy.webp", "art/packs/prize.webp"].forEach(cardImg); if (cardArt.files.size) for (const k of Object.keys(iconCache)) if (k.startsWith("cf")) delete iconCache[k]; });
 })();
 // Returns a loaded image for a file in the manifest, or null (and starts loading it).
 function cardImg(path) {
@@ -174,7 +174,8 @@ function cardFace(c, t) {
   for (let k = 0; k < 18; k++) { const a = k * Math.PI / 9; g.beginPath(); g.moveTo(W / 2, 130); g.arc(W / 2, 130, 320, a, a + .1); g.fill(); }
   g.globalAlpha = 1;
   // 3. player portrait: GPT's card portrait when it arrives, else the captain likeness or role art in the club guernsey
-  const photo = c.num && cardImg(`art/players/${pad3(c.num)}.webp`);
+  const artNum = c.num || (BASE_CARDS.find(b => b.club === c.club && b.name === c.name) || {}).num;
+  const photo = artNum && cardImg(`art/players/${pad3(artNum)}.webp`);
   const isHero = club.hero.name === c.name, likeness = isHero && namedHeroArt[club.abbr];
   if (photo) { const s = Math.min(iw / photo.width, 250 / photo.height); g.drawImage(photo, W / 2 - photo.width * s / 2, H - 78 - photo.height * s, photo.width * s, photo.height * s); }
   else if (!(likeness && drawArtIcon(likeness, g, W / 2, H - 70, 220, 236)) && !drawArtIcon("portrait-" + roleFor(c.pos), g, W / 2, H - 70, 220, 236, club)) {
@@ -197,9 +198,9 @@ function cardFace(c, t) {
   g.fillStyle = sp ? (c.kind === "PZ" ? "#9c6a08" : sp.col[1]) : R.tag; g.strokeStyle = "#000"; g.lineWidth = 2;
   g.beginPath(); g.roundRect(W - 86, 66, 72, 17, 5); g.fill(); g.stroke();
   g.fillStyle = isLight(g.fillStyle) ? "#111" : "#fff"; fitText(g, tag, 66, 11, 7); g.fillText(tag, W - 50, 75);
-  // 6. special banner across the top
-  if (sp) { g.fillStyle = sp.col[1]; g.strokeStyle = "#000"; g.lineWidth = 2; g.beginPath(); g.roundRect(64, 92, W - 128, 22, 6); g.fill(); g.stroke();
-    g.fillStyle = isLight(sp.col[1]) ? (isLight(sp.col[0]) ? "#111" : sp.col[0]) : "#fff"; fitText(g, sp.name.toUpperCase(), W - 140, 13); g.fillText(sp.name.toUpperCase(), W / 2, 104); }
+  // 6. special banner: a ribbon just above the name plate, clear of the player's face
+  if (sp) { const by = H - 112, bx = 92, bw = W - 114; g.fillStyle = sp.col[1]; g.strokeStyle = "#000"; g.lineWidth = 2; g.beginPath(); g.roundRect(bx, by, bw, 20, 6); g.fill(); g.stroke();
+    g.fillStyle = isLight(sp.col[1]) ? (isLight(sp.col[0]) ? "#111" : sp.col[0]) : "#fff"; fitText(g, sp.name.toUpperCase(), bw - 10, 12); g.fillText(sp.name.toUpperCase(), bx + bw / 2, by + 11); }
   // 7. big club badge, bottom-left over the portrait
   g.save(); g.fillStyle = "#0b0d12cc"; g.strokeStyle = "#ffffffcc"; g.lineWidth = 2.5; g.beginPath(); g.roundRect(22, H - 150, 64, 64, 12); g.fill(); g.stroke(); g.restore();
   drawBadge(g, 54, H - 118, 27, club);
@@ -326,7 +327,8 @@ function packTear(got, name, kind) {
   wrap.onpointerup = wrap.onpointercancel = () => { start = null; wrap.classList.remove("tearing"); if (prog > .75) finish(); };
 }
 function packReveal(got, name, quiet) {
-  modal(`<h2>${name}</h2><div class="reveal">${got.map((o, i) => `<div class="flip ${o.special ? "spec" : ""}" data-pc="${i}" style="${quiet ? "animation:none" : `animation-delay:${i * .3}s`}"><img src="${cardFace(o.c, o.t)}" alt=""><div class="newtag ${o.isNew ? "" : "dupe"}">${o.isNew ? "NEW!" : "Dupe"}</div></div>`).join("")}</div>
+  const back = !quiet && cardImg("art/cards/back.webp");
+  modal(`<h2>${name}</h2><div class="reveal">${got.map((o, i) => `<div class="flip ${back ? "flipb" : ""} ${o.special ? "spec" : ""}" data-pc="${i}" style="${quiet ? "animation:none" : `animation-delay:${i * .3}s;--d:${i * .3}s`}">${back ? `<img class="cbk" src="${back.src}" alt="">` : ""}<img class="cfr" src="${cardFace(o.c, o.t)}" alt=""><div class="newtag ${o.isNew ? "" : "dupe"}">${o.isNew ? "NEW!" : "Dupe"}</div></div>`).join("")}</div>
     <p class="tiny center">Tap a card to see its stats</p>
     <div class="center"><button class="btn green" id="pk">Done</button></div>`, {noClose:true});
   if (!quiet) got.forEach((o, i) => setTimeout(() => sfx(o.special || o.t !== "c" ? "cheer" : "card", .6), i * 300));

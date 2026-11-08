@@ -341,14 +341,18 @@ function floatText(x,y,s,col){ floaters.push({x,y,s,life:1.4,col}); }
 // ---------- home rendering ----------
 function renderHome(){
   drawGround();
-  if(placing){ ctx.strokeStyle="#ffffff28"; ctx.lineWidth=1; for(let i=0;i<=N;i++){ ctx.beginPath(); ctx.moveTo(...P(i,0)); ctx.lineTo(...P(i,N)); ctx.moveTo(...P(0,i)); ctx.lineTo(...P(N,i)); ctx.stroke(); } }
   const club=myClub(), row=placing?.row, ents=[];
   const list=row?S.buildings.map(b=>row.has(b)?{...b,x:b.x+placing.x-placing.anchor.x,y:b.y+placing.y-placing.anchor.y}:b):S.buildings;
   const fenceMode=placing?.t==="fence", movingB=placing?.moving;
+  const preview=placing&&!row?{t:placing.t,x:placing.x,y:placing.y,lv:movingB?.lv??1}:null;
+  const previewSize=preview?BLD[preview.t].size:0;
+  const previewFits=preview&&footprintFree(preview.x,preview.y,previewSize,movingB);
   ctx.save();
   if(fenceMode) ctx.globalAlpha=.35;
   for(const b of list) if(b!==movingB) groundPatch(b);
+  if(previewFits) groundPatch(preview);
   ctx.restore();
+  if(placing){ ctx.strokeStyle="#ffffff28"; ctx.lineWidth=1; for(let i=0;i<=N;i++){ ctx.beginPath(); ctx.moveTo(...P(i,0)); ctx.lineTo(...P(i,N)); ctx.moveTo(...P(0,i)); ctx.lineTo(...P(N,i)); ctx.stroke(); } }
   const rowOK=row&&wallRowFits(placing);
   if(row) for(const [i,b] of S.buildings.entries()) if(row.has(b)){
     const preview=list[i];
@@ -363,9 +367,9 @@ function renderHome(){
     ents.push({k:b.x+b.y+d.size,f:fenceMode&&b.t!=="fence"?ghost(f):f}); }
   if(!placing) addGroundCrew(ents,list,club);
   ents.sort((a,b)=>a.k-b.k).forEach(e=>e.f());
-  if(placing&&!row){ const d=BLD[placing.t], ok=footprintFree(placing.x,placing.y,d.size,placing.moving);
-    diamond(placing.x,placing.y,d.size,d.size,ok?"#5fd16b88":"#e8503a99","#fff",2);
-    ctx.save(); ctx.globalAlpha=.85; drawBuilding({t:placing.t,x:placing.x,y:placing.y,lv:placing.moving?placing.moving.lv:1},club,list,{fill:.5,heroes,deferLevel:true}); ctx.restore(); }
+  if(preview){
+    diamond(preview.x,preview.y,previewSize,previewSize,previewFits?"#5fd16b88":"#e8503a99","#fff",2);
+    ctx.save(); ctx.globalAlpha=.85; drawBuilding(preview,club,list,{fill:.5,heroes,deferLevel:true}); ctx.restore(); }
   drawSky();
   // Draw labels after the world so foreground fences cannot hide them.
   for(const b of list){

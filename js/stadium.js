@@ -469,24 +469,54 @@ function drawOvalGoals(){
   ctx.restore();
 }
 
-// Tint the existing grass under the sprite and feather it into the oval.
+let turfPatchTexture;
+function getTurfPatchTexture() {
+  if(turfPatchTexture) return turfPatchTexture;
+  const texture=document.createElement("canvas"), size=96;
+  texture.width=texture.height=size;
+  const paint=texture.getContext("2d");
+  const tint=paint.createLinearGradient(0,0,size,0);
+  tint.addColorStop(0,"#35562300");
+  tint.addColorStop(.17,"#3d652d7a");
+  tint.addColorStop(.5,"#233d1db0");
+  tint.addColorStop(.83,"#3d652d7a");
+  tint.addColorStop(1,"#35562300");
+  paint.fillStyle=tint;
+  paint.fillRect(0,0,size,size);
+  const fade=paint.createLinearGradient(0,0,0,size);
+  fade.addColorStop(0,"#0000");
+  fade.addColorStop(.18,"#000");
+  fade.addColorStop(.82,"#000");
+  fade.addColorStop(1,"#0000");
+  paint.globalCompositeOperation="destination-in";
+  paint.fillStyle=fade;
+  paint.fillRect(0,0,size,size);
+  return turfPatchTexture=texture;
+}
+
+// The turf lies in grid space and tints the existing grass instead of replacing it.
 function groundPatch(b) {
   if (b.hp<=0 || b.t==="fence" || BLD[b.t].trap || b.busy?.kind==="build") return;
   const size=BLD[b.t].size, sprite=artSprites.get(b.t);
   const width=sprite&&artBuildings[b.t]?sprite.w*buildingArtScale(b.t,sprite):size*.91;
-  const [cx,cy]=P(b.x+size/2,b.y+size/2);
-  const rx=TW*(width*.5+.23), ry=TH*(width*.36+.20);
-  if(cx+rx<0||cx-rx>W||cy+ry+TH*.12<0||cy-ry>H) return;
+  const span=Math.min(size+.18,width+.48), half=span/2;
+  const x=b.x+size/2, y=b.y+size/2;
+  const [cx,cy]=P(x,y);
+  if(cx+TW*half<0||cx-TW*half>W||cy+TH*half<0||cy-TH*half>H) return;
   ctx.save();
-  ctx.translate(cx+TW*.04,cy+TH*.12);
-  ctx.scale(rx,ry);
-  const grass=ctx.createRadialGradient(0,0,0,0,0,1);
-  grass.addColorStop(0,"#233d1da8");
-  grass.addColorStop(.48,"#31542172");
-  grass.addColorStop(.78,"#4d792d48");
-  grass.addColorStop(1,"#4d792d00");
-  ctx.fillStyle=grass;
-  ctx.fillRect(-1,-1,2,2);
+  const [xx,xy]=P(x+1,y), [yx,yy]=P(x,y+1);
+  ctx.transform(xx-cx,xy-cy,yx-cx,yy-cy,cx,cy);
+  if(b.t==="oval"){
+    const radius=half*Math.SQRT2;
+    const grass=ctx.createRadialGradient(0,0,0,0,0,radius);
+    grass.addColorStop(0,"#233d1da8");
+    grass.addColorStop(.65,"#31542172");
+    grass.addColorStop(1,"#4d792d00");
+    ctx.fillStyle=grass;
+    ctx.fillRect(-radius,-radius,2*radius,2*radius);
+  }else{
+    ctx.drawImage(getTurfPatchTexture(),-half,-half,span,span);
+  }
   ctx.restore();
 }
 

@@ -78,13 +78,16 @@ function updateHUD(force){
     const replay=BT.mode==="replay";
     $("bBadge").src=badgeURL(CLUBS[replay?BT.atkClub:BT.club],96);
     $("bVs").textContent=replay?`${BT.raid&&BT.raid.attacker?BT.raid.attacker+" · ":""}${CLUBS[BT.atkClub].name}`:BT.opp?`vs ${BT.opp.name}${BT.opp.bot?" (bot)":""} · ${CLUBS[BT.club].short}`:"vs "+CLUBS[BT.club].name;
-    const nx=$("bNext"); if(nx) nx.style.display=BT.kind==="pvp"&&!BT.started&&!replay?"block":"none";
-    $("bLoot").textContent=replay?"Replay":(BT.kind==="season"&&BT.fixture?BT.fixture+" · ":BT.kind==="revenge"?"Revenge! · ":"")+`🥧 ${fmt(Math.max(0,BT.lootTotal.pies-BT.loot.pies)*(BT.lootMul||1))}  💧 ${fmt(Math.max(0,BT.lootTotal.drink-BT.loot.drink)*(BT.lootMul||1))}`;
+    const nx=$("bNext"); if(nx){ nx.style.display=(BT.kind==="pvp"||BT.visit)&&!BT.started&&!replay?"block":"none"; nx.textContent=BT.visit?"⚔️ Attack":"Next ⏭"; }
+    $("bEnd").textContent=BT.visit?"🏠 Home":$("bEnd").dataset.sure?"Tap to confirm":"End Match";
+    $("cards").style.display=BT.visit?"none":"";
+    const clk=document.querySelector(".battleClock"); if(clk) clk.style.visibility=BT.visit?"hidden":"";
+    $("bLoot").textContent=BT.visit?"Visiting · tap Attack to take on your mate (¼ loot)":replay?"Replay":(BT.ranked&&BT.fixture?"🏆 "+BT.fixture+" · ":BT.kind==="revenge"?"Revenge! · ":"")+`🥧 ${fmt(Math.max(0,BT.lootTotal.pies-BT.loot.pies)*(BT.lootMul||1))}  💧 ${fmt(Math.max(0,BT.lootTotal.drink-BT.loot.drink)*(BT.lootMul||1))}`;
     const s=starsNow(), sc=scoreNow(), A=CLUBS[BT.atkClub], Hm=CLUBS[BT.club];
     $("bScore").innerHTML=`<div class="${sc.a.p>sc.h.p?"lead":""}">${A.short} <b>${fmtScore(sc.a)}</b></div><div class="${sc.h.p>=sc.a.p?"lead":""}">${Hm.short} <b>${fmtScore(sc.h)}</b></div>`;
     $("bStars").innerHTML="★".repeat(s)+`<span class="dim">${"★".repeat(3-s)}</span>`;
     const t=Math.max(0,Math.ceil(BT.time)); $("bTime").textContent=Math.floor(t/60)+":"+String(t%60).padStart(2,"0");
-    $("battleHint").style.display=BT.started||replay||tutActive()?"none":"block";
+    $("battleHint").style.display=BT.started||replay||BT.visit||tutActive()?"none":"block";
     const ab=$("abilities"); const want=replay?[]:Object.keys(BT.heroU).filter(h=>BT.heroU[h].hp>0&&!BT.abilityUsed[h]);
     if(ab.dataset.k!==want.join()){ ab.dataset.k=want.join(); ab.innerHTML=""; for(const h of want){ const b=document.createElement("button"); b.className="btn gold"; b.textContent="⚡ "+BT.heroStat(h).ability; b.onclick=()=>useAbility(h); ab.append(b); } }
   }
@@ -122,7 +125,7 @@ function buildCards(){
 
 // ---------- modals ----------
 let modalTick=null;
-function modal(html, opts={}){ $("modalBody").innerHTML=html; $("modal").classList.add("show"); $("modalX").style.display=opts.noClose?"none":"block"; modalTick=opts.tick||null; }
+function modal(html, opts={}){ $("modal").querySelector(".card").classList.remove("albummode"); $("modalBody").innerHTML=html; $("modal").classList.add("show"); $("modalX").style.display=opts.noClose?"none":"block"; modalTick=opts.tick||null; }
 function closeModal(){ $("modal").classList.remove("show"); modalTick=null; refreshUI(); }
 setInterval(()=>{ if(modalTick&&$("modal").classList.contains("show")) modalTick(); },1000);
 $("modalX").onclick=closeModal;
@@ -248,10 +251,10 @@ function openLog(){
   if(!S.raids.length) h+=`<p class="center">No visitors yet. They will come…</p>`;
   for(const r of S.raids){ const c=CLUBS[r.club]||CLUBS[0], ago=fmtTime((Date.now()-r.at)/1000);
     const who=r.attacker?`${esc(r.attacker)}${r.real?"":' <span class="tag bot">BOT</span>'} <small>${c.short}</small>`:c.name;
-    h+=`<div class="raid ${r.stars?"lost":"won"}">${badgeImg(c)}<div class="grow"><div><b>${who}</b> ${r.friendly?'<span class="tag fr">FRIENDLY</span>':""} ${r.seen?"":'<span class="tag">NEW</span>'}</div>
+    h+=`<div class="raid ${r.stars?"lost":"won"}">${badgeImg(c)}<div class="grow"><div><b>${who}</b> ${r.friendly?'<span class="tag fr">FRIENDLY</span>':r.friend?'<span class="tag fr">FRIEND</span>':""} ${r.seen?"":'<span class="tag">NEW</span>'}</div>
       <div class="tiny">${ago} ago · ${r.sc?`${c.short} ${fmtScore(r.sc.a)} v ${myClub().short} ${fmtScore(r.sc.h)}`:r.pct+"% destroyed"} · <span class="stars">${"★".repeat(r.stars)}<span class="dim">${"★".repeat(3-r.stars)}</span></span></div>
       <div class="tiny">${r.stars?`Lost 🥧 ${fmt(r.lost.pies)} 💧 ${fmt(r.lost.drink)}`:"Defence win!"} · ${r.tro>0?"+":""}${r.tro} 🏆</div></div>
-      <div class="col"><button class="btn blue" data-replay="${r.id}">▶ Replay</button>${r.stars&&!r.revenged&&!r.friendly?`<button class="btn red" data-rev="${r.id}">Revenge</button>`:""}</div></div>`; }
+      <div class="col"><button class="btn blue" data-replay="${r.id}">▶ Replay</button>${r.stars&&!r.revenged&&!r.friendly&&!r.friend?`<button class="btn red" data-rev="${r.id}">Revenge</button>`:""}</div></div>`; }
   modal(h);
   S.raids.forEach(r=>r.seen=true); save(); uiDirty=true;
   document.querySelectorAll("[data-replay]").forEach(b=>b.onclick=()=>watchReplay(S.raids.find(r=>r.id==b.dataset.replay)));
@@ -270,22 +273,22 @@ function openMatch(){
   h+=`<div class="starbonus"><span>⭐ Star Bonus</span><div class="bar"><div style="width:${Math.min(100,100*sb.stars/STAR_GOAL)}%"></div></div><span>${Math.min(sb.stars,STAR_GOAL)}/${STAR_GOAL}${sbWait?` · ready in ${fmtTime((sb.until-Date.now())/1000)}`:""}</span></div>
     <p class="tiny center">Win 5 stars in Battles or Ranked for +${fmt(starBonusLoot().pies)} 🥧 and +${fmt(starBonusLoot().drink)} 💧. Resets 24 hours after you collect.</p>`;
   h+=`<div class="modes"><button class="btn gold big" id="findMatch">⚔️ Battle<small>${cost} 🥧 · loot and Star Bonus, no trophies</small></button>
-    <button class="btn blue big" id="findRanked">🏆 Ranked<small>${cost} 🥧 · win and lose trophies, climb the leagues</small></button></div>`;
+    <button class="btn blue big" id="findRanked">🏆 Ranked<small>${cost} 🥧 · trophies, and it counts on the Season ladder</small></button></div>`;
   if(typeof NET!=="undefined"&&NET.online) h+= online?`<div class="center tiny">Playing online as <b>${esc(NET.user.name)}</b> · <a href="#" id="lbLink">Leaderboard</a></div>`:`<div class="banner">Play real people and climb the leaderboard. <button class="btn green" id="goOnline">Play online</button></div>`;
   ensureSeason(); const s=S.season, f=nextFixture(), pos=ladderPos(S.club), L=s.ladder[S.club];
   h+=`<h3>Season ${s.year}${S.premierships?` · 🏆×${S.premierships}`:""}</h3><div class="seasonbar"><span>${s.finals?"Finals":`Round ${Math.min(s.round+1,ROUNDS)} of ${ROUNDS}`}</span><span>${L.w+L.l+L.d?`${ordinal(pos)} on the ladder · ${L.w}W ${L.l}L${L.d?" "+L.d+"D":""}`:"First bounce coming up"}</span><button class="btn blue" id="ladder">Ladder</button></div>`;
-  if(f){ const c=CLUBS[f.club]; h+=`<div class="fx next">${badgeImg(c)}<span class="nm"><small>${f.name}${f.final?" 🔥":""}</small><br>vs ${c.name}<br><small>Clubhouse ${f.d}${s.round||s.finals?` · ${ordinal(ladderPos(f.club))} on the ladder`:""}</small></span><button class="btn green big" data-r="${s.round}">Play</button></div>`; }
+  if(f) h+=`<div class="fx next"><span class="nm"><small>Next Ranked match is</small><br><b>${f.name}${f.final?" 🔥":""}</b><br><small>Only Ranked matches count on the ladder. Battles don't.</small></span><button class="btn blue big" id="playRound">🏆 Play</button></div>`;
   else h+=`<div class="fx next"><span class="nm">${s.premiers?"🏆 <b>Premiers!</b> What a season.":`Season over. You finished ${ordinal(s.place||pos)}.`}</span><button class="btn gold" id="newSeason">Start Season ${s.year+1}</button></div>`;
   if(s.results.length) h+=`<div class="fixture">${[...s.results].reverse().slice(0,6).map(r=>`<div class="fx"><span class="wl ${r.res}">${r.res}</span>${badgeImg(CLUBS[r.club],"sm")}<span class="nm"><small>${r.name}</small><br>${fmtScore(r.my)} – ${fmtScore(r.their)}</span></div>`).join("")}</div>`;
   modal(h); tut("match");
   const lb=$("lbLink"); if(lb) lb.onclick=e=>{ e.preventDefault(); openSocial("Leaderboard"); };
   const go=$("goOnline"); if(go) go.onclick=()=>openAccount();
   const find=ranked=>{ if(online) return findOnlineMatch([],ranked);
-    if(!Object.values(S.army).some(n=>n>0)) return toast("Train some players first!"); if(!pay("pies",cost)) return toast("Not enough 🥧");
-    let c; do{ c=Math.random()*18|0; }while(c===S.club); const d=Math.max(1,Math.min(MAX_TH,th()+(ranked?(Math.random()*3|0)-1:0)));
+    if(!Object.values(S.army).some(n=>n>0)) return toast("Train some players first!"); if(!tutActive()&&!pay("pies",cost)) return toast("Not enough 🥧");
+    let c; do{ c=Math.random()*18|0; }while(c===S.club); const d=Math.max(1,Math.min(MAX_TH,th()+(tutActive()?-1:ranked?(Math.random()*3|0)-1:0)));
     closeModal(); startBattle({kind:"match",ranked,club:c,d,seed:Math.random()*1e9|0}); };
   $("findMatch").onclick=()=>find(false); $("findRanked").onclick=()=>find(true);
-  document.querySelectorAll("[data-r]").forEach(b=>b.onclick=()=>{ if(!Object.values(S.army).some(n=>n>0)) return toast("Train some players first!"); closeModal(); playSeasonMatch(); });
+  const pr=$("playRound"); if(pr) pr.onclick=()=>find(true);
   $("ladder").onclick=openLadder; const ns=$("newSeason"); if(ns) ns.onclick=startNextSeason;
 }
 function openInfo(b){
@@ -303,7 +306,7 @@ function openInfo(b){
 function scoreboard(away,home,sc){ return `<div class="board"><div class="${sc.a.p>sc.h.p?"won":""}">${badgeImg(away,"sm")}<span>${away.short}</span><b>${fmtScore(sc.a)}</b></div><div class="${sc.h.p>=sc.a.p?"won":""}">${badgeImg(home,"sm")}<span>${home.short}</span><b>${fmtScore(sc.h)}</b></div></div>`; }
 function showResult(r){
   const win=r.stars>0, margin=Math.abs(r.sc.a.p-r.sc.h.p), draw=r.sc.a.p===r.sc.h.p;
-  modal(`<div class="result"><h2>${draw?"It's a draw!":win?"You win!":"Siren. You lost"}</h2>${r.opp?`<div class="tiny">${r.friendly?"Friendly ":""}vs ${esc(r.opp.name)}${r.opp.bot?" (bot)":""}</div>`:""}
+  modal(`<div class="result"><h2>${draw?"It's a draw!":win?"You win!":"Siren. You lost"}</h2>${r.opp?`<div class="tiny">${r.friendly?"Friendly ":BT&&BT.kind==="friend"?"Friend match (¼ loot) ":""}vs ${esc(r.opp.name)}${r.opp.bot?" (bot)":""}</div>`:""}
     <div class="tiny">${r.fixture?r.fixture+" · ":""}${draw?"Scores level":"by "+margin+" point"+(margin===1?"":"s")} · ${r.p}% knocked down</div>
     ${scoreboard(r.away,r.home,r.sc)}
     <div class="stars">${"★".repeat(r.stars)}<span class="dim">${"★".repeat(3-r.stars)}</span></div>
@@ -347,11 +350,13 @@ $("btnCards").onclick=()=>openAlbum();
 $("btnTasks").onclick=openTasks;
 $("btnLog").onclick=openLog;
 $("btnSocial").onclick=()=>openSocial();
+// (buttons below are optional: a missing one must never stop touch controls from loading)
+
 $("cardsIco").src=cardsButtonIcon();
-$("bNext").onclick=()=>nextOpponent();
+$("bNext").onclick=()=>{ if(BT&&BT.visit){ const id=BT.opp.id; leaveBattle(); attackPlayer(id,"friend"); } else nextOpponent(); };
 $("placeYes").onclick=confirmPlace;
 $("placeNo").onclick=()=>{ placing=null; refreshUI(); };
-$("bEnd").onclick=()=>{ const b=$("bEnd");
+$("bEnd").onclick=()=>{ const b=$("bEnd"); if(BT&&BT.visit){ leaveBattle(); openFriends(); return; }
   if(BT.started&&!b.dataset.sure){ b.dataset.sure="1"; b.textContent="Tap to confirm"; setTimeout(()=>{ delete b.dataset.sure; b.textContent="End Match"; },2500); return; }
   delete b.dataset.sure; b.textContent="End Match"; endBattle(); };
 $("rSpeed").onclick=()=>{ BT.speed=BT.speed>=4?1:BT.speed*2; $("rSpeed").textContent=BT.speed+"×"; };
@@ -360,10 +365,16 @@ $("rExit").onclick=()=>{ leaveBattle(); openLog(); };
 // ---------- touch / mouse ----------
 const ptrs=new Map(); let gesture=null;
 const toCanvas = e => [e.clientX*W/innerWidth, e.clientY*H/innerHeight];
+// What did you tap? Anything whose picture covers the tap counts (like Clash), not just the ground tiles under it.
+// The front-most one wins, because it's drawn on top.
 function hitHome(gx,gy){
-  const x=Math.floor(gx), y=Math.floor(gy);
-  for(const b of S.buildings){ const s=BLD[b.t].size; if(x>=b.x&&x<b.x+s&&y>=b.y&&y<b.y+s) return b; }
-  return S.obstacles.find(o=>{ const s=o.s||1; return x>=o.x&&x<o.x+s&&y>=o.y&&y<o.y+s; })||null;
+  const [sx,sy]=P(gx,gy); let best=null, bk=-1e9;
+  const test=(o,s,h)=>{ const x=o.x,y=o.y, left=P(x,y+s)[0], right=P(x+s,y)[0], bottom=P(x+s,y+s)[1], top=P(x,y)[1]-h*TH;
+    const inFoot=gx>=x&&gx<x+s&&gy>=y&&gy<y+s, inPic=sx>=left+TW*.12&&sx<=right-TW*.12&&sy>=top&&sy<=bottom;
+    if((inFoot||inPic)&&x+y+s>bk){ bk=x+y+s; best=o; } };
+  for(const b of S.buildings){ const s=BLD[b.t].size; test(b,s,b.t==="fence"?.6:BLD[b.t].trap?0:b.t==="clubhouse"?s*1.15:s*.85); }
+  for(const o of S.obstacles){ const s=o.s||1; test(o,s,s*.6); }
+  return best;
 }
 cv.addEventListener("pointerdown",e=>{
   cv.setPointerCapture(e.pointerId); const [px,py]=toCanvas(e); ptrs.set(e.pointerId,{x:px,y:py,sx:px,sy:py});

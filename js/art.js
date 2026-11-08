@@ -59,7 +59,7 @@ function paintArt(sprite, x, y, scale, anchor, face = 1, tilt = 0) {
 // The front of a building's base must stay inside the logical footprint.
 const artBuildings = {
   clubhouse: [.98,.81], pieshop: [.91,.82], drinktap: [.87,.83], piewarmer: [.91,.82],
-  esky: [.69,.81], oval: [1.0,.64], kitroom: [.89,.82], herohall: [.89,.82], bench: [.91,.78], physio: [.9,.8],
+  esky: [.69,.81], oval: [.93,.54], kitroom: [.89,.82], herohall: [.89,.82], bench: [.91,.78], physio: [.9,.8],
   coachbox: [.9,.84], locker: [.89,.82], office: [.89,.82], shed: [.95,.82],
   goalpost: [.85,.89], siren: [.87,.81], catapult: [.89,.83], floodlight: [.84,.92]
 };
@@ -314,7 +314,9 @@ function drawStadium() {
 }
 
 function loadFootyArt() {
-  loadArtSheet(FOOTY_SHEETS.buildings,4,4,Object.keys(artBuildings));
+  // Cell order of the buildings sheet. Fixed list: adding a building to artBuildings must never shift these.
+  loadArtSheet(FOOTY_SHEETS.buildings,4,4,["clubhouse","pieshop","drinktap","piewarmer","esky","oval","bench","physio",
+    "coachbox","locker","office","shed","goalpost","siren","catapult","floodlight"]);
   loadArtSheet(FOOTY_SHEETS.players,4,4,[
     "rover","rover-run",null,"forward","forward-run","forward-attack","ruck","tagger",
     "shepherd","trainer","captain","coach","seagulls","blimp","tree","rock"
@@ -373,22 +375,6 @@ function loadCaptainSheet(key,clubs,rowStops) {
   const names = clubs.map(club => namedHeroArt[club]);
   const poses = ["","-body","-run"].flatMap(pose => names.map(name => name+pose));
   loadArtSheet(FOOTY_SHEETS[key],3,3,poses,0,rowStops);
-}
-
-function drawFenceArt(x,y,h,lv,joinX,joinY) {
-  const post = artSprites.get("fence-post");
-  if (!post) return false;
-  const slate = lv<3?"#56647b":lv<6?"#495b7b":"#3d5276";
-  const cap = lv<3?"#b2a486":lv<6?"#d4a43d":"#ffc954";
-  if (joinX) {
-    prism(x+.5,y+.33,.99,.34,0,h*.72,slate);
-    prism(x+.5,y+.31,.99,.38,h*.72,.1,cap);
-  }
-  if (joinY) {
-    prism(x+.33,y+.5,.34,.99,0,h*.72,slate);
-    prism(x+.31,y+.5,.38,.99,h*.72,.1,cap);
-  }
-  return paintArt(post,...P(x+.5,y+.5),TW*.68/post.w,.89);
 }
 
 function drawPitchMarkings() {

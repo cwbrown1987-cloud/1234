@@ -56,7 +56,7 @@ Make the **art**, save it as **separate WebP files**, list them in a **manifest*
 4. **Footy cards:** 198 player portraits, rarity frames, special frames, card back and two packs (section 5D).
 
 ### Do NOT touch
-- **Other buildings.** The Clubhouse, Pie Shop, Drink Tap, Pie Warmer, Esky, Training Oval, Interchange Bench, Physio Room, Coaches Box, Captain's Locker, Coach's Office, Groundskeeper Shed, Goal Tower, Siren Cannon, Kick-Out Catapult, Floodlight Tower, Sprinkler and Fences already have finished art. Leave them exactly as they are.
+- **Other buildings.** The Clubhouse, Pie Shop, Drink Tap, Pie Warmer, Esky, Training Oval, Interchange Bench, Physio Room, Coaches Box, Captain's Locker, Coach's Office, Groundskeeper Shed, Goal Tower, Siren Cannon, Kick-Out Catapult, Floodlight Tower and Sprinkler already have finished art (fences: see the optional set in 5C). Leave them exactly as they are.
 - **The world.** The stadium, crowd, grass, trees, rocks, bushes, stumps and obstacles.
 - **The interface.** The HUD, buttons, icons, menus, fonts, the binder/album layout (it's built in HTML/CSS) and the card layout (the game draws the text, rating, badges and stat bars itself; see 5D).
 - **Gameplay.** Numbers, rules, timers, costs, balance and the battle simulation. Don't edit `js/data.js`, `js/game.js`, `js/battle.js` (except the one drawing line in section 7), `js/raid.js`, `js/season.js`, `js/net.js` or `server/`.
@@ -232,6 +232,16 @@ Match the **existing building art exactly**: same isometric angle (2:1 diamond f
 - Paint the club-colour parts (awning, banners, roof band) **navy #1b2a6b with white trim** so they can be recoloured.
 - Size: **512 × 512** canvas, transparent. The building's ground diamond fills the full width, with its bottom point 20 px above the bottom edge. About 60–120 KB each.
 
+**Optional: painted fence set** (`art/buildings/fence-*.webp`)
+- Today the game builds walls from slices of the painted fence post: pillars at ends, corners and every 3rd piece, stone wall between, and club banners on straight runs of 5 or more.
+- If you have time, paint a chunkier set in the same style:
+  - `fence-pillar.webp`: square stone pillar with a gold cap and studs
+  - `fence-wall-x.webp`: one tile of wall running down-right
+  - `fence-wall-y.webp`: one tile of wall running down-left
+- Use 256 × 256 canvases, with the tile centre at x 128, y 190.
+- The wall gets a navy (#1b2a6b) panel with gold trim, so it recolours to the club.
+- Wire them into `drawFence()` in `js/render.js` in place of `paintedWall()` and the post sprite, keeping the same pillar and banner rules.
+
 ### 5D. Footy cards, packs: `art/players/`, `art/cards/`, `art/packs/`
 
 The game already draws each card in `cardFace()` (`js/cards.js`) and already looks for these exact files once they're in the manifest:
@@ -258,12 +268,12 @@ The game already draws each card in `cardFace()` (`js/cards.js`) and already loo
 
 **Frames:**
 - **480 × 672 px** (5:7). The window inside must be **fully transparent**: x 34–446, y 34–638 (the game paints the background and portrait there, then puts your frame on top).
-- Thick metallic bevelled border with an outer glow, like the reference, plus small corner ornaments. **No text.**
+- Thick metallic bevelled border with an outer glow, like the reference, plus small corner ornaments (the game's current drawn frame shows the layout; open the album to see it). **No text.**
 - The game draws over these zones, so keep them plain:
-  - top-left circle at (80, 84) r 40: club badge
+  - top-left shield x 32–132, y 32–144: club crest
   - top-right box x 324–460, y 40–170: rating + rarity tag
   - bottom band y 490–640: name plate + position strip
-  - lower-left circle at (100, 464) r 55: big club badge
+  - lower-left box x 44–172, y 372–500: big club badge
   - specials only: banner y 180–232, centred
 - About 40–80 KB each.
 
@@ -335,7 +345,7 @@ The current art keeps working as the fallback: if a new file is missing or fails
 4. **Portraits.** The menu icons come from `playerIcon()` in `js/ui.js`, which calls `drawArtIcon("portrait-...")` in `js/art.js`. Make `drawArtIcon` prefer `art/portraits/...` when it's loaded. Don't change `ui.js` beyond that.
 5. **Buildings.** In `drawBuildingArt`, use `kitroom-<lv>` / `herohall-<lv>` when loaded; right now they borrow the Coach's Office and Captain's Locker art. Keep the footprint anchoring (the `artBuildings` table).
 6. **Cards and packs.** No code needed; `js/cards.js` picks them up from the manifest. Check it works (section 8).
-7. **Release.** Bump `CACHE` in `sw.js` (e.g. `footy-fortress-v16`) and `VERSION` in `js/data.js` (the date-like string). Those are the only edits allowed in `data.js`.
+7. **Release.** Bump `CACHE` in `sw.js` (e.g. `footy-fortress-v20`) and `VERSION` in `js/data.js` (the date-like string). Those are the only edits allowed in `data.js`.
 
 ---
 

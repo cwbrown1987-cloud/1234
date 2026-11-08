@@ -286,17 +286,114 @@ function drawBuilding(b, club, list, opts={}){
   if(b.hp!==undefined && b.hp<b.max) bar(...P(x+s/2,y+s/2,top),b.hp/b.max,b.hp/b.max>.5?"#5fd16b":"#e8503a");
   if(opts.collect && opts.collect>=1){ const [cx,cy]=P(x+s/2,y+s/2,top+1.2+Math.sin(performance.now()/300)*.2); bubble(cx,cy,BLD[b.t].makes==="pies"?"🥧":"💧"); }
 }
-const FENCE_COL=["#f7f1e2","#c9a26b","#9aa0a8","#f6c343","#4a3f6b"];
+// ---------- fences: stone pillars with gold caps, joined by a brick wall with a club panel ----------
+// Long straight runs (5+ pieces) automatically get club banners on the wall, like a stadium fence.
+const FENCE_RUN_BANNER = 5;
+const hexShade=(hex,f)=>"#"+rgb(hex).map(v=>Math.max(0,Math.min(255,f>1?v+(255-v)*(f-1):v*f))|0).map(v=>v.toString(16).padStart(2,"0")).join("");
+// Quick lookup of standing fence pieces, refreshed a few times a second (fences are drawn every frame).
+const fenceCache=new WeakMap();
+function fenceSet(list){
+  const now=performance.now(), c=fenceCache.get(list);
+  if(c&&c.n===list.length&&now-c.t<250) return c.set;
+  const set=new Set(); for(const o of list) if(o.t==="fence"&&!(o.hp<=0)&&!(o.busy&&o.busy.kind==="build")) set.add(o.x+","+o.y);
+  fenceCache.set(list,{set,n:list.length,t:now}); return set;
+}
+// Each fence piece is painted once (stone blocks, gold caps, club panel) and reused, so 200 fences stay smooth.
+const fenceArt=new Map();
+function fenceCached(key,x,y,draw){
+  const k=key+"|"+TW.toFixed(1); let c=fenceArt.get(k);
+  const S2=Math.ceil(TW*3), ax=S2/2, ay=S2*.62;
+  if(!c){ if(fenceArt.size>400) fenceArt.clear();
+    c=document.createElement("canvas"); c.width=c.height=S2; const sv=ctx; ctx=c.getContext("2d");
+    const [ox,oy]=P(0,0); ctx.translate(ax-ox,ay-oy); try{ draw(); } finally { ctx=sv; } fenceArt.set(k,c); }
+  const [px,py]=P(x,y); ctx.drawImage(c,px-ax,py-ay);
+}
+// rows of individually shaded stones on one face; f(a,z) maps face position to screen
+function stoneFace(f,a0,a1,z0,z1,rows,bw,base,tone,seed){
+  const r=rng(seed), hz=(z1-z0)/rows, ga=.018, gz=.035, lw=Math.max(1,TW*.012);
+  for(let row=0;row<rows;row++){
+    const za=z0+row*hz, zb=za+hz; let a=a0-(row%2?bw/2:0);
+    for(;a<a1-1e-6;a+=bw){
+      const s0=Math.max(a0,a)+ga, s1=Math.min(a1,a+bw)-ga; if(s1-s0<.02) continue;
+      const t=tone*(.9+r()*.2), top=f((s0+s1)/2,zb-gz), bot=f((s0+s1)/2,za+gz);
+      const gr=ctx.createLinearGradient(top[0],top[1],bot[0],bot[1]); gr.addColorStop(0,hexShade(base,Math.min(1.5,1.22*t))); gr.addColorStop(1,hexShade(base,.78*t));
+      poly([f(s0,za+gz),f(s1,za+gz),f(s1,zb-gz),f(s0,zb-gz)],gr,"#26232c",lw);
+      ctx.strokeStyle="#ffffff40"; ctx.lineWidth=lw; ctx.beginPath(); ctx.moveTo(...f(s0+.02,zb-gz-.03)); ctx.lineTo(...f(s1-.02,zb-gz-.03)); ctx.stroke();
+    }
+  }
+}
+function fenceStyle(lv,club){
+  const lum=c=>{ const [r,g,b2]=rgb(c); return r*.3+g*.59+b2*.11; };
+  return { stone:lv<3?"#a89f92":lv<6?"#9c9cab":"#aeb0c4", mortar:"#4a4652",
+    cap:lv<3?"#b8b0a2":lv<6?"#e8b02a":"#ffcc3a", gold:lv>=3,
+    panel:lv<3?null:(lum(club.a)<45?club.b:club.a), h:.95+lv*.04, pw:.52, wt:.44 };
+}
+function fencePillar(lv,club){
+  const st=fenceStyle(lv,club), {h,pw}=st, x0=.5-pw/2, y0=.5-pw/2;
+  poly([P(x0+.08,y0+pw+.02),P(x0+pw+.25,y0+pw+.02),P(x0+pw+.25,y0+.1),P(x0+pw+.02,y0+.1)],"#14200a33",null);   // soft shadow
+  prism(x0,y0,pw,pw,0,h,st.mortar);
+  stoneFace((a,z)=>P(x0+a,y0+pw,z),0,pw,0,h,3,pw/2,st.stone,1,lv*7+1);
+  stoneFace((a,z)=>P(x0+pw,y0+pw-a,z),0,pw,0,h,3,pw/2,st.stone,.74,lv*7+2);
+  // cap: chunky slab with gold studs on the corners and a knob on top
+  prism(x0-.06,y0-.06,pw+.12,pw+.12,h,.14,st.cap,hexShade(st.cap,1.3));
+  ctx.strokeStyle="#ffffff80"; ctx.lineWidth=Math.max(1,TW*.014); ctx.beginPath(); ctx.moveTo(...P(x0-.06,y0+pw+.06,h+.135)); ctx.lineTo(...P(x0+pw+.06,y0+pw+.06,h+.135)); ctx.stroke();
+  if(st.gold){ for(const [i,j] of [[0,0],[1,0],[0,1],[1,1]]) prism(x0-.06+i*(pw+.12-.13),y0-.06+j*(pw+.12-.13),.13,.13,h+.14,.07,"#ffd84a","#fff1a8");
+    prism(x0+pw*.3,y0+pw*.3,pw*.4,pw*.4,h+.14,.1,st.cap,"#fff0a0"); }
+}
+function fenceWall(dir,lv,club){
+  const st=fenceStyle(lv,club), wh=st.h*.74, wt=st.wt;
+  const f=dir==="x"?(a,z)=>P(a,.5+wt/2,z):(a,z)=>P(.5+wt/2,a,z);
+  if(dir==="x"){ poly([P(.5,.5+wt/2+.02),P(1.5,.5+wt/2+.02),P(1.5,.5-wt/2+.2),P(.5,.5-wt/2+.2)],"#14200a2e",null); prism(.5,.5-wt/2,1,wt,0,wh,st.mortar); }
+  else { poly([P(.5+wt/2+.02,.5),P(.5+wt/2+.02,1.5),P(.5-wt/2+.2,1.5),P(.5-wt/2+.2,.5)],"#14200a2e",null); prism(.5-wt/2,.5,wt,1,0,wh,st.mortar); }
+  const tone=dir==="x"?1:.82, seed=(dir==="x"?11:23)+lv*5;
+  if(st.panel){
+    stoneFace(f,.5,1.5,0,wh*.26,1,.34,st.stone,tone,seed);
+    const pz0=wh*.26, pz1=wh*.86, top=f(1,pz1), bot=f(1,pz0);
+    const gr=ctx.createLinearGradient(top[0],top[1],bot[0],bot[1]); gr.addColorStop(0,hexShade(st.panel,1.1*tone)); gr.addColorStop(1,hexShade(st.panel,.62*tone));
+    poly([f(.5,pz0),f(1.5,pz0),f(1.5,pz1),f(.5,pz1)],gr,"#1b1820",Math.max(1,TW*.014));
+    ctx.fillStyle="#00000030"; poly([f(.5,pz1-.06),f(1.5,pz1-.06),f(1.5,pz1),f(.5,pz1)],"#00000035",null);           // shadow under the coping
+    for(const z of [pz0,pz1]) poly([f(.5,z-.025),f(1.5,z-.025),f(1.5,z+.025),f(.5,z+.025)],"#e8b02a","#5a3d06",Math.max(1,TW*.01));
+    stoneFace(f,.5,1.5,pz1,wh,1,.5,st.stone,tone*1.05,seed+3);
+  } else stoneFace(f,.5,1.5,0,wh,3,.34,st.stone,tone,seed);
+  // coping stones along the top
+  if(dir==="x") prism(.5,.5-wt/2-.05,1,wt+.1,wh,.09,hexShade(st.stone,.85),hexShade(st.stone,1.25));
+  else prism(.5-wt/2-.05,.5,wt+.1,1,wh,.09,hexShade(st.stone,.85),hexShade(st.stone,1.25));
+}
+function fenceBanner(dir,pennant,lv,club){
+  const painted=artSprites.has("fence-post"), st=fenceStyle(lv,club), wh=painted?.74:st.h*.74, wt=painted?.2:st.wt, lw=Math.max(1,TW*.016);
+  const lum=c=>{ const [r,g,b2]=rgb(c); return r*.3+g*.59+b2*.11; };
+  const g=dir==="x"?(a,z)=>P(a,.5+wt/2+.015,z):(a,z)=>P(.5+wt/2+.015,a,z);
+  const top=wh*1.02, bot=pennant?wh*.12:wh*.24, fill=pennant?club.a:(lum(club.b)>200?club.a:club.b), trim=pennant?club.b:club.a;
+  const shapeOuter=pennant?[g(.74,top),g(1.26,top),g(1.26,wh*.45),g(1,bot),g(.74,wh*.45)]:[g(.72,top),g(1.28,top),g(1.28,bot),g(1.14,bot+.06),g(1,bot),g(.86,bot+.06),g(.72,bot)];
+  const t0=g(1,top), b0=g(1,bot), gr=ctx.createLinearGradient(t0[0],t0[1],b0[0],b0[1]); gr.addColorStop(0,hexShade(fill,1.25)); gr.addColorStop(1,hexShade(fill,.75));
+  poly(shapeOuter,gr,"#000",lw);
+  if(pennant) poly([g(.78,top-.04),g(1.22,top-.04),g(1.22,wh*.48),g(1,bot+.07),g(.78,wh*.48)],null,trim,Math.max(1,TW*.018));
+  prism(...(dir==="x"?[.68,.5+wt/2,.64,.04]:[.5+wt/2,.68,.04,.64]),top-.02,.05,"#e8b02a","#fff0a0");                  // gold rail
+  const [bx,by]=g(1,pennant?wh*.66:wh*.63); drawBadge(ctx,bx,by,TW*.095,club);
+}
+// Painted walls: slices of the painted fence-post's wall stubs, repeated along the wall.
+// The left stub runs along the x axis and the right stub along the y axis (both point backwards from the post).
+const FENCE_SLICE={x:[40,62], y:[194,216]};
+function paintedWall(post,x,y,dir){
+  const sc=TW*.68/post.w, [a0,a1]=FENCE_SLICE[dir], w=a1-a0, sw=w*sc, dx=dir==="x"?1:-1;
+  const [cx,cy]=P(x+.5,y+.5), base=(a0-post.w/2)*sc, along=TW/2;
+  // strip screen x = cx + base + dx*t ; it must sweep from this post to the next one
+  const t0=dir==="x"?-base-sw:base, t1=t0+along+sw*2;
+  for(let t=t0;t<=t1;t+=sw){
+    ctx.drawImage(post.image,post.x+a0,post.y,w,post.h,cx+base+dx*t,cy+t*.5-post.h*.89*sc,sw+.7,post.h*sc);
+  }
+}
 function drawFence(b,club,list,lv){
-  const x=b.x,y=b.y, col=FENCE_COL[Math.min(lv,FENCE_COL.length)-1];
-  const has=(i,j)=>list.some(o=>o.t==="fence"&&!(o.hp<=0)&&o.x===i&&o.y===j&&!(o.busy&&o.busy.kind==="build"));
-  const h=.85+lv*.08, w=.24+lv*.02;
-  if(drawFenceArt(x,y,h,lv,has(x+1,y),has(x,y+1))) return;
-  if(has(x+1,y)) for(const z of [.28,h*.7]) prism(x+.5,y+.46,1,.08,z,.12,col);
-  if(has(x,y+1)) for(const z of [.28,h*.7]) prism(x+.46,y+.5,.08,1,z,.12,col);
-  prism(x+.5-w/2,y+.5-w/2,w,w,0,h,col);
-  prism(x+.5-w/2-.03,y+.5-w/2-.03,w+.06,w+.06,h,.12,lv>=4?"#fff3b0":club.a);
-  if(lv===5){ const [sx,sy]=P(x+.5,y+.5,h+.12); poly([[sx-TW*.05,sy],[sx+TW*.05,sy],[sx,sy-TH*.45]],"#ddd"); }
+  const x=b.x,y=b.y, fs=fenceSet(list), has=(i,j)=>fs.has(i+","+j);
+  const E=has(x+1,y), Wn=has(x-1,y), S=has(x,y+1), Nn=has(x,y-1);
+  const run=dir=>{ let s0=dir==="x"?x:y, s1=s0; if(dir==="x"){ while(has(s0-1,y)) s0--; while(has(s1+1,y)) s1++; } else { while(has(x,s0-1)) s0--; while(has(x,s1+1)) s1++; } return {k:(dir==="x"?x:y)-s0, len:s1-s0}; };
+  const straightX=(E||Wn)&&!S&&!Nn, straightY=(S||Nn)&&!E&&!Wn;
+  const pillar=!(straightX||straightY) || (straightX&&(run("x").k%3===0||!E)) || (straightY&&(run("y").k%3===0||!S));
+  const id=lv+club.abbr, post=artSprites.get("fence-post");
+  for(const dir of ["x","y"]){ if(!(dir==="x"?E:S)) continue;
+    if(post) paintedWall(post,x,y,dir); else fenceCached("w"+dir+id,x,y,()=>fenceWall(dir,lv,club));
+    const r=run(dir); if(r.len>=FENCE_RUN_BANNER && r.k%3===1){ const pen=Math.floor(r.k/3)%2===0; fenceCached("b"+dir+pen+id,x,y,()=>fenceBanner(dir,pen,lv,club)); } }
+  if(pillar){ if(post) paintArt(post,...P(x+.5,y+.5),TW*.68/post.w,.89); else fenceCached("p"+id,x,y,()=>fencePillar(lv,club)); }
 }
 function drawTrap(b){ const [x,y]=P(b.x+.5,b.y+.5); ctx.fillStyle="#425657"; ctx.strokeStyle=OUT; ctx.lineWidth=1.5; ctx.beginPath(); ctx.ellipse(x,y,TW*.21,TH*.23,0,0,7); ctx.fill(); ctx.stroke();
   ctx.beginPath(); ctx.arc(x,y-TH*.15,TW*.06,0,7); ctx.fillStyle="#d6ad59"; ctx.fill(); ctx.stroke(); }
@@ -494,8 +591,9 @@ function thumb(t, club, lv=1){
   TH=TW/2;
   // centre building footprint
   const want=[80,s===1?105:122]; cam.x=0; cam.y=0; const [ax,ay]=iso(s/2,s/2); cam.x=want[0]-ax; cam.y=want[1]-ay - (s===1?0:0);
-  const list=[{t,x:0,y:0,lv}]; if(t==="fence"){ list.push({t,x:1,y:0,lv}); list[0].x=-.5; }
-  try{ drawBuilding({t,x:t==="fence"?0:0,y:0,lv},club,list,{fill:.7,heroes:{captain:club,coach:club},lit:true}); }catch(e){ console.error("thumb",t,e.message); }
+  // fences: show a short wall (pillar, wall, pillar)
+  const list=t==="fence"?[{t,x:-1,y:-.5,lv},{t,x:0,y:-.5,lv},{t,x:1,y:-.5,lv}]:[{t,x:0,y:0,lv}];
+  try{ for(const b of list) drawBuilding(b,club,list,{fill:.7,heroes:{captain:club,coach:club},lit:true}); }catch(e){ console.error("thumb",t,e.message); }
   ctx=saved.ctx; W=saved.W; H=saved.H; TW=saved.TW; TH=saved.TH; cam.x=saved.cx; cam.y=saved.cy;
   return c;
 }

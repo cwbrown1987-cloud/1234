@@ -52,11 +52,13 @@ function makeBattle(o){
     left:{...o.army}, had:{...o.army}, spellsLeft:{...(o.spells||{})}, hadSpells:{...(o.spells||{})},
     heroesLeft:{...(o.heroes||{})}, heroU:{}, abilityUsed:{}, loot:{pies:0,drink:0}, lootTotal, uid:0, dirty:true, mask:2, sel:null, destroyed:0};
 }
+const FRIEND_LOOT = .25; // attacking a friend: a normal match, but you only take a quarter of the loot
 function startBattle(o){
   if(!Object.values(S.army).some(n=>n>0)) return toast("Train some players first!");
   const heroes={}; for(const h of heroPicked()) if(heroReady(h)) heroes[h]=true;
+  if(o.ranked&&typeof nextFixture==="function"){ ensureSeason(); const f=nextFixture(); if(f&&!o.fixture) o.fixture=f.name; }
   BT=makeBattle({mode:"attack", kind:o.kind, ranked:!!o.ranked, round:o.round, fixture:o.fixture, d:o.d, club:o.club, atkClub:S.club, buildings:o.buildings||genBase(o.d,o.seed),
-    army:S.army, spells:S.spells, heroes, lvOf:u=>S.unitLv[u], heroStat:h=>heroStats(h), bonus:cardBonus, lootMul:o.kind==="friendly"?0:(eventNow()&&eventNow().loot||1)*(o.lootMul||1), revenge:o.revenge, opp:o.opp});
+    army:S.army, spells:S.spells, heroes, lvOf:u=>S.unitLv[u], heroStat:h=>heroStats(h), bonus:cardBonus, lootMul:o.kind==="friendly"?0:o.kind==="friend"?FRIEND_LOOT:(eventNow()&&eventNow().loot||1)*(o.lootMul||1), revenge:o.revenge, opp:o.opp});
   S.lastArmy={...S.army}; S.lastSpells={...S.spells};
   BT.rec=[]; BT.origBase=o.buildings?JSON.parse(JSON.stringify(o.buildings)):null;
   BT.sel = firstSel();
@@ -245,7 +247,7 @@ function placeAt(k,v,x,y){
 }
 const recordMove = m => { if(BT&&BT.rec&&!BT.plan) BT.rec.push({...m,t:Math.round(BT.elapsed*1000)/1000}); };
 function battleTap(x,y){
-  if(!BT||BT.over||!BT.sel||BT.mode!=="attack") return;
+  if(!BT||BT.over||BT.visit||!BT.sel||BT.mode!=="attack") return;
   if(x<-1.5||y<-1.5||x>N+1.5||y>N+1.5) return;
   const {k,v}=BT.sel;
   if(deployAt(k,v,x,y)){ if(k==="unit") sfx("tap",.2); autoSel(); uiDirty=true; tut("deploy"); }
@@ -300,11 +302,12 @@ function endBattle(){
   let tro = !BT.ranked ? 0 : stars ? Math.round((8+stars*6)*(BT.d>=th()?1.2:.8)) : -10;
   if(BT.revenge){ const r=S.raids.find(x=>x.id===BT.revenge); if(r&&r.lost){ // revenge always gets back at least what they took, like Clash
     for(const k of ["pies","drink"]){ const short=Math.max(0,(r.lost[k]||0)-got[k]); if(short) got[k]+=addRes(k,short); } } }
-  const starRes = ["match","pvp","revenge"].includes(BT.kind)&&!friendly&&stars ? addStars(stars) : null;
+  const starRes = ["match","pvp","revenge","season","friend"].includes(BT.kind)&&!friendly&&stars ? addStars(stars) : null;
   S.trophies=Math.max(0,S.trophies+tro);
   let medals=0, pack=null;
   const sc=scoreNow(); let season=null;
-  if(BT.kind==="season"){ season=seasonResult({g:sc.a.g,b:sc.a.b},{g:sc.h.g,b:sc.h.b}); if(season.res==="W"&&Math.random()<.25){ medals=1; S.medals+=medals; } }
+  // The season ladder only counts Ranked matches: each one is your next round (or final), against the club you played.
+  if(BT.ranked&&!friendly&&typeof nextFixture==="function"&&(ensureSeason(),nextFixture())){ season=seasonResult({g:sc.a.g,b:sc.a.b},{g:sc.h.g,b:sc.h.b},BT.club); if(season.res==="W"&&Math.random()<.25){ medals=1; S.medals+=medals; } }
   let tokens=0; if(stars>0&&!friendly){ track("win",1); tokens=WIN_TOKENS; earnTokens(tokens); addXP(stars*5); if(typeof addOre==="function") addOre({tape:15*stars*th(), lin:BT.ranked?stars:0}); }
   track("destroy",BT.destroyed);
   if(BT.revenge){ const r=S.raids.find(x=>x.id===BT.revenge); if(r) r.revenged=true; }
@@ -316,7 +319,7 @@ function endBattle(){
   setTimeout(()=>tut("battleEnd"),50);
   showResult({stars,p,got,tro,medals,tokens,sc,ranked:BT.ranked,starRes,season,fixture:BT.fixture,opp:BT.opp,friendly,home:CLUBS[BT.club],away:CLUBS[BT.atkClub],club:CLUBS[BT.club].name, full:(got.pies<Math.floor(BT.loot.pies*mul)||got.drink<Math.floor(BT.loot.drink*mul))});
 }
-function leaveBattle(){ const wasAttack=BT&&BT.mode==="attack"; BT=null; mode="home"; cam.x=0; cam.y=0; setZoom(1);
+function leaveBattle(){ const wasAttack=BT&&BT.mode==="attack"&&!BT.visit; BT=null; mode="home"; cam.x=0; cam.y=0; setZoom(1);
   if(wasAttack&&S){ const a=fillSquad(S.lastArmy); let sp=0; for(const [k,n] of Object.entries(S.lastSpells||{})) while((S.spells[k]||0)<n&&spellCount()<spellSlots()){ S.spells[k]=(S.spells[k]||0)+1; sp++; } if(a||sp){ save(); toast("Squad refilled for the next match"); } }
   refreshUI(); }
 

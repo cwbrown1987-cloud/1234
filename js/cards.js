@@ -57,7 +57,7 @@ const specialsOf = k => ALL_CARDS.filter(c => c.kind === k);
 
 // ---------- ratings from real 2026 stats ----------
 // Each bar is the player's per-game number ranked against every 2026 player (5+ games), shown as 35–99.
-const CARD_STATS = [["Disposals",1,"#f5c242"],["Marking",3,"#3d8bff"],["Tackling",4,"#46c9b4"],["Goals",2,"#5fd16b"],["Clearances",6,"#ff9a3c"],["Hit-outs",5,"#b06cff"]];
+const CARD_STATS = [["Disposals",1,"#f5c242","🏉"],["Marking",3,"#3d8bff","🙌"],["Tackling",4,"#46c9b4","💪"],["Goals",2,"#5fd16b","🥅"],["Clearances",6,"#ff9a3c","⚡"],["Hit-outs",5,"#b06cff","✊"]];
 const POS_WEIGHT = {mid:{1:.35,6:.3,4:.2,3:.1,2:.05}, fwd:{2:.45,3:.3,1:.15,4:.1}, ruck:{5:.5,6:.2,3:.15,1:.15}, def:{3:.4,1:.4,4:.2}};
 const cardStatPool = (() => { const out = {}; const all = CARD_SET.flat().filter(p => p[3][0] >= 5);
   for (const k of [1,2,3,4,5,6,7]) out[k] = all.map(p => p[3][k] / p[3][0]).sort((a, b) => a - b); return out; })();
@@ -65,7 +65,7 @@ const statPct = (k, v) => { const a = cardStatPool[k]; let lo = 0, hi = a.length
 function cardRatings(c) {
   if (c._r) return c._r;
   const gm = Math.max(1, (c.s || [])[0] || 0), pg = k => ((c.s || [])[k] || 0) / gm;
-  const bars = CARD_STATS.map(([label, k, col]) => ({label, col, v:Math.round(35 + 64 * statPct(k, pg(k)))}));
+  const bars = CARD_STATS.map(([label, k, col, icon]) => ({label, col, icon, v:Math.round(35 + 64 * statPct(k, pg(k)))}));
   const w = POS_WEIGHT[c.pos] || POS_WEIGHT.mid; let sum = 0; for (const [k, f] of Object.entries(w)) sum += f * statPct(+k, pg(+k));
   const games = Math.min(1, ((c.s || [])[0] || 0) / 20);
   const ovr = Math.min(99, Math.round(58 + 30 * sum + 6 * statPct(7, pg(7)) + 5 * games));
@@ -148,12 +148,22 @@ function cardFace(c, t) {
   const frame = sp ? (c.kind === "PZ" ? ["#fff7c8", "#e0a91a", "#fff0a0", "#9c6a08"] : sp.col.concat(sp.col[0])) : R.frame;
   const accent = sp ? (c.kind === "PZ" ? "#e0a91a" : sp.col[0] === "#1b1b1b" ? "#ffd34d" : sp.col[0]) : R.frame[1];
   const gfx = cardImg(`art/cards/frame-${sp ? ({SW:"star-wildcard", BF:"best-fairest", GK:"goal-kicker", FL:"future-legend", PZ:"24k-gold"})[c.kind] : R.name.toLowerCase()}.webp`);
-  // 1. glowing frame
+  // 1. glowing frame: thick bevelled metal band with corner ornaments (like the reference cards)
   if (!gfx) {
-    g.save(); g.shadowColor = sp ? accent : R.glow; g.shadowBlur = t === "c" && !sp ? 4 : 12;
-    g.fillStyle = frameFill(g, frame, W, H); g.beginPath(); g.roundRect(6, 6, W - 12, H - 12, 18); g.fill(); g.restore();
-    g.lineWidth = 3; g.strokeStyle = "#000"; g.stroke();
-    g.lineWidth = 2; g.strokeStyle = "#ffffff88"; g.beginPath(); g.roundRect(10, 10, W - 20, H - 20, 15); g.stroke();
+    const [hi, mid, lite, dark] = [frame[0], frame[1], frame[2] || frame[0], frame[3] || frame[1]];
+    g.save(); g.shadowColor = sp ? accent : R.glow; g.shadowBlur = t === "c" && !sp ? 6 : 18;
+    g.fillStyle = "#0b0d12"; g.beginPath(); g.roundRect(4, 4, W - 8, H - 8, 20); g.fill(); g.restore();
+    const band = g.createLinearGradient(0, 0, W * .35, H);
+    [[0, lite], [.12, mid], [.28, dark], [.42, hi], [.55, mid], [.7, dark], [.85, lite], [1, mid]].forEach(([o, col]) => band.addColorStop(o, col));
+    g.fillStyle = band; g.beginPath(); g.roundRect(7, 7, W - 14, H - 14, 17); g.roundRect(16, 16, W - 32, H - 32, 11); g.fill("evenodd");
+    g.lineWidth = 2; g.strokeStyle = "#ffffffaa"; g.beginPath(); g.roundRect(8.5, 8.5, W - 17, H - 17, 16); g.stroke();   // outer highlight
+    g.strokeStyle = "#00000099"; g.beginPath(); g.roundRect(15, 15, W - 30, H - 30, 12); g.stroke();                       // inner shadow line
+    g.strokeStyle = "#000"; g.lineWidth = 2.5; g.beginPath(); g.roundRect(4, 4, W - 8, H - 8, 20); g.stroke();
+    // corner ornaments: metal caps with a gem
+    const gem = (x, y, r) => { g.save(); g.translate(x, y); g.rotate(Math.PI / 4);
+      g.fillStyle = band; g.strokeStyle = "#000"; g.lineWidth = 2; g.beginPath(); g.roundRect(-r, -r, r * 2, r * 2, 3); g.fill(); g.stroke();
+      g.fillStyle = sp ? accent : R.tag; g.beginPath(); g.roundRect(-r * .5, -r * .5, r, r, 2); g.fill(); g.fillStyle = "#ffffffb0"; g.fillRect(-r * .45, -r * .45, r * .35, r * .35); g.restore(); };
+    gem(W - 12, H - 12, 7); gem(12, H - 12, 7);
   }
   // 2. window: club colours with a burst of rays
   const ix = 17, iy = 17, iw = W - 34, ih = H - 34;
@@ -177,7 +187,8 @@ function cardFace(c, t) {
   g.restore();
   if (gfx) g.drawImage(gfx, 0, 0, W, H);
   // 4. small club sticker top-left
-  drawBadge(g, 40, 42, 17, club);
+  g.save(); g.fillStyle = "#0b0d12"; g.strokeStyle = accent; g.lineWidth = 3; g.beginPath(); g.moveTo(16, 16); g.lineTo(66, 16); g.lineTo(66, 52); g.quadraticCurveTo(41, 72, 16, 52); g.closePath(); g.fill(); g.stroke(); g.restore();
+  drawBadge(g, 41, 40, 15, club);
   // 5. rating + rarity tag top-right
   const ovr = cardRatings(c).ovr;
   g.fillStyle = "#16181f"; g.strokeStyle = accent; g.lineWidth = 3; g.beginPath(); g.roundRect(W - 78, 22, 56, 44, 9); g.fill(); g.stroke();
@@ -190,11 +201,12 @@ function cardFace(c, t) {
   if (sp) { g.fillStyle = sp.col[1]; g.strokeStyle = "#000"; g.lineWidth = 2; g.beginPath(); g.roundRect(64, 92, W - 128, 22, 6); g.fill(); g.stroke();
     g.fillStyle = isLight(sp.col[1]) ? (isLight(sp.col[0]) ? "#111" : sp.col[0]) : "#fff"; fitText(g, sp.name.toUpperCase(), W - 140, 13); g.fillText(sp.name.toUpperCase(), W / 2, 104); }
   // 7. big club badge, bottom-left over the portrait
-  drawBadge(g, 50, H - 104, 25, club);
+  g.save(); g.fillStyle = "#0b0d12cc"; g.strokeStyle = "#ffffffcc"; g.lineWidth = 2.5; g.beginPath(); g.roundRect(22, H - 150, 64, 64, 12); g.fill(); g.stroke(); g.restore();
+  drawBadge(g, 54, H - 118, 27, club);
   // 8. name plate + position strip
   const pl = g.createLinearGradient(0, H - 88, 0, H - 44); pl.addColorStop(0, "#343843"); pl.addColorStop(1, "#14161c");
   g.fillStyle = pl; g.strokeStyle = accent; g.lineWidth = 2.5; g.beginPath(); g.roundRect(22, H - 88, W - 44, 42, 9); g.fill(); g.stroke();
-  const nm = c.name.toUpperCase(); g.fillStyle = "#fff"; fitText(g, nm, W - 62, 22, 11);
+  const nm = c.name.toUpperCase(); g.fillStyle = "#fff"; fitText(g, nm, W - 60, 25, 11);
   g.strokeStyle = "#000"; g.lineWidth = 3; g.strokeText(nm, W / 2, H - 66); g.fillText(nm, W / 2, H - 66);
   g.fillStyle = "#0c0d11"; g.strokeStyle = accent; g.lineWidth = 1.5; g.beginPath(); g.roundRect(W / 2 - 44, H - 46, 88, 20, 6); g.fill(); g.stroke();
   g.fillStyle = "#e9e3cf"; g.font = '13px "Lilita One",sans-serif'; g.fillText(POS_SHORT[c.pos] || "", W / 2, H - 35);
@@ -216,50 +228,68 @@ function statsPanel(c, t) {
   const r = cardRatings(c), sp = c.special && SPECIALS[c.kind];
   const title = sp ? `${sp.name}!` : `${TIERS[t].name} card${t === "p" ? "!" : ""}`, blurb = sp ? (c.kind === "PZ" ? "Solid gold. The rarest card in the set." : "A special card from the 7th slot of a pack.") : RARITY_BLURB[t];
   return `<div class="statpanel"><div class="spcard" data-view="${c.id}"><img src="${cardFace(c, t)}" alt=""><small>Tap to flip</small></div>
-    <div class="spinfo"><h4>Card stats</h4>${r.bars.map(b => `<div class="sbar"><span>${b.label}</span><i><b style="width:${b.v}%;background:${b.col}"></b></i><em>${b.v}</em></div>`).join("")}
+    <div class="spinfo"><h4>Card stats</h4>${r.bars.map(b => `<div class="sbar"><span><i class="si">${b.icon}</i>${b.label}</span><i><b style="width:${b.v}%;background:${b.col}"></b></i><em>${b.v}</em></div>`).join("")}
     <div class="spblurb"><b>${title}</b><span>${blurb}</span></div></div></div>`;
 }
 
 // ---------- album: a leather binder like the mock-up ----------
-let albumClub = null, albumSel = null;
+let albumClub = null, albumSel = null, albumPage = 0, albumTab = "album";
+const SLOTS_PER_SPREAD = 8; // two pages of 2×2, like the reference binder
 function openAlbum(club) {
-  if (club !== undefined && club !== albumClub) albumSel = null;
+  if (club !== undefined && club !== albumClub) { albumSel = null; albumPage = 0; }
   albumClub = club ?? albumClub ?? S.club;
   const tokens = S.tokens || 0, canOpen = tokens >= PACK_COST;
   const list = albumClub === "sp" ? ALL_CARDS.filter(c => c.special) : ALL_CARDS.filter(c => c.club === albumClub && !c.special);
+  const spreads = Math.max(1, Math.ceil(list.length / SLOTS_PER_SPREAD)); albumPage = Math.min(albumPage, spreads - 1);
   const sel = (albumSel && list.find(c => c.id === albumSel && bestTier(c))) || list.filter(c => bestTier(c)).sort((a, b) => TIER_ORDER.indexOf(bestTier(b)) - TIER_ORDER.indexOf(bestTier(a)) || cardRatings(b).ovr - cardRatings(a).ovr)[0];
   const sets = CLUBS.filter((c, i) => { const [o, t] = albumCount(x => x.club === i && !x.special); return t && o === t; }).length;
-  const slot = c => { const t = bestTier(c);
-    return t ? `<div class="acard t-${t}${sel === c ? " sel" : ""}" data-ac="${c.id}"><img src="${cardFace(c, t)}" loading="lazy" alt="${c.name}">${dupInfo(c)}</div>`
-      : `<div class="acard empty" data-ac="${c.id}"><span>${c.special ? SPECIALS[c.kind].name : "#" + pad3(c.num)}</span><small>${c.name}</small></div>`; };
-  const half = Math.ceil(list.length / 2), clubName = albumClub === "sp" ? "Specials" : CLUBS[albumClub].name;
+  const slot = c => { if (!c) return `<div class="aslot blank"></div>`; const t = bestTier(c);
+    return t ? `<div class="aslot acard t-${t}${sel === c ? " sel" : ""}" data-ac="${c.id}"><img src="${cardFace(c, t)}" loading="lazy" alt="${c.name}">${dupInfo(c)}</div>`
+      : `<div class="aslot acard empty" data-ac="${c.id}"><span>${c.special ? SPECIALS[c.kind].name : "#" + pad3(c.num)}</span><small>${c.name}</small></div>`; };
+  const spread = list.slice(albumPage * SLOTS_PER_SPREAD, (albumPage + 1) * SLOTS_PER_SPREAD); while (spread.length < SLOTS_PER_SPREAD) spread.push(null);
+  const clubName = albumClub === "sp" ? "Specials" : CLUBS[albumClub].name;
+  const tab = (k, icon, label) => `<button class="atab${albumTab === k ? " on" : ""}" data-tab="${k}"><b>${icon}</b>${label}${k === "rewards" && (dailyReady() || S.prizePacks) ? '<i class="bang">!</i>' : ""}</button>`;
+  let body = "";
+  if (albumTab === "album") {
+    body = `<div class="pagehead">${albumClub === "sp" ? "<b class='spstar'>⭐</b>" : badgeImg(CLUBS[albumClub], "sm")}<span>${clubName}<small>${albumClub === "sp" ? "Special cards" : "2026 season"} · ${albumCount(c => list.includes(c))[0]}/${list.length}</small></span></div>
+    <div class="binder"><div class="bpage">${spread.slice(0, 4).map(slot).join("")}</div>
+      <div class="rings"><i></i><i></i><i></i><i></i></div>
+      <div class="bpage">${spread.slice(4).map(slot).join("")}</div></div>
+    ${spreads > 1 ? `<div class="pager"><button class="pg" id="pgPrev" ${albumPage ? "" : "disabled"}>‹</button><span>Page ${albumPage + 1} / ${spreads}</span><button class="pg" id="pgNext" ${albumPage < spreads - 1 ? "" : "disabled"}>›</button></div>` : ""}
+    ${sel ? statsPanel(sel, bestTier(sel)) : `<div class="statpanel emptyp">No ${clubName} cards yet. Open packs to find them!</div>`}`;
+  } else if (albumTab === "sets") {
+    body = `<div class="setlist">${CLUBS.map((c, i) => { const [o, t] = albumCount(x => x.club === i && !x.special); return `<button class="setrow${o === t ? " done" : ""}" data-set="${i}">${badgeImg(c, "xs")}<span>${c.name}</span><i><b style="width:${o / t * 100}%"></b></i><em>${o}/${t}</em></button>`; }).join("")}
+      <button class="setrow" data-set="sp"><b class="spstar">⭐</b><span>Specials</span><i><b style="width:${albumCount(x => x.special)[0] / albumCount(x => x.special)[1] * 100}%"></b></i><em>${albumCount(x => x.special)[0]}/${albumCount(x => x.special)[1]}</em></button></div>`;
+  } else {
+    body = `<div class="rewards">
+      <div class="rwd"><b>🎟️ ${tokens}</b><span>Footy Tokens. Win any match for +${WIN_TOKENS}. A pack costs ${PACK_COST}.</span></div>
+      <button class="btn ${dailyReady() ? "green" : ""}" id="dailyTok" ${dailyReady() ? "" : "disabled"}>${dailyReady() ? `Claim daily bonus<small>+${DAILY_TOKENS} 🎟️</small>` : `Daily bonus<small>back tomorrow</small>`}</button>
+      ${S.prizePacks ? `<button class="btn red" id="openPrize"><img class="packmini" src="${packImg("prize")}" alt=""> Open Prize Pack ×${S.prizePacks}<small>includes a 24K Gold card</small></button>` : `<div class="rwd"><b>🏆 Prize Pack</b><span>Every 5 Experience Levels. Includes a 24K Gold card. Next at level ${Math.ceil((S.lvl + 1) / 5) * 5}.</span></div>`}
+      <div class="rwd"><b>⬆️ Upgrades</b><span>3 matching duplicates upgrade a card: Common → Rare → Epic → Legendary. Cards are for collecting and don't change match stats.</span></div></div>`;
+  }
   const h = `<div class="fcc">
-    <div class="fccbanner"><b>Footy Card Collectors</b><small>Collect · Upgrade · Complete the set</small></div>
-    <div class="albumbar"><span>📒 <b>${albumCount(c => !c.special)[0]}</b>/${BASE_CARDS.length}</span><span>⭐ <b>${albumCount(c => c.special)[0]}</b>/${ALL_CARDS.length - BASE_CARDS.length}</span><span>🎟️ <b>${tokens}</b> tokens</span><span>⭐ Level ${S.lvl}</span></div>
-    <div class="clubstrip">${CLUBS.map((c, i) => { const [o, t] = albumCount(x => x.club === i && !x.special); return `<button class="${i === albumClub ? "on" : ""}${o === t ? " done" : ""}" data-club="${i}">${badgeImg(c, "xs")}<small>${o}/${t}</small></button>`; }).join("")}
-      <button class="${albumClub === "sp" ? "on" : ""}" data-club="sp">⭐<small>${albumCount(x => x.special)[0]}/${albumCount(x => x.special)[1]}</small></button></div>
-    <h3 class="clubh">${albumClub === "sp" ? "⭐" : badgeImg(CLUBS[albumClub], "sm")} ${clubName} <small>${albumClub === "sp" ? "" : "2026 season"}</small></h3>
-    <div class="binder"><div class="bpage">${list.slice(0, half).map(slot).join("")}</div><div class="rings"><i></i><i></i><i></i><i></i></div><div class="bpage">${list.slice(half).map(slot).join("")}</div></div>
-    ${sel ? statsPanel(sel, bestTier(sel)) : `<p class="tiny center">No ${clubName} cards yet. Open packs to find them!</p>`}
+    <div class="fccbanner"><span class="emblem">🏉</span><div><b>Footy Card Collectors</b><small>Collect · Upgrade · Complete the set</small></div></div>
+    <div class="atabs">${tab("album", '<span class="cicon"><i></i><i></i></span>', "Album")}<button class="atab soon" data-tab="trade"><b>⇄</b>Trade<i class="soontag">Soon</i></button>${tab("sets", "🛡️", "Sets")}${tab("rewards", "🎁", "Rewards")}</div>
+    ${body}
+    <div class="woodbar"><div class="clubstrip">${CLUBS.map((c, i) => { const [o, t] = albumCount(x => x.club === i && !x.special); return `<button class="${i === albumClub ? "on" : ""}${o === t ? " done" : ""}" data-club="${i}">${badgeImg(c, "xs")}</button>`; }).join("")}<button class="${albumClub === "sp" ? "on" : ""}" data-club="sp"><b class="spstar">⭐</b></button></div><button class="stripnext" id="stripNext">›</button></div>
     <div class="fccfoot">
-      <div class="sets"><span>Sets</span><i><b style="width:${sets / 18 * 100}%"></b></i><em>${sets}/18</em></div>
-      <button class="btn green big openpack" id="openPackBtn" ${canOpen ? "" : "disabled"}><img class="packmini" src="${packImg("footy")}" alt="">Open Pack<small>${PACK_COST} 🎟️ · 6 + 1 special</small>${canOpen ? '<span class="bang">!</span>' : ""}</button>
-    </div>
-    <div class="packrow">
-      ${S.prizePacks ? `<button class="btn red" id="openPrize"><img class="packmini" src="${packImg("prize")}" alt=""> Prize Pack ×${S.prizePacks}<small>includes a 24K Gold card</small></button>` : ""}
-      <button class="btn ${dailyReady() ? "green" : ""}" id="dailyTok" ${dailyReady() ? "" : "disabled"}>${dailyReady() ? `Daily bonus<small>+${DAILY_TOKENS} 🎟️</small>` : `Daily bonus<small>back tomorrow</small>`}</button>
-    </div>
-    <p class="tiny center">Win any match for +${WIN_TOKENS} 🎟️. Every 5 levels unlocks a Prize Pack. 3 matching duplicates upgrade a card: Common → Rare → Epic → Legendary. Cards don't change match stats.</p></div>`;
-  modal(h); tut("cards");
-  document.querySelectorAll("[data-club]").forEach(b => b.onclick = () => { const v = b.dataset.club; openAlbum(v === "sp" ? "sp" : +v); });
+      <div class="sets"><b class="setsicon"><span class="cicon"><i></i><i></i></span></b><div><span>Sets</span><i><b style="width:${sets / 18 * 100}%"></b></i></div><em>${sets}/18</em></div>
+      <button class="btn green openpack" id="openPackBtn" ${canOpen ? "" : "disabled"}><b class="packicon"><span class="cicon"><i></i><i></i></span></b>Open Pack<small>${PACK_COST} 🎟️ · you have ${tokens}</small>${canOpen ? '<span class="bang">!</span>' : ""}</button>
+    </div></div>`;
+  modal(h); $("modal").querySelector(".card").classList.add("albummode"); tut("cards");
+  document.querySelectorAll("[data-club]").forEach(b => b.onclick = () => { const v = b.dataset.club; albumTab = "album"; openAlbum(v === "sp" ? "sp" : +v); });
+  document.querySelectorAll("[data-set]").forEach(b => b.onclick = () => { const v = b.dataset.set; albumTab = "album"; openAlbum(v === "sp" ? "sp" : +v); });
+  document.querySelectorAll("[data-tab]").forEach(b => b.onclick = () => { if (b.dataset.tab === "trade") return toast("Trading cards with other players is coming soon!"); albumTab = b.dataset.tab; openAlbum(); });
   document.querySelectorAll("[data-ac]").forEach(el => el.onclick = () => { const c = CARD_BY_ID[el.dataset.ac];
     if (!bestTier(c)) return toast(c.special ? `${SPECIALS[c.kind].name}: comes from the special slot in packs` : `#${pad3(c.num)} ${c.name}: not collected yet. Keep opening packs!`);
     albumSel = c.id; openAlbum(); });
   document.querySelectorAll("[data-view]").forEach(el => el.onclick = () => showAlbumCard(CARD_BY_ID[el.dataset.view]));
-  const sc = document.querySelector(".clubstrip .on"); if (sc) sc.scrollIntoView({inline:"center", block:"nearest"});
+  const pp = $("pgPrev"), pn = $("pgNext"); if (pp) pp.onclick = () => { albumPage--; openAlbum(); }; if (pn) pn.onclick = () => { albumPage++; openAlbum(); };
+  const strip = document.querySelector(".clubstrip"), sc = strip.querySelector(".on"); if (sc) strip.scrollLeft = sc.offsetLeft - strip.clientWidth / 2 + sc.clientWidth / 2;
+  $("stripNext").onclick = () => strip.scrollBy({left:strip.clientWidth * .7, behavior:"smooth"});
   $("openPackBtn").onclick = () => { if ((S.tokens || 0) < PACK_COST) return toast("Win matches to earn Footy Tokens 🎟️"); S.tokens -= PACK_COST; packTear(rollPack(false), "Footy Pack", "footy"); };
   const pz = $("openPrize"); if (pz) pz.onclick = () => { S.prizePacks--; packTear(rollPack(true), "Prize Pack", "prize"); };
-  $("dailyTok").onclick = () => { claimDaily(); openAlbum(); };
+  const dt = $("dailyTok"); if (dt) dt.onclick = () => { claimDaily(); openAlbum(); };
 }
 const packImg = kind => (cardImg(`art/packs/${kind}.webp`) || {}).src || packArt(kind);
 function dupInfo(c) { if (c.special) return ""; const n = TIER_ORDER.reduce((a, t) => a + Math.max(0, have(c.id, t) - (t === bestTier(c) ? 1 : 0)), 0); return n ? `<span class="dup">+${n}</span>` : ""; }
@@ -271,7 +301,7 @@ function showAlbumCard(c, t, back) {
   const ups = c.special ? `<p class="center tiny">${SPECIALS[c.kind].name} cards can't be upgraded.</p>` : TIER_ORDER.filter(x => have(c.id, x)).map(x => `<div class="stat"><span>${TIERS[x].name}</span><b>×${have(c.id, x)} ${canUpgrade(c, x) ? `<button class="btn gold" data-up="${x}">Upgrade to ${TIERS[TIERS[x].next].name}</button>` : TIERS[x].next ? `<small>${Math.max(0, UPGRADE_COST + 1 - have(c.id, x))} more to upgrade</small>` : ""}</b></div>`).join("");
   modal(`<div class="cardview"><div class="flipcard" id="flipc"><div class="ff"><img src="${cardFace(c, t)}" alt=""></div><div class="fb">${cardBack(c)}</div></div>
     <p class="tiny center">Tap the card to flip it</p>
-    <div class="spinfo wide"><h4>Card stats · ${r.ovr} overall</h4>${r.bars.map(b => `<div class="sbar"><span>${b.label}</span><i><b style="width:${b.v}%;background:${b.col}"></b></i><em>${b.v}</em></div>`).join("")}</div>
+    <div class="spinfo wide"><h4>Card stats · ${r.ovr} overall</h4>${r.bars.map(b => `<div class="sbar"><span><i class="si">${b.icon}</i>${b.label}</span><i><b style="width:${b.v}%;background:${b.col}"></b></i><em>${b.v}</em></div>`).join("")}</div>
     ${back ? "" : ups}
     <div class="center"><button class="btn" id="backAlb">${back ? "Back to pack" : "Back to album"}</button></div></div>`, {noClose:!!back});
   $("flipc").onclick = () => $("flipc").classList.toggle("flipped");

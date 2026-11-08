@@ -103,7 +103,7 @@ const TUT = [
   {say:"Tap Rover to add players. Training is free and instant; your bench space is the limit. Add 3.", el:'[data-u="rover"]', wait:"train", count:3},
   // 5. first match
   {say:"Close this window, then tap Match.", el:"#btnAttack", wait:"match", prep:()=>{ for(const u of S.queue.splice(0)) S.army[u]=(S.army[u]||0)+1; S.army.rover=Math.max(S.army.rover||0,8); uiDirty=true; }},
-  {say:"The Season is 17 rounds against every other club. Win for 4 premiership points, finish top 8 for finals. Tap Play for Round 1.", el:'[data-r="0"]', wait:"battle"},
+  {say:"The Season is 17 rounds against every other club. Win for 4 premiership points, finish top 8 for finals. Only Ranked matches count on the ladder. Tap Play for Round 1.", el:'#playRound', wait:"battle"},
   {say:"This is their ground. Tap the grass outside the red zone to send a player in. Hold your finger down to send a stream.", world:deploySpot, wait:"deploy", top:true},
   {say:"It's scored like footy. Every building you knock down is a goal. They score a behind for each building still standing and each player they knock out. Outscore them by the siren! Send in the rest.", next:true, top:true},
   {say:"", wait:"battleEnd", hidden:true},

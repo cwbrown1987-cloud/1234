@@ -157,11 +157,20 @@ function refreshVisibleCardFaces(path) {
     if (c && (!path || cardPortraitPath(c) === path)) img.src = cardFace(c, img.dataset.cardTier);
   }
 }
+const CARD_TRIBUTES = {
+  melb: {name:"Bayley Fritsch", number:31, medallion:"#101b3b", rim:"#ffd978", text:"#fff1b9"},
+  coll: {name:"Nick Daicos", number:35, medallion:"#14171b", rim:"#dce7f2", text:"#f6fbff"}
+};
+function cardTribute(c) {
+  const club = CLUBS[c.club].abbr;
+  const tribute = CARD_TRIBUTES[club];
+  return tribute?.name === c.name ? tribute : null;
+}
 function cardFaceImage(c, t, className = "") {
-  const finish = isFritschTribute(c) ? "foil tribute" : c.special || t !== "c" ? "foil" : "";
+  const tribute = cardTribute(c);
+  const finish = tribute ? "foil tribute-" + CLUBS[c.club].abbr : c.special || t !== "c" ? "foil" : "";
   return `<span class="card-print ${className}"><img data-card-id="${c.id}" data-card-tier="${t}" src="${cardFace(c, t)}" alt="${c.name}"><span class="card-finish ${finish}" aria-hidden="true"></span></span>`;
 }
-const isFritschTribute = c => c.name === "Bayley Fritsch" && CLUBS[c.club].abbr === "melb";
 
 // ---------- card artwork (layout from docs/card-style-reference.png) ----------
 const roleFor = pos => ({mid:"rover", fwd:"forward", ruck:"ruck", def:"shepherd"})[pos] || "rover";
@@ -251,18 +260,19 @@ function cardFace(c, t) {
   // 7. big club badge, bottom-left over the portrait
   g.save(); g.fillStyle = "#0b0d12cc"; g.strokeStyle = "#ffffffcc"; g.lineWidth = 2.5; g.beginPath(); g.roundRect(22, H - 150, 64, 64, 12); g.fill(); g.stroke(); g.restore();
   drawBadge(g, 54, H - 118, 27, club);
-  if (isFritschTribute(c)) {
+  const tribute = cardTribute(c);
+  if (tribute) {
     g.save();
     g.beginPath();
     g.arc(W - 51, H - 124, 20, 0, Math.PI * 2);
-    g.fillStyle = "#101b3b";
+    g.fillStyle = tribute.medallion;
     g.fill();
-    g.strokeStyle = "#ffd978";
+    g.strokeStyle = tribute.rim;
     g.lineWidth = 3;
     g.stroke();
-    g.fillStyle = "#fff1b9";
+    g.fillStyle = tribute.text;
     g.font = '22px "Lilita One",sans-serif';
-    g.fillText("31", W - 51, H - 123);
+    g.fillText(String(tribute.number), W - 51, H - 123);
     g.restore();
   }
   // 8. name plate + position strip
@@ -394,11 +404,11 @@ function showAlbumCard(c, t, back) {
   t = t || bestTier(c);
   if (!t) return toast(c.special ? `${SPECIALS[c.kind].name}: comes from the special slot in packs` : `Not collected yet. Keep opening packs!`);
   const r = cardRatings(c);
-  const tribute=isFritschTribute(c);
+  const tribute = cardTribute(c);
   const ups = c.special ? `<p class="center tiny">${SPECIALS[c.kind].name} cards can't be upgraded.</p>` : TIER_ORDER.filter(x => have(c.id, x)).map(x => `<div class="stat"><span>${TIERS[x].name}</span><b>×${have(c.id, x)} ${canUpgrade(c, x) ? `<button class="btn gold" data-up="${x}">Upgrade to ${TIERS[TIERS[x].next].name}</button>` : TIERS[x].next ? `<small>${Math.max(0, UPGRADE_COST + 1 - have(c.id, x))} more to upgrade</small>` : ""}</b></div>`).join("");
   menuBack = back ? null : () => openAlbum(c.special ? "sp" : c.club);
   modal(`<div class="cardview"><div class="cardview-main"><div class="cardview-front"><div class="flipcard" id="flipc" role="button" tabindex="0" aria-label="Flip ${c.name}'s card" aria-pressed="false"><div class="ff">${cardFaceImage(c, t)}</div><div class="fb">${cardBack(c)}</div></div>
-    <p class="tiny center">Drag to tilt · Tap to flip</p>${tribute?'<p class="card-tribute-label center">No. 31 Tribute</p>':""}</div>
+    <p class="tiny center">Drag to tilt · Tap to flip</p>${tribute ? `<p class="card-tribute-label center">No. ${tribute.number} Tribute</p>` : ""}</div>
     <div class="spinfo wide"><h4>Card stats · ${r.ovr} overall</h4>${r.bars.map(b => `<div class="sbar"><span><i class="si">${b.icon}</i>${b.label}</span><i><b style="width:${b.v}%;background:${b.col}"></b></i><em>${b.v}</em></div>`).join("")}</div>
     </div>
     ${back ? "" : ups}

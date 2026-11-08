@@ -364,7 +364,8 @@ p.clash{color:#8a6d45;font-size:13px;margin:-4px 0 6px}
 .card-finish::before{opacity:var(--foil-opacity,.22);
   background:radial-gradient(ellipse 50% 15% at var(--foil-x) var(--foil-y),#fff 0%,#fffd 8%,#fff6 22%,#fff1 54%,transparent 80%)}
 .card-finish.foil{--foil-spectrum:#ea9cff,#a3b5ff,#8df7ff,#c2ffae,#ffe899,#ff9aa8,#ea9cff}
-.card-finish.tribute{--foil-spectrum:#ff6d90,#ffd590,#fff2b8,#a9bbff,#748bff,#ff6d90}
+.card-finish.tribute-melb{--foil-spectrum:#ff6d90,#ffd590,#fff2b8,#a9bbff,#748bff,#ff6d90}
+.card-finish.tribute-coll{--foil-spectrum:#6f86a9,#f6fbff,#9ae6ff,#b5a9ef,#eff3ff,#6f86a9}
 .card-finish.foil::after{
   opacity:var(--foil-opacity,.28);
   background:

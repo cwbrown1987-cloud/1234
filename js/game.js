@@ -176,7 +176,6 @@ function collect(b){
 function armySpace(){ return S.buildings.filter(b=>b.t==="bench"&&built(b)).reduce((a,b)=>a+BLD.bench.space[b.lv-1],0); }
 const spaceOf = obj => Object.entries(obj).reduce((a,[u,n])=>a+(UNITS[u]?UNITS[u].space*n:0),0);
 const usedSpace = () => spaceOf(S.army);
-const queuedSpace = () => S.queue.reduce((a,u)=>a+UNITS[u].space,0);
 function unlockedUnits(){ const best=Math.max(0,...S.buildings.filter(b=>b.t==="oval"&&built(b)).map(b=>b.lv)); return BLD.oval.unlock.slice(0,best); }
 const unitCost = u => Math.round(UNITS[u].cost*unitMul(S.unitLv[u]));
 // Like Clash: training players is free and instant. Your bench (army camp) space is the only limit.
@@ -217,7 +216,7 @@ function startResearch(u){
 
 // ---------- heroes ----------
 const heroHome = h => S.buildings.some(b=>b.t===HEROES[h].building&&built(b)&&b.lv>=(HEROES[h].hhLv||1));
-// The heroes you take into a match: up to HERO_SLOTS, chosen in Squad → Heroes (Clash's Hero Hall).
+// The heroes you take into a match: up to HERO_SLOTS, chosen in Battle → Army → Heroes (Clash's Hero Hall).
 function heroPicked(){
   const home=Object.keys(HEROES).filter(heroHome);
   S.heroSeen=S.heroSeen||[];

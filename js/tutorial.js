@@ -42,7 +42,7 @@ function showClashGuide(fromChoice){
   modal(`<h2>Footy Fortress for Clash players</h2><p class="center">Same game, footy style. Clash on the left, Footy Fortress on the right. Tap a Clash name to see it on the Clash wiki.</p>${rows}
     <h3>How it works (same as Clash today)</h3><ul class="diffs">${CLASH_DIFFS.map(d=>`<li>${d}</li>`).join("")}</ul>
     ${SUPERCELL_NOTE}<div class="center"><button class="btn green big" id="gotIt">${fromChoice?"Got it, let's build":"Got it"}</button></div>`,{noClose:!!fromChoice});
-  $("gotIt").onclick=()=>{ closeModal(); if(fromChoice) startTutorial(); };
+  $("gotIt").onclick=()=>{ if(!fromChoice&&menuBack) return goBack(); closeModal(); if(fromChoice) startTutorial(); };
 }
 function showTutorialChoice(){
   modal(`<h2>Have you played Clash of Clans?</h2><p class="center">Pick how you'd like to learn the ropes.</p>

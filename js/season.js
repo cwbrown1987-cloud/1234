@@ -27,10 +27,6 @@ function nextFixture(){
   if(s.finals) return {name:FINALS[s.finals.stage], club:finalOpp(s.finals.stage), d:finalDiff(), final:true};
   return {name:`Round ${s.round+1}`, club:roundOpp(s.round), d:roundDiff(s.round), final:false};
 }
-function playSeasonMatch(){
-  const f=nextFixture(); if(!f) return;
-  startBattle({kind:"season", round:S.season.round, club:f.club, d:f.d, seed:S.season.year*1000+S.season.round*77+(S.season.finals?S.season.finals.stage*13+500:0)+S.club, fixture:f.name});
-}
 // a made-up score for matches you aren't in
 function simScore(str,rnd){ const g=Math.round(6+str*14*rnd()+rnd()*4), b=Math.round(4+rnd()*9); return {g,b}; }
 function addResult(c,forS,agS){ const r=S.season.ladder[c], pf=forS.g*6+forS.b, pa=agS.g*6+agS.b; r.pf+=pf; r.pa+=pa; if(pf>pa) r.w++; else if(pf<pa) r.l++; else r.d++; }

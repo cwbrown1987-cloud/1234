@@ -127,12 +127,15 @@ function buildCards(){
 }
 
 // ---------- modals ----------
-let modalTick=null;
+let modalTick=null, menuBack=null;
+// Open a sub-screen that remembers where it came from: it shows a "‹ Back" button instead of only closing everything.
+const sub=(fn,back)=>(...a)=>{ menuBack=back; fn(...a); };
+function goBack(){ const f=menuBack; menuBack=null; if(f) f(); else closeModal(); }
 function modal(html, opts={}){ $("modal").querySelector(".card").classList.remove("albummode"); $("modalBody").innerHTML=(typeof hubBarHTML==="function"?hubBarHTML():"")+html; if(hubCtx) bindHubBar(); $("modal").classList.add("show"); $("modalX").style.display=opts.noClose?"none":"block"; modalTick=opts.tick||null; }
-function closeModal(){ if(typeof hubCtx!=="undefined") hubCtx=null; $("modal").classList.remove("show"); modalTick=null; refreshUI(); }
+function closeModal(){ menuBack=null; if(typeof hubCtx!=="undefined") hubCtx=null; $("modal").classList.remove("show"); modalTick=null; refreshUI(); }
 setInterval(()=>{ if(modalTick&&$("modal").classList.contains("show")) modalTick(); },1000);
-$("modalX").onclick=closeModal;
-$("modal").addEventListener("pointerdown",e=>{ if(e.target.id==="modal"&&$("modalX").style.display!=="none") closeModal(); });
+$("modalX").onclick=()=>{ sfx("tap",.4); goBack(); }; // in a sub-screen the ✖ steps back to where you came from
+$("modal").addEventListener("pointerdown",e=>{ if(e.target.id==="modal"&&$("modalX").style.display!=="none") goBack(); });
 const tabsHTML=(tabs,on)=>`<div class="tabs">${tabs.map(t=>`<button class="${t===on?"on":""}" data-tab="${t}">${t}</button>`).join("")}</div>`;
 const bindTabs=fn=>document.querySelectorAll("[data-tab]").forEach(b=>b.onclick=()=>{ sfx("tap",.4); fn(b.dataset.tab); });
 
@@ -248,7 +251,7 @@ function openTasks(){
     h+=`<div class="task"><div class="grow"><div>${T.text(t.goal)}</div><div class="bar"><div style="width:${100*t.n/t.goal}%"></div></div><div class="tiny">${fmt(t.n)} / ${fmt(t.goal)}</div></div>${t.claimed?"✅":`<button class="btn ${done?"green":""}" data-claim="${i}" ${done?"":"disabled"}>+3 🏅</button>`}</div>`; });
   h+=`<h3>This week</h3>${[1,2,3,4,5,6,0].map(d=>{ const e=EVENTS[d], nm=["Sun","Mon","Tue","Wed","Thu","Fri","Sat"][d]; return `<div class="stat ${d===new Date().getDay()?"today":""}"><span>${nm}</span><b>${e?e.name+" · "+e.desc:"–"}</b></div>`; }).join("")}`;
   modal(h);
-  document.querySelectorAll("[data-claim]").forEach(b=>b.onclick=()=>{ claimTask(+b.dataset.claim); openTasks(); });
+  document.querySelectorAll("[data-claim]").forEach(b=>b.onclick=()=>{ const inPass=!!$("modalBody").querySelector('[data-tab="Challenges"]'); claimTask(+b.dataset.claim); inPass?openPass("Challenges"):openTasks(); });
 }
 function openLog(){
   let h=`<h2>Home Games</h2><p class="center tiny">Clubs that came to your ground while you were away.</p>`;
@@ -266,7 +269,7 @@ function openLog(){
 }
 function showReplayEnd(){
   const r=BT.raid; modal(`<div class="result"><h2>${r.stars?"They got you":"You held them off"}</h2><div class="stars">${"★".repeat(r.stars)}<span class="dim">${"★".repeat(3-r.stars)}</span></div><div>${CLUBS[r.club].name} · ${r.pct}% destroyed</div><br>${r.stars&&!r.revenged?`<button class="btn red" id="rv2">Get Revenge</button> `:""}<button class="btn green" id="goHome">Back Home</button></div>`,{noClose:true});
-  $("goHome").onclick=()=>{ closeModal(); leaveBattle(); };
+  $("goHome").onclick=()=>{ closeModal(); leaveBattle(); openHub("battle","Log"); };
   const rv=$("rv2"); if(rv) rv.onclick=()=>{ closeModal(); leaveBattle(); revenge(r); };
 }
 function openMatch(){
@@ -288,14 +291,14 @@ function openMatch(){
   if(s.results.length) h+=`<div class="fixture">${[...s.results].reverse().slice(0,6).map(r=>`<div class="fx"><span class="wl ${r.res}">${r.res}</span>${badgeImg(CLUBS[r.club],"sm")}<span class="nm"><small>${r.name}</small><br>${fmtScore(r.my)} – ${fmtScore(r.their)}</span></div>`).join("")}</div>`;
   modal(h); tut("match");
   const lb=$("lbLink"); if(lb) lb.onclick=e=>{ e.preventDefault(); openSocial("Leaderboard"); };
-  const go=$("goOnline"); if(go) go.onclick=()=>openAccount();
+  const go=$("goOnline"); if(go) go.onclick=sub(()=>{ hubCtx=null; openAccount(); },()=>openHub("battle","Play"));
   const find=ranked=>{ if(online) return findOnlineMatch([],ranked);
     if(!Object.values(S.army).some(n=>n>0)) return toast("Train some players first!"); if(!tutActive()&&!pay("pies",cost)) return toast("Not enough 🥧");
     let c; do{ c=Math.random()*18|0; }while(c===S.club); const d=Math.max(1,Math.min(MAX_TH,th()+(tutActive()?-1:ranked?(Math.random()*3|0)-1:0)));
     closeModal(); startBattle({kind:"match",ranked,club:c,d,seed:Math.random()*1e9|0}); };
-  $("findMatch").onclick=()=>find(false); $("findRanked").onclick=()=>rankedConfirm(()=>find(true));
+  $("findMatch").onclick=()=>find(false); $("findRanked").onclick=sub(()=>rankedConfirm(()=>find(true)),()=>openHub("battle","Play"));
   $("rkTable").onclick=openRankedTable; if(rk.last){ delete rk.last; save(); }
-  const pr=$("playRound"); if(pr) pr.onclick=()=>tutActive()?find(true):rankedConfirm(()=>find(true));
+  const pr=$("playRound"); if(pr) pr.onclick=()=>tutActive()?find(true):sub(()=>rankedConfirm(()=>find(true)),()=>openHub("battle","Play"))();
   $("ladder").onclick=openLadder; const ns=$("newSeason"); if(ns) ns.onclick=startNextSeason;
 }
 function openInfo(b){
@@ -327,6 +330,7 @@ function showResult(r){
   $("goHome").onclick=()=>{ closeModal(); leaveBattle(); tut("home"); };
   const on=$("openNow"); if(on) on.onclick=()=>{ closeModal(); leaveBattle(); openAlbum(); };
 }
+const reopenSettings=()=>$("modalBody").querySelector('[data-tab="Achievements"]')?openProfile("Settings"):openSettings();
 function openSettings(){
   const acct = !NET.online ? `<div class="stat"><span>Online play</span><span class="tiny">on footy-fortress.pages.dev</span></div>`
     : signedIn() ? `<div class="stat"><span>Signed in as <b>${esc(NET.user.name)}</b><br><small>${esc(NET.user.email||"")}</small></span><button class="btn" id="signOut">Sign out</button></div>`
@@ -338,13 +342,14 @@ function openSettings(){
     <div class="stat"><span>Play it like an app</span><button class="btn blue" id="instBtn">Install</button></div>
     <div class="stat"><span>Version ${VERSION}</span><button class="btn gold" id="updBtn">Check for updates</button></div>
     <p class="tiny">Progress saves on this device automatically.</p><button class="btn red" id="reset">Start over (new club)</button>`);
-  const so=$("signOut"); if(so) so.onclick=async()=>{ await signOut(); openSettings(); };
-  const si=$("signIn"); if(si) si.onclick=()=>openAccount();
+  const so=$("signOut"); if(so) so.onclick=async()=>{ await signOut(); reopenSettings(); };
+  const back=$("modalBody").querySelector('[data-tab="Achievements"]')?()=>openProfile("Settings"):openSettings;
+  const si=$("signIn"); if(si) si.onclick=sub(()=>openAccount(),back);
   $("updBtn").onclick=()=>{ $("updBtn").textContent="Updating…"; forceUpdate(); };
   $("instBtn").onclick=()=>{ closeModal(); if(isStandalone()) return toast("Already installed!"); showInstall(true); };
   $("tutAgain").onclick=()=>{ closeModal(); TUT.forEach(s=>delete s._prepped); startTutorial(); };
-  $("clashG").onclick=()=>showClashGuide(false);
-  $("snd").onclick=()=>{ S.sound=!S.sound; save(); audioCtx(); sfx("collect"); openSettings(); };
+  $("clashG").onclick=sub(()=>showClashGuide(false),back);
+  $("snd").onclick=()=>{ S.sound=!S.sound; save(); audioCtx(); sfx("collect"); setTimeout(reopenSettings); };
   $("reset").onclick=()=>{ const b=$("reset"); if(!b.dataset.sure){ b.dataset.sure="1"; b.textContent="Tap again to wipe everything"; return; }
     try{localStorage.removeItem(SAVE_KEY);}catch(e){} S=null; selected=null; closeModal(); showClubPicker(); };
 }
@@ -368,7 +373,7 @@ $("bEnd").onclick=()=>{ const b=$("bEnd"); if(BT&&BT.visit){ leaveBattle(); open
   if(BT.started&&!b.dataset.sure){ b.dataset.sure="1"; b.textContent="Tap to confirm"; setTimeout(()=>{ delete b.dataset.sure; b.textContent="End Match"; },2500); return; }
   delete b.dataset.sure; b.textContent="End Match"; endBattle(); };
 $("rSpeed").onclick=()=>{ BT.speed=BT.speed>=4?1:BT.speed*2; $("rSpeed").textContent=BT.speed+"×"; };
-$("rExit").onclick=()=>{ leaveBattle(); openLog(); };
+$("rExit").onclick=()=>{ leaveBattle(); openHub("battle","Log"); };
 
 // ---------- touch / mouse ----------
 const ptrs=new Map(); let gesture=null;

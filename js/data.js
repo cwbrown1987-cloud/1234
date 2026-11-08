@@ -1,5 +1,5 @@
 // ---------- Game data ----------
-const VERSION = "2026.11.10.21";
+const VERSION = "2026.11.11.1";
 // Club names + colours. Logos: drop PNGs named <abbr>.png (e.g. coll.png) into the logos/ folder and they're used everywhere.
 // Player names checked against the 2026 trade period and retirements (lists for the 2027 season); edit freely.
 const CLUBS = [
@@ -73,7 +73,6 @@ const heroTime = lv => Math.min(86400, Math.round(1800*Math.pow(1.35,lv-1)/60)*6
 const N = 34;      // map size
 const MAX_TH = 8;
 const geo = (a,r,n,cap) => Array.from({length:n},(_,i)=>{ const v=Math.round(a*Math.pow(r,i)); return cap?Math.min(cap,v):v; });
-const nice = arr => arr.map(v => v<1000?Math.round(v/10)*10 : v<10000?Math.round(v/100)*100 : Math.round(v/1000)*1000);
 const T = n => geo(10,2.1,n,7200);   // build times in seconds (most buildings now use Clash of Clans level tables below)
 
 const BLD = {
@@ -180,5 +179,3 @@ const EVENTS = { // by weekday, 0 = Sunday
 };
 const eventNow = () => EVENTS[new Date().getDay()] || null;
 
-const LEAGUES = [[0,"Local Footy"],[200,"Under-18s"],[500,"State League"],[900,"VFL"],[1400,"AFLW Division"],[2000,"AFL Premiership"],[3000,"Hall of Fame"]];
-const league = tr => LEAGUES.filter(l=>tr>=l[0]).pop()[1];

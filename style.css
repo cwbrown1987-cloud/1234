@@ -482,3 +482,5 @@ p.clash{color:#8a6d45;font-size:13px;margin:-4px 0 6px}
   .fcc .sbar{grid-template-columns:auto minmax(46px,1fr) 22px;font-size:11px;gap:4px}
   .fcc>.fccfoot{grid-column:2}
 }
+.fradd{display:flex;gap:6px;margin:4px 0}
+.fradd input{flex:1;min-width:0;font:inherit;font-size:16px;padding:8px 10px;border-radius:10px;border:3px solid #3a2a18;background:#fffdf6;color:#222;text-shadow:none}

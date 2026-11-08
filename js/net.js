@@ -147,6 +147,41 @@ function netReportAttack(bt, r) {
   api("/attack", { method: "POST", body }).then(() => pushSave()).catch(e => toast("Couldn't send the result: " + e.message));
 }
 
+// ---------- friends: add mates by name, visit their ground, play a friendly ----------
+async function openFriends() {
+  if (!NET.online) return toast("Friends work on the website: ff.backyardlegendsgames.app");
+  if (!signedIn()) {
+    modal(`<h2>Friends</h2><p class="center">Sign in to add friends, visit their grounds and play friendlies against them.</p><div class="center"><button class="btn green big" id="frSign">Play online</button></div>`);
+    $("frSign").onclick = () => openAccount(); return;
+  }
+  modal(`<h2>Friends</h2>
+    <form id="frAdd" class="fradd"><input id="frName" placeholder="Friend's player name" maxlength="16" autocomplete="off"><button class="btn green" type="submit">Add</button></form>
+    <p class="tiny center">Your player name is <b>${esc(NET.user.name)}</b>. Give it to your mates so they can add you.</p>
+    <div id="frList" class="fixture"><p class="center">Loading…</p></div>
+    <p class="tiny center">Visit to look around their ground. A Friendly is a practice match: no loot, no trophies, and it doesn't break shields.</p>`);
+  $("frAdd").onsubmit = async e => { e.preventDefault(); const name = $("frName").value.trim(); if (!name) return;
+    try { const r = await api("/friends", { method: "POST", body: { name } }); toast(`${r.friend.name} added!`); openFriends(); } catch (err) { toast(err.message); } };
+  try {
+    const r = await api("/friends");
+    $("frList").innerHTML = r.friends.length ? r.friends.map(f => `<div class="fx">${badgeImg(CLUBS[f.club] || CLUBS[0], "sm")}<span class="nm">${f.online ? "🟢 " : ""}<b>${esc(f.name)}</b><br><small>Clubhouse ${f.th} · 🏆 ${f.trophies}</small></span>
+        <button class="btn blue" data-visit="${f.id}">👀 Visit</button><button class="btn gold" data-fr="${f.id}">⚔️</button><button class="btn red" data-unf="${f.id}" title="Remove">✖</button></div>`).join("")
+      : `<p class="center">No friends yet. Add someone by their player name above.</p>`;
+    document.querySelectorAll("[data-visit]").forEach(b => b.onclick = () => visitPlayer(b.dataset.visit));
+    document.querySelectorAll("[data-fr]").forEach(b => b.onclick = () => attackPlayer(b.dataset.fr, "friendly"));
+    document.querySelectorAll("[data-unf]").forEach(b => b.onclick = async () => { if (b.dataset.sure) { await api("/friends/" + b.dataset.unf, { method: "DELETE" }).catch(e => toast(e.message)); openFriends(); } else { b.dataset.sure = 1; b.textContent = "Sure?"; } });
+  } catch (e) { $("frList").innerHTML = `<p class="center err">${esc(e.message)}</p>`; }
+}
+async function visitPlayer(id) {
+  try {
+    const p = (await api("/player/" + id)).player;
+    if (!p.base) return toast(`${p.name} hasn't set up their ground yet.`);
+    closeModal();
+    BT = makeBattle({ mode: "attack", kind: "visit", visit: true, club: p.club, atkClub: S.club, d: p.th, buildings: oppBuildings(p), army: {}, spells: {}, heroes: {},
+      lvOf: () => 1, heroStat: h => heroStats(h), opp: { id: p.id, name: p.name, bot: p.bot, trophies: p.trophies } });
+    BT.sel = null; mode = "battle"; selected = null; placing = null; cam.x = 0; cam.y = 0; setZoom(.8); refreshUI();
+  } catch (e) { toast(e.message); }
+}
+
 // ---------- leaderboard & cheer squads ----------
 async function openSocial(tab = "Leaderboard") {
   if (!NET.online) return toast("Online play works on the website: ff.backyardlegendsgames.app");

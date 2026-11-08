@@ -149,6 +149,37 @@ export async function handleApi(req, env) {
       await env.DB.batch(stmts);
       return json({ok: true, defTro});
     }
+    // ----- friends: add by player name, visit their ground, play a friendly -----
+    if (path.startsWith("/friends")) {
+      await env.DB.prepare("CREATE TABLE IF NOT EXISTS friends(user_id TEXT NOT NULL, friend_id TEXT NOT NULL, created INTEGER, PRIMARY KEY(user_id, friend_id))").run();
+      if (path === "/friends" && m === "GET") {
+        const r = await env.DB.prepare("SELECT p.* FROM friends f JOIN profiles p ON p.user_id = f.friend_id WHERE f.user_id = ? ORDER BY p.name COLLATE NOCASE").bind(me.id).all();
+        return json({friends: r.results.map(p => ({...profileOut(p), online: p.last_seen > now() - 10 * 60e3}))});
+      }
+      if (path === "/friends" && m === "POST") {
+        const b = await body(req), name = String(b.name || "").trim();
+        const p = b.id ? await env.DB.prepare("SELECT * FROM profiles WHERE user_id = ?").bind(String(b.id)).first()
+                       : await env.DB.prepare("SELECT * FROM profiles WHERE name = ? COLLATE NOCASE AND bot = 0").bind(name).first();
+        if (!p) return fail("No player with that name.", 404);
+        if (p.user_id === me.id) return fail("That's you!");
+        const c = await env.DB.prepare("SELECT COUNT(*) AS n FROM friends WHERE user_id = ?").bind(me.id).first();
+        if (c && c.n >= 100) return fail("You can have up to 100 friends.");
+        // friends are mutual: you both see each other in your lists
+        await env.DB.batch([
+          env.DB.prepare("INSERT OR IGNORE INTO friends(user_id,friend_id,created) VALUES(?,?,?)").bind(me.id, p.user_id, now()),
+          env.DB.prepare("INSERT OR IGNORE INTO friends(user_id,friend_id,created) VALUES(?,?,?)").bind(p.user_id, me.id, now()),
+        ]);
+        return json({ok: true, friend: profileOut(p)});
+      }
+      if (path.startsWith("/friends/") && m === "DELETE") {
+        const id = path.slice(9);
+        await env.DB.batch([
+          env.DB.prepare("DELETE FROM friends WHERE user_id = ? AND friend_id = ?").bind(me.id, id),
+          env.DB.prepare("DELETE FROM friends WHERE user_id = ? AND friend_id = ?").bind(id, me.id),
+        ]);
+        return json({ok: true});
+      }
+    }
     if (path === "/inbox" && m === "GET") {
       const r = await env.DB.prepare("SELECT a.id, a.attacker_id, a.at, a.data, p.club FROM attacks a LEFT JOIN profiles p ON p.user_id = a.attacker_id WHERE a.defender_id = ? AND a.seen = 0 ORDER BY a.id LIMIT 20").bind(me.id).all();
       return json({attacks: r.results.map(a => ({id: a.id, attackerId: a.attacker_id, at: a.at, club: a.club, ...JSON.parse(a.data)}))});

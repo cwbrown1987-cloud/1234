@@ -469,20 +469,25 @@ function drawOvalGoals(){
   ctx.restore();
 }
 
-// A trimmed patch follows the build grid, with a short earth edge under the turf.
-function groundPatch(x, y, s, oval) {
-  if (!oval) {
-    const low=s*.11, high=s-low, cut=s*.095;
-    const rim=[[low+cut,low],[high-cut,low],[high,low+cut],[high,high-cut],
-      [high-cut,high],[low+cut,high],[low,high-cut],[low,low+cut]].map(([dx,dy])=>P(x+dx,y+dy));
-    poly(rim.map(([px,py])=>[px+TW*.035,py+TH*.12]),"#41351a58",null);
-    const turf=grad(rim[0],rim[4],"#79914c57","#36552a76");
-    poly(rim,turf,"#55703871",Math.max(.7,TW*.016));
-  }
-  const [cx, cy] = P(x + s * .53, y + s * .57), rx = TW * s * .44, ry = TH * s * .44;
-  const g = ctx.createRadialGradient(cx, cy, 0, cx, cy, rx);
-  g.addColorStop(0, "#172a16bd"); g.addColorStop(.52, "#172a1680"); g.addColorStop(1, "#172a1600");
-  ctx.save(); ctx.translate(cx, cy); ctx.scale(1, ry / rx); ctx.fillStyle = g; ctx.beginPath(); ctx.arc(0, 0, rx, 0, 7); ctx.fill(); ctx.restore();
+// Tint the existing grass under the sprite and feather it into the oval.
+function groundPatch(b) {
+  if (b.hp<=0 || b.t==="fence" || BLD[b.t].trap || b.busy?.kind==="build") return;
+  const size=BLD[b.t].size, sprite=artSprites.get(b.t);
+  const width=sprite&&artBuildings[b.t]?sprite.w*buildingArtScale(b.t,sprite):size*.91;
+  const [cx,cy]=P(b.x+size/2,b.y+size/2);
+  const rx=TW*(width*.5+.23), ry=TH*(width*.36+.20);
+  if(cx+rx<0||cx-rx>W||cy+ry+TH*.12<0||cy-ry>H) return;
+  ctx.save();
+  ctx.translate(cx+TW*.04,cy+TH*.12);
+  ctx.scale(rx,ry);
+  const grass=ctx.createRadialGradient(0,0,0,0,0,1);
+  grass.addColorStop(0,"#233d1da8");
+  grass.addColorStop(.48,"#31542172");
+  grass.addColorStop(.78,"#4d792d48");
+  grass.addColorStop(1,"#4d792d00");
+  ctx.fillStyle=grass;
+  ctx.fillRect(-1,-1,2,2);
+  ctx.restore();
 }
 
 // ---------- countdown to the next AFL season ----------

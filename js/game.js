@@ -344,6 +344,11 @@ function renderHome(){
   if(placing){ ctx.strokeStyle="#ffffff28"; ctx.lineWidth=1; for(let i=0;i<=N;i++){ ctx.beginPath(); ctx.moveTo(...P(i,0)); ctx.lineTo(...P(i,N)); ctx.moveTo(...P(0,i)); ctx.lineTo(...P(N,i)); ctx.stroke(); } }
   const club=myClub(), row=placing?.row, ents=[];
   const list=row?S.buildings.map(b=>row.has(b)?{...b,x:b.x+placing.x-placing.anchor.x,y:b.y+placing.y-placing.anchor.y}:b):S.buildings;
+  const fenceMode=placing?.t==="fence", movingB=placing?.moving;
+  ctx.save();
+  if(fenceMode) ctx.globalAlpha=.35;
+  for(const b of list) if(b!==movingB) groundPatch(b);
+  ctx.restore();
   const rowOK=row&&wallRowFits(placing);
   if(row) for(const [i,b] of S.buildings.entries()) if(row.has(b)){
     const preview=list[i];
@@ -351,9 +356,8 @@ function renderHome(){
   }
   const heroes={busy:{}}; for(const h of Object.keys(HEROES)){ heroes[h]=heroReady(h)?club:null; heroes.busy[h]=!!S.heroes[h].busy; }
   // while placing fences, everything else goes see-through so you can see where the fence is going
-  const fenceMode=placing&&placing.t==="fence", ghost=f=>()=>{ ctx.save(); ctx.globalAlpha=.35; f(); ctx.restore(); };
+  const ghost=f=>()=>{ ctx.save(); ctx.globalAlpha=.35; f(); ctx.restore(); };
   for(const o of S.obstacles){ const f=()=>{ if(selected===o) selectGlow(o.x,o.y,o.s||1); drawObstacle(o); }; ents.push({k:o.x+o.y+(o.s||1),f:fenceMode?ghost(f):f}); }
-  const movingB = placing&&placing.moving;
   for(const b of list){ if(b===movingB) continue; const d=BLD[b.t];
     const f=()=>drawBuilding(b,club,list,{selected:!row&&selected===b, deferLevel:true, fill:fillOf(b), heroes, collect:d.makes&&!b.busy&&b.store>=Math.max(1,d.cap[b.lv-1]*.1)?b.store:0});
     ents.push({k:b.x+b.y+d.size,f:fenceMode&&b.t!=="fence"?ghost(f):f}); }

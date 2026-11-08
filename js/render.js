@@ -105,7 +105,6 @@ function drawBuilding(b, club, list, opts={}){
   const isNew = b.busy && b.busy.kind==="build";
   if(opts.selected) selectGlow(x,y,s);
   if(b.t!=="fence"){
-    if(!isNew) groundPatch(x,y,s,b.t==="oval");
     if(isNew || !artSprites.has(b.t)) pad(x,y,s);
   }
   let top=isNew?1.8:drawBuildingArt(b,club,opts);

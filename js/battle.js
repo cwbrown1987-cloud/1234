@@ -408,6 +408,7 @@ function renderBattle(){
   const sx=shake>0?(Math.random()-.5)*shake*30:0, sy=shake>0?(Math.random()-.5)*shake*30:0;
   ctx.save(); ctx.translate(sx,sy);
   drawGround();
+  for(const b of BT.buildings) groundPatch(b);
   const club=CLUBS[BT.club];
   if(BT.mode==="attack"&&!BT.visit&&BT.mask>0){ if(BT.dirty) rebuildGrid(); ctx.save(); ctx.globalAlpha=Math.min(.35,BT.mask*.3); // like Clash: the red zone flashes when you tap where you can't deploy
     for(let j=0;j<N;j++) for(let i=0;i<N;i++) if(BT.noDeploy[j*N+i]) diamond(i,j,1,1,"#e8503a"); ctx.restore(); }

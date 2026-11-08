@@ -518,3 +518,10 @@ p.clash{color:#8a6d45;font-size:13px;margin:-4px 0 6px}
 @media (prefers-reduced-motion:reduce){.flip.flipb .cbk{display:none}.flip.flipb .cfr{animation:none}}
 .flip.flipb .newtag{animation:tagin .25s calc(var(--d,0s) + .5s) both}
 @keyframes tagin{from{opacity:0;transform:translateX(-50%) scale(.6)}to{opacity:1;transform:translateX(-50%) scale(1)}}
+.acard .newrib{position:absolute;left:50%;bottom:-6px;transform:translateX(-50%);background:#e8503a;color:#fff;border:2px solid #000;border-radius:7px;font-size:10px;padding:0 5px;text-shadow:none}
+.acard.isnew img{box-shadow:0 0 10px #fff,0 0 4px #ffd34d}
+.clubstrip button{position:relative}
+.clubstrip .ndot{position:absolute;top:-3px;right:-3px;width:12px;height:12px;border-radius:50%;background:#e8503a;border:2px solid #000}
+.binder{grid-template-columns:minmax(0,1fr) 22px minmax(0,1fr)}
+.bpage{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+.aslot.empty{overflow:hidden}

@@ -8,17 +8,27 @@ set -euo pipefail
 ACCOUNT="${CF_ACCOUNT:-e2904274ec42f8aeb1d44b711709b4c6}"
 PROJECT="${CF_PROJECT:-footy-fortress}"
 BRANCH="${CF_BRANCH:-main}"
+PYTHON="${PYTHON:-python3}"
 cd "$(dirname "$0")"
 tmp=$(mktemp -d); trap 'rm -rf "$tmp"' EXIT
-python3 - "$tmp/_worker.js" <<'PY'
+"$PYTHON" - "$tmp/_worker.js" <<'PY'
 import os, sys, json, base64
 files, binary = {}, {}
+with open('art/manifest.json') as f:
+    assets = {'/' + path for path in json.load(f)['files']}
+entrypoints = {'/index.html', '/style.css', '/sw.js', '/manifest.webmanifest', '/art/sheets.js', '/art/manifest.json'}
 for root, _, names in os.walk('.'):
     for n in names:
-        p = os.path.join(root, n)[1:]
-        if p.startswith(('/mockups', '/.', '/server', '/docs')) or n.endswith(('.md', '.sh')): continue
+        p = os.path.join(root, n)[1:].replace(os.sep, '/')
+        if p not in entrypoints and p not in assets and not (
+            p.startswith('/js/') and p.endswith('.js') or
+            p.startswith(('/icons/', '/logos/')) and p.endswith('.png')
+        ): continue
         data = open('.' + p, 'rb').read()
-        if p.endswith(('.html', '.css', '.js')): files[p] = data.decode('utf-8')
+        if p.endswith(('.html', '.css', '.js')):
+            files[p] = data.decode('utf-8')
+        else:
+            binary[p] = base64.b64encode(data).decode()
         if p == '/index.html':
             import hashlib, re as _re
             def bust(m):
@@ -27,7 +37,6 @@ for root, _, names in os.walk('.'):
                 except OSError: return m.group(0)
                 return f'{m.group(1)}{ref}?v={h}"'
             files[p] = _re.sub(r'((?:src|href)=")((?:js|art)/[^"?]+\.js|style\.css)"', bust, files[p])
-        else: binary[p] = base64.b64encode(data).decode()
 types = {'html':'text/html; charset=utf-8','css':'text/css; charset=utf-8','js':'text/javascript; charset=utf-8','png':'image/png','jpg':'image/jpeg','svg':'image/svg+xml','webmanifest':'application/manifest+json','webp':'image/webp','json':'application/json'}
 api = open('server/api.js').read().replace('export async function handleApi', 'async function handleApi')
 open(sys.argv[1], 'w').write(api + f"""
@@ -47,4 +56,4 @@ PY
 auth=(); [ -n "${CF_TOKEN:-}" ] && auth=(-H "Authorization: Bearer $CF_TOKEN")
 curl -sS "${auth[@]}" -X POST "https://api.cloudflare.com/client/v4/accounts/$ACCOUNT/pages/projects/$PROJECT/deployments" \
   -F "manifest={}" -F "branch=$BRANCH" -F "_worker.js=@$tmp/_worker.js;type=application/javascript+module" \
-  | python3 -c "import sys,json; d=json.load(sys.stdin); print('Deployed ($BRANCH): https://$PROJECT.pages.dev' if d.get('success') else 'Failed:', '' if d.get('success') else d.get('errors'))"
+  | "$PYTHON" -c "import sys,json; d=json.load(sys.stdin); print('Deployed ($BRANCH): https://$PROJECT.pages.dev' if d.get('success') else 'Failed:', '' if d.get('success') else d.get('errors')); sys.exit(0 if d.get('success') else 1)"

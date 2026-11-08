@@ -7,7 +7,9 @@ const OUT = "#2b1d10";
 
 function resize(){
   const dpr = Math.min(2, devicePixelRatio||1);
-  W = cv.width = innerWidth*dpr; H = cv.height = innerHeight*dpr;
+  const box = cv.getBoundingClientRect();
+  W = Math.round(box.width*dpr); H = Math.round(box.height*dpr);
+  if(cv.width!==W||cv.height!==H){ cv.width=W; cv.height=H; }
   BASE = Math.max(W/(N*0.62), H/(N*0.75)) ; // start zoomed so the base fills a phone screen
   setZoom(cam.z);
 }
@@ -88,6 +90,11 @@ function flag(px,py,club,hs=1){
 }
 const GOLD="#f6c343";
 const trimFor = lv => lv>=5?"#ffe680":lv>=3?GOLD:null;
+const goalTowerShaft = lv => 2.9+lv*.08;
+function goalTowerHeight(lv){
+  const sprite=artSprites.get("goalpost");
+  return sprite?2*sprite.h*buildingArtScale("goalpost",sprite)*artBuildings.goalpost[1]:goalTowerShaft(lv)+3.6;
+}
 
 // ---------- buildings ----------
 // b: {t,x,y,lv,hp,...}; club: colours; list: all buildings (for fence joins)
@@ -252,7 +259,7 @@ function drawBuilding(b, club, list, opts={}){
       const [mx,my]=P(x+s-.15,y+s-.15); ctx.lineWidth=1.5; ctx.strokeStyle=OUT; rr(mx-TW*.12,my-TH*.5,TW*.24,TH*.3,3,"#e8503a");
       top=2.3; break;}
     case "goalpost":{
-      const st="#bfae92", h=1.5+lv*.08;
+      const st="#bfae92", h=goalTowerShaft(lv);
       prism(x+.6,y+.6,s-1.2,s-1.2,0,h,st);
       for(const z of [h*.33,h*.66]){ onL(y+s-.6,x+.6,x+s-.6,z,z,null,shade(st,.6)); onR(x+s-.6,y+s-.6,y+.6,z,z,null,shade(st,.5)); }
       for(const [u,z] of [[1.1,h*.16],[1.6,h*.5],[1.0,h*.82]]) onL(y+s-.6,x+u,x+u,z-h*.16,z+h*.16,null,shade(st,.6));

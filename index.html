@@ -37,20 +37,24 @@
 
 <!-- home buttons -->
 <div id="homeBtns">
-  <button class="round attack" id="btnAttack" data-uibg="btn-battle"><b>⚔️</b><span>Battle</span><i class="dot hide" id="logDot"></i></button>
-  <button class="round shop" id="btnShop" data-uibg="btn-build"><b>🔨</b><span>Build</span><i class="dot hide" id="buildDot"></i></button>
+  <button class="round attack" id="btnAttack"><i class="uia" data-ui="ico-battle" aria-hidden="true">⚔️</i><span>Battle</span><i class="dot hide" id="logDot" aria-hidden="true"></i></button>
+  <button class="round shop" id="btnShop"><i class="uia" data-ui="ico-build" aria-hidden="true">🔨</i><span>Build</span></button>
 </div>
 <div id="side">
-  <button class="sidebtn" id="btnCards"><img id="cardsIco" alt="" width="30" height="30"><span>Cards</span><i class="dot hide" id="cardDot"></i></button>
-  <button class="sidebtn" id="btnTasks" data-uibg="side-pass">🎫<span>Pass</span><i class="dot hide" id="taskDot"></i></button>
-  <button class="sidebtn" id="btnEvents" data-uibg="side-events">📅<span>Events</span><i class="dot hide" id="eventDot"></i></button>
-  <button class="sidebtn" id="btnSocial" data-uibg="side-online">🏟️<span>Online</span><i class="dot hide" id="socialDot"></i></button>
+  <button class="sidebtn" id="btnCards"><i class="uia" data-ui="ico-cards" aria-hidden="true"><img id="cardsIco" alt="" width="30" height="30"></i><span>Cards</span><i class="dot hide" id="cardDot"></i></button>
+  <button class="sidebtn" id="btnTasks"><i class="uia" data-ui="ico-pass" aria-hidden="true">🎫</i><span>Pass</span><i class="dot hide" id="taskDot"></i></button>
+  <button class="sidebtn" id="btnEvents"><i class="uia" data-ui="ico-events" aria-hidden="true">📅</i><span>Events</span><i class="dot hide" id="eventDot" aria-hidden="true">!</i></button>
+  <button class="sidebtn" id="btnSocial"><i class="uia" data-ui="ico-online" aria-hidden="true">🏟️</i><span>Online</span><i class="dot hide" id="socialDot"></i></button>
 </div>
 <div id="eventBanner" class="hide"></div>
 <div id="rotateMsg" class="hide"><div>📱<b>Turn your phone upright</b></div></div>
 
 <div id="selPanel"></div>
-<div id="placePanel"><button class="btn red" id="placeNo">✖</button><span id="placeName"></span><button class="btn green" id="placeYes">✔</button></div>
+<div id="placePanel">
+  <button class="btn red" id="placeNo" aria-label="Cancel placement"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg></button>
+  <div class="place-copy"><b id="placeName"></b><small id="placeHint"></small></div>
+  <button class="btn green" id="placeYes" aria-label="Confirm placement"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 4.5 4.5L19 7"/></svg></button>
+</div>
 
 <!-- battle -->
 <div id="battleTop">
@@ -65,7 +69,7 @@
 </div>
 
 <div id="replayBar"><span class="panel">▶ Replay</span><button class="btn blue" id="rSpeed">1×</button><button class="btn red" id="rExit">Exit</button></div>
-<div class="modal" id="modal"><div class="card"><button class="x" id="modalX">✖</button><div id="modalBody"></div></div></div>
+<div class="modal" id="modal"><div class="card"><button class="x" id="modalX" aria-label="Close or go back">✖</button><div id="modalHead"></div><div id="modalBody"></div><div id="modalActions"></div></div></div>
 <div id="toast"></div>
 <div id="tut" class="tut hide atBottom"><img id="tutAvatar" alt=""><div class="tb"><div id="tutText"></div><div class="tbtns"><button class="btn green hide" id="tutNext">Next</button><button class="lnk hide" id="tutSkip2"></button></div></div></div>
 <div id="tutHand" class="hide">👆</div>

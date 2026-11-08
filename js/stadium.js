@@ -201,8 +201,8 @@ function paintBowlLayer(supporters, roof, facade) {
         // The crowd has an upright silhouette on both sides of the oval.
         let ordered=rear(m)?[patch[3],patch[2],patch[1],patch[0]]:patch;
         if(ordered[0][0]>ordered[1][0]) ordered=[ordered[1],ordered[0],ordered[3],ordered[2]];
-        stadiumTexture(g,stadiumAwayBay(i)?supporters.awayTile:supporters.homeTile,ordered);
-        section(patch,level===2?"#14264246":"#1d324521");
+        stadiumTexture(g,stadiumAwayBay(i)?supporters.awayTile:supporters.homeTile,ordered,[-.12,-.06,1.24,1.12]);
+        section(patch,level===2?"#14264224":"#1d32450d");
         if(level<2 && Math.abs(m)<.82) crowdBays.set(i*2+level,ordered);
       }
       section(quad(a,b,r1,z1,r1+.32,z1+.05),"#9a9b96","#69717c");

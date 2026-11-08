@@ -8,7 +8,7 @@
 const uiArtFiles = new Set();
 const uiArt = (name, fallback) => `<i class="uia" data-ui="${name}">${fallback}</i>`;
 // Light mode (default): bright Clash-style "colour pop". Dark mode: Codex's dark "Scoreboard" style with his dark button tiles.
-const DARK_ONLY = new Set(["btn-battle", "btn-build", "side-pass", "side-events", "side-online", "profile-badge", "profile-banner", "hub-battle-dark", "hub-build-dark"]);
+const DARK_ONLY = new Set(["profile-badge", "profile-banner"]);
 const getTheme = () => { try { return localStorage.getItem("ffTheme") === "dark" ? "dark" : "light"; } catch (e) { return "light"; } };
 function applyTheme() {
   const dark = getTheme() === "dark" && uiArtFiles.has("art/ui/ff-panel-tile.webp");
@@ -31,8 +31,7 @@ function applyUiArt(root = document) {
   });
 }
 (function loadUiArt() {
-  if (typeof fetch !== "function" || location.protocol === "file:") return;
-  fetch("art/manifest.json").then(r => r.ok ? r.json() : null).then(m => {
+  artManifest.then(m => {
     for (const f of (m && m.files) || []) if (typeof f === "string" && f.startsWith("art/ui/")) uiArtFiles.add(f);
     applyTheme();
     new MutationObserver(() => applyUiArt()).observe(document.body, { childList: true, subtree: true });
@@ -42,8 +41,8 @@ function applyUiArt(root = document) {
 // ---------- hubs: a row of big tabs on top of the existing screens ----------
 let hubCtx = null;
 const HUBS = {
-  battle: { title: "Battle", tabs: [["Play", "⚔️", () => openMatch()], ["Army", "🏉", () => openSquad("Train")], ["Recipes", "📋", () => openRecipes()], ["Log", "🛡️", () => openLog()]] },
-  build: { title: "Build", tabs: [["Buildings", "🏗️", () => openShop(shopTab === "Deals" ? "Resources" : shopTab)], ["Heroes", "⭐", () => openSquad("Heroes")], ["Research", "🔬", () => openSquad("Coaching")], ["Shop", "🛒", () => openShop("Deals")]] },
+  battle: { title: "Battle", tabs: [["Play", "⚔️", () => openMatch(), "ico-battle"], ["Army", "🏉", () => openSquad("Train"), "ico-army"], ["Recipes", "📋", () => openRecipes(), "ico-recipes"], ["Log", "🛡️", () => openLog(), "ico-log"]] },
+  build: { title: "Build", tabs: [["Buildings", "🏗️", () => openShop(shopTab === "Deals" ? "Resources" : shopTab), "ico-build"], ["Heroes", "⭐", () => openSquad("Heroes"), "tab-heroes"], ["Research", "🔬", () => openSquad("Coaching"), "tab-research"], ["Shop", "🛒", () => openShop("Deals"), "ico-shop"]] },
 };
 function openHub(kind, tab) { menuBack = null;
   const H = HUBS[kind]; tab = tab || H.tabs[0][0];
@@ -53,9 +52,11 @@ function openHub(kind, tab) { menuBack = null;
 function hubBarHTML() {
   if (!hubCtx) return "";
   const H = HUBS[hubCtx.kind];
-  const dot = k => k === "Log" && S.raids.some(r => !r.seen) ? '<i class="dot"></i>' : "";
-  return `<div class="hubbar" data-uibg="hub-${hubCtx.kind}"><b class="hubtitle">${H.title}</b><div class="hubtabs">${H.tabs.map(([k, e]) =>
-    `<button class="${k === hubCtx.tab ? "on" : ""}" data-hub="${k}">${uiArt("tab-" + k.toLowerCase(), e)}<span>${k}</span>${dot(k)}</button>`).join("")}</div></div>`;
+  const unread = unreadRaids(), dark = getTheme() === "dark";
+  return `<div class="hubbar" data-uibg="hub-${hubCtx.kind}"><b class="hubtitle">${H.title}</b><div class="hubtabs">${H.tabs.map(([k, e, , icon]) => {
+    const on = k === hubCtx.tab, count = k === "Log" ? unread : 0;
+    return `<button class="${on ? "on" : ""}" aria-pressed="${on}" ${count ? `aria-label="Log, ${count} unread"` : ""} data-hub="${k}">${uiArt(dark ? "tab-" + k.toLowerCase() : icon, e)}<span>${k}</span>${count ? `<i class="dot" aria-hidden="true">${count}</i>` : ""}</button>`;
+  }).join("")}</div></div>`;
 }
 // the inner tabs each screen shows inside a hub (so the same tab isn't offered twice)
 const squadTabsFor = () => !hubCtx ? ["Train", "Spells", "Heroes", "Coaching"] : hubCtx.kind === "battle" ? ["Train", "Spells", "Heroes"] : [];
@@ -253,6 +254,7 @@ function passPoints(k, n) { const v = PASS_PTS[k]; if (!v || !S) return; ensureP
 // ---------- Events tray ----------
 function openEvents() { menuBack = null;
   hubCtx = null; const e = eventNow(), sb = S.starBonus || { stars: 0, until: 0 }, rk = ensureRanked(), p = ensurePass();
+  updateEventBadge(true);
   const card = (icon, title, body, btn) => `<div class="evcard">${uiArt(icon, { "ev-today": "🎉", "ev-star": "⭐", "ev-ranked": "🏆", "ev-pass": "🎫", "ev-afl": "🏉" }[icon] || "📅")}<div class="grow"><b>${title}</b><small>${body}</small></div>${btn || ""}</div>`;
   let h = `<h2>Events</h2>`;
   h += card("ev-today", e ? "Today: " + e.name : "No event today", e ? e.desc : "Check back tomorrow");
@@ -269,7 +271,7 @@ function openEvents() { menuBack = null;
 const isPhone = () => Math.min(screen.width, screen.height) < 600;
 function checkOrientation() {
   const want = isPhone() ? "portrait" : "landscape";
-  try { if (screen.orientation && screen.orientation.lock && matchMedia("(display-mode: standalone)").matches) screen.orientation.lock(want).catch(() => {}); } catch (e) {}
+  try { if (screen.orientation?.lock && (isStandalone() || document.fullscreenElement)) screen.orientation.lock(want).catch(() => {}); } catch (e) {}
   const land = innerWidth > innerHeight, wrong = want === "portrait" ? land : (!land && "ontouchstart" in window);
   $("rotateMsg").classList.toggle("hide", !wrong);
   $("rotateMsg").querySelector("b").textContent = want === "portrait" ? "Turn your phone upright" : "Turn your tablet sideways";

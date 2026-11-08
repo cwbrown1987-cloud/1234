@@ -1,6 +1,7 @@
 // ---------- "Install the app" prompt, shown the first time someone opens the game ----------
 let deferredInstall = null;
-const isStandalone = () => matchMedia("(display-mode: standalone)").matches || navigator.standalone === true;
+const isStandalone = () => matchMedia("(display-mode: standalone)").matches ||
+  (matchMedia("(display-mode: fullscreen)").matches && !document.fullscreenElement) || navigator.standalone === true;
 const isIOS = () => /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
 const isAndroid = () => /android/i.test(navigator.userAgent);
 const askedKey = "ffInstallAsked";

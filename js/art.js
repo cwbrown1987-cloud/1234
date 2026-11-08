@@ -1,5 +1,8 @@
 // Transparent sprite sheets. Art reads the game state through the existing draw calls.
 const artSprites = new Map();
+const artManifest = typeof fetch==="function" && location.protocol!=="file:"
+  ? fetch("art/manifest.json").then(r=>r.ok?r.json():null).catch(()=>null)
+  : Promise.resolve(null);
 const namedHeroArt = {
   adel:"dawson", bris:"neale", carl:"cripps", coll:"daicos", ess:"martin", freo:"serong",
   geel:"cameron", gcs:"rowell", gws:"green", haw:"sicily", melb:"gawn", nmfc:"sheezel",
@@ -61,7 +64,7 @@ const artBuildings = {
   clubhouse: [.98,.81], pieshop: [.91,.82], drinktap: [.87,.83], piewarmer: [.91,.82],
   esky: [.69,.81], oval: [.93,.54], kitroom: [.89,.82], herohall: [.89,.82], bench: [.91,.78], physio: [.9,.8],
   coachbox: [.9,.84], locker: [.89,.82], office: [.89,.82], shed: [.95,.82],
-  goalpost: [.85,.89], siren: [.87,.81], catapult: [.89,.83], floodlight: [.84,.92]
+  goalpost: [.85,.86], siren: [.87,.81], catapult: [.89,.83], floodlight: [.84,.92]
 };
 const heroPlinths = [
   [[158,384],[251,399],[344,384]],
@@ -71,7 +74,7 @@ const heroPlinths = [
 
 function buildingArtScale(type,sprite) {
   const width = artBuildings[type][0];
-  const maxHeight = type==="clubhouse"?3.75:type==="floodlight"?3.48:2.8;
+  const maxHeight = type==="goalpost"?4.5:type==="clubhouse"?3.75:type==="floodlight"?3.48:2.8;
   return Math.min(BLD[type].size*width/sprite.w,maxHeight/sprite.h);
 }
 
@@ -338,9 +341,7 @@ function loadFootyArt() {
 async function loadArtManifest() {
   if (location.protocol === "file:") return;
   try {
-    const response = await fetch("art/manifest.json");
-    if (!response.ok) return;
-    const {files,sheets={}} = await response.json();
+    const {files,sheets={}} = await artManifest || {};
     if (!Array.isArray(files)) return;
     for (const path of files) {
       const match = typeof path === "string" && path.match(/^art\/(units|heroes|portraits|buildings|scenery|stadium)\/([a-z0-9-]+)\.webp$/);

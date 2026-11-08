@@ -63,5 +63,5 @@ function openLadder(){
   order.forEach((c,i)=>{ const r=L[c], p=r.w+r.l+r.d;
     h+=`<tr class="${c===S.club?"me":""} ${i===7?"cut":""}"><td>${i+1}</td><td>${badgeImg(CLUBS[c],"xs")}</td><td>${CLUBS[c].short}</td><td>${p}</td><td>${r.w}</td><td>${r.l}</td><td>${r.d}</td><td>${p?pctOf(r).toFixed(1):"–"}</td><td><b>${r.w*4+r.d*2}</b></td></tr>`; });
   h+=`</table></div><p class="tiny center">Win = 4 points, draw = 2. Ties split by percentage (points for ÷ points against). Top 8 play finals.</p><div class="center"><button class="btn" id="ladBack">Back</button></div>`;
-  modal(h); $("ladBack").onclick=openMatch;
+  modal(h); $("ladBack").onclick=()=>menuBack?goBack():openMatch();
 }

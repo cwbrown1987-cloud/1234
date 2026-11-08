@@ -124,10 +124,13 @@ const xpForSeconds = s => Math.max(1, Math.floor(Math.sqrt(Math.max(1, s)))); //
 // Until those files exist, cards use the current painted portraits and a drawn frame.
 const cardArt = {files:new Set(), imgs:{}, ready:false};
 (function loadCardManifest(){
-  if (typeof fetch !== "function" || location.protocol === "file:") return;
-  const take = list => { for (const f of (Array.isArray(list) ? list : list && (list.files || Object.keys(list))) || []) cardArt.files.add(typeof f === "string" ? f.replace(/^\.?\//, "") : (f.file || f.path || "").replace(/^\.?\//, "")); };
-  Promise.all(["art/manifest.json"].map(u => fetch(u).then(r => r.ok ? r.json() : null).catch(() => null)))
-    .then(([a, b]) => { take(a); take(b); cardArt.ready = true; ["art/cards/back.webp", "art/packs/footy.webp", "art/packs/prize.webp"].forEach(cardImg); if (cardArt.files.size) for (const k of Object.keys(iconCache)) if (k.startsWith("cf")) delete iconCache[k]; });
+  artManifest.then(m => {
+    if (!Array.isArray(m?.files)) return;
+    for (const path of m.files) if (typeof path==="string") cardArt.files.add(path);
+    cardArt.ready = true;
+    ["art/cards/back.webp", "art/packs/footy.webp", "art/packs/prize.webp"].forEach(cardImg);
+    for (const k of Object.keys(iconCache)) if (k.startsWith("cf")) delete iconCache[k];
+  });
 })();
 // Returns a loaded image for a file in the manifest, or null (and starts loading it).
 function cardImg(path) {

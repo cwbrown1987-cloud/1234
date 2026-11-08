@@ -3,7 +3,7 @@ const SAVE_KEY = "footyFortress2";
 let S = null;
 let mode = "home";        // home | battle
 let selected = null;
-let placing = null;       // {t,x,y, moving:b}
+let placing = null;       // New building, single move, or a fence row preview
 let floaters = [];
 
 // New clubs start like a new Clash village: just the Clubhouse, one groundskeeper and a few obstacles.
@@ -67,7 +67,7 @@ const resIcon = r => r==="pies"?"🥧":r==="drink"?"💧":"🏅";
 
 function footprintFree(x,y,s,ignore){ if(x<0||y<0||x+s>N||y+s>N) return false; return !occupiedHome(x,y,s,ignore); }
 function occupiedHome(x,y,s,ignore){
-  for(const b of S.buildings){ if(b===ignore) continue; const bs=BLD[b.t].size; if(x<b.x+bs&&x+s>b.x&&y<b.y+bs&&y+s>b.y) return true; }
+  for(const b of S.buildings){ if(b===ignore||ignore instanceof Set&&ignore.has(b)) continue; const bs=BLD[b.t].size; if(x<b.x+bs&&x+s>b.x&&y<b.y+bs&&y+s>b.y) return true; }
   for(const o of S.obstacles){ if(o===ignore) continue; const os=o.s||1; if(x<o.x+os&&x+s>o.x&&y<o.y+os&&y+s>o.y) return true; }
   return false;
 }
@@ -80,18 +80,26 @@ const buildCost = t => t==="shed" ? SHED_COST[Math.min(5,sheds())] : FREE_FIRST.
 const missingIncome = () => S ? FREE_FIRST.filter(t=>countOf(t)===0) : [];
 function shopStatus(t){
   const lim=MAXC[t][th()-1], have=countOf(t);
-  if(have>=lim){ const next=MAXC[t].findIndex(v=>v>have); return {ok:false, why: next<0?"Max built":`Clubhouse ${next+1}`, have, lim}; }
+  if(have>=lim){ const next=MAXC[t].findIndex(v=>v>have); return {ok:false, why: next<0?"Max built":`Clubhouse level ${next+1}`, have, lim}; }
   const cost=buildCost(t), res=BLD[t].res;
   return {ok:true, cost, res, have, lim, afford:canPay(res,cost)};
 }
 function startPlacing(t){
   const st=shopStatus(t); if(!st.ok) return toast(st.why);
   if(!st.afford) return toast(`Not enough ${resIcon(st.res)}`);
+  if(BLD[t].time[0]>0&&!freeBuilder()) return toast("All groundskeepers are busy");
   const s=BLD[t].size; const spot=findSpot(s); if(!spot) return toast("No room left!");
   placing={t,x:spot[0],y:spot[1]}; selected=null; centreOn(spot[0]+s/2,spot[1]+s/2); refreshUI(); tut("placing");
 }
 function confirmPlace(){
   if(!placing) return;
+  if(placing.row){
+    if(!wallRowFits(placing)) return toast("Can't move the row there");
+    const dx=placing.x-placing.anchor.x, dy=placing.y-placing.anchor.y;
+    for(const b of placing.row){ b.x+=dx; b.y+=dy; }
+    placing=null; sfx("tap"); save(); refreshUI();
+    return;
+  }
   const {t,x,y}=placing, d=BLD[t];
   if(!footprintFree(x,y,d.size)) return toast("Can't build there");
   const cost=buildCost(t), time=d.time[0];
@@ -104,6 +112,29 @@ function confirmPlace(){
     placing = st.ok&&st.afford&&nx ? {t,x:nx[0],y:nx[1]} : null;
   } else placing=null;
   refreshUI();
+}
+function wallRow(anchor,axis){
+  const byTile=new Map(S.buildings.filter(b=>b.t==="fence"&&built(b)).map(b=>[`${b.x},${b.y}`,b]));
+  const row=new Set([anchor]), dx=axis==="x"?1:0, dy=1-dx;
+  for(const dir of [-1,1]){
+    for(let i=dir;;i+=dir){
+      const b=byTile.get(`${anchor.x+i*dx},${anchor.y+i*dy}`);
+      if(!b) break;
+      row.add(b);
+    }
+  }
+  return row;
+}
+function startWallRow(anchor,row){
+  placing={t:"fence",x:anchor.x,y:anchor.y,anchor,row};
+  centreOn(anchor.x+.5,anchor.y+.5);
+  refreshUI();
+}
+function wallRowFits({x,y,anchor,row}){
+  for(const b of row){
+    if(!S.buildings.includes(b)||!footprintFree(b.x+x-anchor.x,b.y+y-anchor.y,1,row)) return false;
+  }
+  return true;
 }
 function upgradeInfo(b){
   const d=BLD[b.t], mx=maxLevel(b.t,th());
@@ -303,19 +334,48 @@ function floatText(x,y,s,col){ floaters.push({x,y,s,life:1.4,col}); }
 function renderHome(){
   drawGround();
   if(placing){ ctx.strokeStyle="#ffffff28"; ctx.lineWidth=1; for(let i=0;i<=N;i++){ ctx.beginPath(); ctx.moveTo(...P(i,0)); ctx.lineTo(...P(i,N)); ctx.moveTo(...P(0,i)); ctx.lineTo(...P(N,i)); ctx.stroke(); } }
-  const club=myClub(), list=S.buildings, ents=[];
+  const club=myClub(), row=placing?.row, ents=[];
+  const list=row?S.buildings.map(b=>row.has(b)?{...b,x:b.x+placing.x-placing.anchor.x,y:b.y+placing.y-placing.anchor.y}:b):S.buildings;
+  const rowOK=row&&wallRowFits(placing);
+  if(row) for(const [i,b] of S.buildings.entries()) if(row.has(b)){
+    const preview=list[i];
+    diamond(preview.x,preview.y,1,1,rowOK?"#64df7fb0":"#ff5634b0","#fff",2);
+  }
   const heroes={busy:{}}; for(const h of Object.keys(HEROES)){ heroes[h]=heroReady(h)?club:null; heroes.busy[h]=!!S.heroes[h].busy; }
   for(const t of deco) ents.push({k:t.x+t.y,f:()=>drawDeco(t)});
   for(const o of S.obstacles) ents.push({k:o.x+o.y+(o.s||1),f:()=>{ if(selected===o) selectGlow(o.x,o.y,o.s||1); drawObstacle(o); }});
   const movingB = placing&&placing.moving;
   for(const b of list){ if(b===movingB) continue; const d=BLD[b.t];
-    ents.push({k:b.x+b.y+d.size,f:()=>drawBuilding(b,club,list,{selected:selected===b, fill:fillOf(b), heroes, collect:d.makes&&!b.busy&&b.store>=Math.max(1,d.cap[b.lv-1]*.1)?b.store:0})}); }
+    ents.push({k:b.x+b.y+d.size,f:()=>drawBuilding(b,club,list,{selected:!row&&selected===b, fill:fillOf(b), heroes, collect:d.makes&&!b.busy&&b.store>=Math.max(1,d.cap[b.lv-1]*.1)?b.store:0})}); }
   ents.sort((a,b)=>a.k-b.k).forEach(e=>e.f());
-  if(placing){ const d=BLD[placing.t], ok=footprintFree(placing.x,placing.y,d.size,placing.moving);
+  if(placing&&!row){ const d=BLD[placing.t], ok=footprintFree(placing.x,placing.y,d.size,placing.moving);
     diamond(placing.x,placing.y,d.size,d.size,ok?"#5fd16b88":"#e8503a99","#fff",2);
     ctx.save(); ctx.globalAlpha=.85; drawBuilding({t:placing.t,x:placing.x,y:placing.y,lv:placing.moving?placing.moving.lv:1},club,list,{fill:.5,heroes}); ctx.restore(); }
   drawSky();
+  if(row){
+    const [x,y,hit]=wallRowHandle(), r=hit*.61;
+    ctx.save(); ctx.translate(x,y);
+    ctx.fillStyle="#203847"; ctx.beginPath();
+    ctx.moveTo(-r*.32,r*.7); ctx.lineTo(0,r*1.32); ctx.lineTo(r*.32,r*.7); ctx.fill();
+    ctx.strokeStyle="#203847"; ctx.lineWidth=r*.15;
+    rr(-r,-r,r*2,r*2,r*.55,grad([0,-r],[0,r],...(rowOK?["#68bbed","#28669e"]:["#f07d59","#af3c29"])));
+    ctx.strokeStyle="#ffe5a3"; ctx.lineWidth=r*.09;
+    ctx.beginPath(); ctx.roundRect(-r*.83,-r*.83,r*1.66,r*1.66,r*.43); ctx.stroke();
+    ctx.strokeStyle="#fff8df"; ctx.lineWidth=r*.15; ctx.lineCap="round"; ctx.lineJoin="round";
+    ctx.beginPath();
+    for(let i=0;i<4;i++){
+      ctx.moveTo(0,0); ctx.lineTo(0,-r*.58);
+      ctx.moveTo(-r*.2,-r*.36); ctx.lineTo(0,-r*.58); ctx.lineTo(r*.2,-r*.36);
+      ctx.rotate(Math.PI/2);
+    }
+    ctx.stroke(); ctx.restore();
+  }
   drawFloaters();
+}
+function wallRowHandle(){
+  const hit=22*W/cv.clientWidth;
+  const [x,y]=P(placing.x+.5,placing.y+.5,1);
+  return [x,y-hit*.62,hit];
 }
 function fillOf(b){ const d=BLD[b.t]; if(d.stores) return Math.min(1,S[d.stores]/Math.max(1,capOf(d.stores))); if(b.t==="bench") return Math.min(1,usedSpace()/Math.max(1,armySpace())); return .5; }
 function drawFloaters(){ for(const f of floaters){ const [x,y]=P(f.x,f.y,3+(1.4-f.life)*1.5); ctx.globalAlpha=Math.min(1,f.life*1.5); txt(f.s,x,y,TH*.9,f.col||GOLD); ctx.globalAlpha=1; } }
@@ -336,7 +396,7 @@ function frame(now){
 }
 function boot(){
   resize(); addEventListener("resize",resize); addEventListener("orientationchange",()=>setTimeout(resize,250));
-  if(window.visualViewport) visualViewport.addEventListener("resize",resize);
+  if(typeof ResizeObserver!=="undefined") new ResizeObserver(resize).observe(cv);
   S=load();
   if(S){ const away=Math.min(24*3600,(Date.now()-S.last)/1000); produce(away); ensureDaily(); processTimers(); if(away>60&&!S.raids.some(r=>!r.seen)) toast(`Welcome back! You were away ${fmtTime(away)}.`); }
   else showClubPicker();

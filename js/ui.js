@@ -52,18 +52,52 @@ function refreshUI(){
   $("eventBanner").classList.toggle("hide",!miss.length);
   if(miss.length){ $("eventBanner").innerHTML=`⚠️ Build your first <b>${miss.map(t=>BLD[t].name).join(" and ")}</b>, it's free! Tap here`; $("eventBanner").onclick=()=>openShop("Resources"); }
   $("placePanel").style.display=home&&placing&&!placing.moving?"flex":"none";
-  if(placing&&!placing.moving){ const d=BLD[placing.t]; $("placeName").textContent=`${d.name} · ${fmt(buildCost(placing.t))} ${resIcon(d.res)}`; }
+  $("placePanel").classList.toggle("moving-row",!!placing?.row);
+  if(placing?.row){
+    $("placeName").textContent=`Move ${placing.row.size} fence pieces`;
+    $("placeHint").textContent="Drag the arrow, then confirm";
+  } else if(placing&&!placing.moving){
+    const d=BLD[placing.t];
+    $("placeName").textContent=d.name;
+    $("placeHint").textContent=`${buildPrice(d.res,buildCost(placing.t))} · ${buildTime(d.time[0])}`;
+  }
   const sp=$("selPanel"); sp.innerHTML="";
   if(home&&selected&&!placing){ sp.style.display="flex"; buildSelPanel(sp); } else sp.style.display="none";
   if(bat&&!replay) buildCards();
-  if(S&&home){ const u=S.raids.filter(r=>!r.seen).length, tr=tasksReady()||0;
-    $("logDot").textContent=u; $("logDot").classList.toggle("hide",!u);
+  if(S&&home){ const tr=tasksReady()||0;
+    updateLogBadge();
     const pr=tr+passReady(); $("taskDot").textContent=pr; $("taskDot").classList.toggle("hide",!pr);
     const ar=achReady(); const bd=$("profDot"); if(bd){ bd.textContent=ar; bd.classList.toggle("hide",!ar); }
-    const ev=eventNow(); $("eventDot").textContent="!"; $("eventDot").classList.toggle("hide",!ev);
+    updateEventBadge();
     const pk=Math.floor((S.tokens||0)/PACK_COST)+(S.prizePacks||0)+(dailyReady()?1:0); $("cardDot").textContent=pk; $("cardDot").classList.toggle("hide",!pk);
     $("lvlBadge").textContent=S.lvl; }
   updateHUD(true);
+}
+const unreadRaids=()=>S.raids.filter(r=>!r.seen).length;
+function updateLogBadge(){
+  const n=unreadRaids();
+  $("logDot").textContent=n;
+  $("logDot").classList.toggle("hide",!n);
+  $("btnAttack").setAttribute("aria-label",n?`Battle, ${n} unread in the log`:"Battle");
+}
+let seenEvent="";
+try { seenEvent=localStorage.getItem("ffSeenEvent")||""; } catch(e) {}
+function eventNoticeKey(){
+  const ev=eventNow();
+  if(!ev) return "";
+  const day=new Date();
+  while(EVENTS[(day.getDay()+6)%7]?.name===ev.name) day.setDate(day.getDate()-1);
+  return `${day.getFullYear()}-${day.getMonth()+1}-${day.getDate()}:${ev.name}`;
+}
+function updateEventBadge(seen=false){
+  const key=eventNoticeKey();
+  if(seen&&key&&key!==seenEvent){
+    seenEvent=key;
+    try { localStorage.setItem("ffSeenEvent",key); } catch(e) {}
+  }
+  const unread=key&&key!==seenEvent;
+  $("eventDot").classList.toggle("hide",!unread);
+  $("btnEvents").setAttribute("aria-label",unread?"Events, new event":"Events");
 }
 function updateHUD(force){
   if(uiDirty&&!force){ uiDirty=false; refreshUI(); return; }
@@ -111,6 +145,13 @@ function buildSelPanel(sp){
   if(o.t==="physio") addBtn(sp,"btn","🍊<small>Spells</small>",()=>openSquad("Spells"));
   if(o.t==="coachbox") addBtn(sp,"btn","📋<small>Research</small>",()=>openSquad("Coaching"));
   if(o.t==="locker"||o.t==="office"||o.t==="herohall") addBtn(sp,"btn","⭐<small>Heroes</small>",()=>openSquad("Heroes"));
+  if(o.t==="fence"&&built(o)){
+    const rows=["x","y"].map(axis=>({axis,row:wallRow(o,axis)})).filter(r=>r.row.size>1);
+    for(const {axis,row} of rows){
+      const arrow=rows.length>1?(axis==="x"?"↘ ":"↙ "):"";
+      addBtn(sp,"btn blue wall-row-option",`${arrow}Move row<small>${row.size} fence pieces</small>`,()=>startWallRow(o,row));
+    }
+  }
 }
 function addBtn(sp,cls,html,fn,dis){ const b=document.createElement("button"); b.className=cls; b.innerHTML=html; b.onclick=e=>{e.stopPropagation(); sfx("tap",.4); fn();}; if(dis) b.setAttribute("disabled",""); sp.querySelector(".acts").append(b); return b; }
 
@@ -131,12 +172,28 @@ let modalTick=null, menuBack=null;
 // Open a sub-screen that remembers where it came from: it shows a "‹ Back" button instead of only closing everything.
 const sub=(fn,back)=>(...a)=>{ menuBack=back; fn(...a); };
 function goBack(){ const f=menuBack; menuBack=null; if(f) f(); else closeModal(); }
-function modal(html, opts={}){ $("modal").querySelector(".card").classList.remove("albummode"); $("modalBody").innerHTML=(typeof hubBarHTML==="function"?hubBarHTML():"")+html; if(hubCtx) bindHubBar(); $("modal").classList.add("show"); $("modalX").style.display=opts.noClose?"none":"block"; modalTick=opts.tick||null; }
+function modal(html, opts={}){
+  const layer=$("modal"), card=layer.querySelector(".card"), wasPinned=card.classList.contains("pinned");
+  const scroller=wasPinned?$("modalBody"):card, scrollTop=opts.keepScroll?scroller.scrollTop:0;
+  const header=hubCtx?hubBarHTML():"", actions=opts.actions||"";
+  card.classList.remove("albummode");
+  card.classList.toggle("pinned",!!(header||actions));
+  card.classList.toggle("has-hub",!!header);
+  $("modalHead").innerHTML=header;
+  $("modalBody").innerHTML=html;
+  $("modalActions").innerHTML=actions;
+  if(hubCtx) bindHubBar();
+  layer.classList.toggle("match-day",!!opts.matchDay);
+  layer.classList.add("show");
+  $("modalX").style.display=opts.noClose?"none":"block";
+  (header||actions?$("modalBody"):card).scrollTop=scrollTop;
+  modalTick=opts.tick||null;
+}
 function closeModal(){ menuBack=null; if(typeof hubCtx!=="undefined") hubCtx=null; $("modal").classList.remove("show"); modalTick=null; refreshUI(); }
-setInterval(()=>{ if(modalTick&&$("modal").classList.contains("show")) modalTick(); },1000);
+setInterval(()=>{ if(S&&mode==="home") updateEventBadge(); if(modalTick&&$("modal").classList.contains("show")) modalTick(); },1000);
 $("modalX").onclick=()=>{ sfx("tap",.4); goBack(); }; // in a sub-screen the ✖ steps back to where you came from
 $("modal").addEventListener("pointerdown",e=>{ if(e.target.id==="modal"&&$("modalX").style.display!=="none") goBack(); });
-const tabsHTML=(tabs,on)=>`<div class="tabs">${tabs.map(t=>`<button class="${t===on?"on":""}" data-tab="${t}">${t}</button>`).join("")}</div>`;
+const tabsHTML=(tabs,on)=>`<div class="tabs">${tabs.map(t=>`<button class="${t===on?"on":""}" aria-pressed="${t===on}" data-tab="${t}">${t}</button>`).join("")}</div>`;
 const bindTabs=fn=>document.querySelectorAll("[data-tab]").forEach(b=>b.onclick=()=>{ sfx("tap",.4); fn(b.dataset.tab); });
 
 function showClubPicker(){
@@ -146,20 +203,51 @@ function showClubPicker(){
 }
 
 let shopTab="Resources";
+const resName={pies:"pies",drink:"sports drink",medals:"Brownlow votes"};
+const buildPrice=(res,cost)=>cost?`${fmt(cost)} ${resIcon(res)}`:"Free";
+const buildTime=time=>time?fmtTime(time):"Instant";
+function buildOffer(t){
+  const st=shopStatus(t), time=BLD[t].time[0];
+  if(!st.ok) return {label:st.why,ready:false};
+  const duration=buildTime(time), price=`${buildPrice(st.res,st.cost)} · ${duration}`;
+  if(!st.afford) return {price,detail:price,label:`Need ${fmt(st.cost)} ${resName[st.res]}`,ready:false};
+  if(time&&!freeBuilder()) return {price,detail:price,label:"Groundskeeper busy",ready:false};
+  return {price,detail:st.cost?price:duration,label:st.cost?"Ready":"Free",ready:true};
+}
 function openShop(tab){
   shopTab=tab||shopTab;
   const sTabs=typeof shopTabsFor==="function"?shopTabsFor():Object.keys(SHOP_TABS);
-  modal(`${hubCtx?"":"<h2>Shop</h2>"}${sTabs.length?tabsHTML(sTabs,shopTab):""}<div class="grid" id="shopGrid"></div>`);
+  const actions=shopTab!=="Deals"&&!tutActive()?'<div class="action-copy" id="shopChoice" aria-live="polite">Choose a building</div><button class="btn gold" id="shopPlace" disabled>Place building</button>':"";
+  modal(`${hubCtx?"":"<h2>Shop</h2>"}${sTabs.length?tabsHTML(sTabs,shopTab):""}<div class="grid" id="shopGrid"></div>`,{actions});
   bindTabs(openShop); tut("shop"); tut("tab-"+shopTab);
   const g=$("shopGrid");
   if(shopTab==="Deals") return shopDeals(g);
+  let choice=null;
+  const place=$("shopPlace");
+  if(place) place.onclick=()=>{
+    const offer=buildOffer(choice);
+    if(!offer.ready) return toast(offer.label);
+    closeModal(); startPlacing(choice);
+  };
   for(const t of SHOP_TABS[shopTab]){
-    const d=BLD[t], st=shopStatus(t);
-    const it=document.createElement("div"); it.className="item"+(st.ok?"":" off"); it.dataset.t=t;
+    const d=BLD[t], st=shopStatus(t), offer=buildOffer(t);
+    const it=document.createElement("div"); it.className="item build-option"+(offer.ready?"":" locked"); it.dataset.t=t;
     it.append(thumb(t,myClub()));
-    it.insertAdjacentHTML("beforeend",`<button class="ibtn" aria-label="What is the ${d.name}?">i</button><div class="nm">${d.name}</div><div class="clash">(${CLASH_NAME[t]})</div><div class="meta">Built ${st.have}/${st.lim||MAXC[t][th()-1]}${d.time[0]?" · ⏱ "+fmtTime(d.time[0]):""}</div>`+
-      (st.ok?(st.cost===0?`<div class="cost free">FREE</div>`:`<div class="cost ${st.afford?"":"bad"}">${fmt(st.cost)} ${resIcon(st.res)}</div>`):`<div class="cost bad">${st.why}</div>`));
-    it.onclick=()=>{ if(!st.ok) return toast(st.why); closeModal(); startPlacing(t); };
+    it.insertAdjacentHTML("beforeend",`<button class="build-pick" aria-label="${d.name}, ${offer.label}" aria-pressed="false"></button><button class="ibtn" aria-label="What is the ${d.name}?">i</button><div class="nm">${d.name}</div><div class="clash">(${CLASH_NAME[t]})</div><div class="meta">Built ${st.have}/${st.lim}</div>${offer.detail?`<div class="meta">${offer.detail}</div>`:""}<div class="cost ${offer.ready?"free":"bad"}">${offer.label}</div>`);
+    it.onclick=()=>{
+      const current=buildOffer(t);
+      if(!place){
+        if(!current.ready) return toast(current.label);
+        closeModal(); startPlacing(t); return;
+      }
+      choice=t;
+      for(const item of g.children){
+        item.classList.toggle("chosen",item===it);
+        item.querySelector(".build-pick").setAttribute("aria-pressed",item===it);
+      }
+      $("shopChoice").innerHTML=`<b>${d.name}</b><small>${current.ready?current.price:current.label+(current.price?" · "+current.price:"")}</small>`;
+      place.disabled=!current.ready;
+    };
     it.querySelector(".ibtn").onclick=e=>{ e.stopPropagation(); shopInfo(t); };
     g.append(it);
   }
@@ -227,8 +315,7 @@ function openSquad(tab){
         h+="</div>";
       }
     }
-    const sc=$("modalBody").parentElement.scrollTop;
-    modal(h,{tick:render}); $("modalBody").parentElement.scrollTop=sc;
+    modal(h,{tick:render,keepScroll:true});
     bindTabs(t=>{ squadTab=t; if(hubCtx) hubCtx.tab=t==="Coaching"?"Research":hubCtx.kind==="build"?"Heroes":"Army"; render(); }); tut("squad");
     document.querySelectorAll("[data-u]").forEach(el=>el.onclick=()=>{ const k=el.dataset.u; if(!unlockedUnits().includes(k)) return toast("Upgrade your Training Oval to unlock"); trainUnit(k); render(); });
     document.querySelectorAll("[data-rm]").forEach(el=>el.onclick=()=>{ untrain(el.dataset.rm); render(); });
@@ -263,7 +350,9 @@ function openLog(){
       <div class="tiny">${r.stars?`Lost 🥧 ${fmt(r.lost.pies)} 💧 ${fmt(r.lost.drink)}`:"Defence win!"} · ${r.tro>0?"+":""}${r.tro} 🏆</div></div>
       <div class="col"><button class="btn blue" data-replay="${r.id}">▶ Replay</button>${r.stars&&!r.revenged&&!r.friendly&&!r.friend&&!r.ranked?`<button class="btn red" data-rev="${r.id}">Revenge</button>`:""}</div></div>`; }
   modal(h);
-  S.raids.forEach(r=>r.seen=true); save(); uiDirty=true;
+  S.raids.forEach(r=>r.seen=true); save(); updateLogBadge();
+  document.querySelector('[data-hub="Log"] .dot')?.remove();
+  document.querySelector('[data-hub="Log"]')?.removeAttribute("aria-label");
   document.querySelectorAll("[data-replay]").forEach(b=>b.onclick=()=>watchReplay(S.raids.find(r=>r.id==b.dataset.replay)));
   document.querySelectorAll("[data-rev]").forEach(b=>b.onclick=()=>{ if(!Object.values(S.army).some(n=>n>0)) return toast("Train some players first!"); revenge(S.raids.find(r=>r.id==b.dataset.rev)); });
 }
@@ -273,23 +362,31 @@ function showReplayEnd(){
   const rv=$("rv2"); if(rv) rv.onclick=()=>{ closeModal(); leaveBattle(); revenge(r); };
 }
 function openMatch(){
-  const rk=ensureRanked();
-  let h=`${rk.last?`<div class="banner">Last week: ${ordinal(rk.last.pos)} of ${rk.last.n}. ${rk.last.to>rk.last.from?"⬆ Promoted to ":rk.last.to<rk.last.from?"⬇ Moved down to ":"Staying in "}<b>${rkName(rk.last.to)}</b></div>`:""}<div class="center">🏆 ${S.trophies} · <b>${rkName(rk.tier)}</b> · ${rkAttacks(rk.tier)-rk.attacks}/${rkAttacks(rk.tier)} ranked attacks left${S.shield>Date.now()?` · <span class="tiny">attacking ends your shield</span>`:""}</div>`;
-  const cost=10*th()*th(); // match search cost, like Clash
-  const online=typeof signedIn==="function"&&signedIn();
+  const rk=ensureRanked(), left=rkAttacks(rk.tier)-rk.attacks, unread=unreadRaids();
+  let h=`<div class="match-heading"><h2>Match Day</h2><button class="btn blue" id="rkTable">${rkBadge(rk.tier)} ${rkName(rk.tier)} table</button></div>
+    ${rk.last?`<div class="banner">Last week: ${ordinal(rk.last.pos)} of ${rk.last.n}. ${rk.last.to>rk.last.from?"⬆ Promoted to ":rk.last.to<rk.last.from?"⬇ Moved down to ":"Staying in "}<b>${rkName(rk.last.to)}</b></div>`:""}
+    <div class="center tiny">🏆 ${S.trophies} · ${left}/${rkAttacks(rk.tier)} ranked attacks left${S.shield>Date.now()?" · Attacking ends your shield":""}</div>
+    ${unread?`<button class="btn blue match-log-link" id="unreadLog">${unread} new in the battle log ›</button>`:""}`;
+  const online=typeof signedIn==="function"&&signedIn(), tutorial=tutActive();
+  const cost=online?50*th():tutorial?0:10*th()*th();
+  const matchLock=!Object.values(S.army).some(n=>n>0)?"Train players first":!canPay("pies",cost)?`Need ${fmt(cost)} pies`:"";
+  const rankedLock=matchLock||(!left?"No ranked attacks left":"");
+  const actions=`<button class="btn battle-action" id="findMatch" ${matchLock?"disabled":""}>${uiArt("ico-battle","⚔️")} Find match<small>${matchLock||buildPrice("pies",cost)}</small></button>
+    <button class="btn blue" id="findRanked" ${rankedLock?"disabled":""}>🏆 Ranked<small>${rankedLock||buildPrice("pies",cost)}</small></button>`;
+  ensureSeason(); const s=S.season, f=nextFixture(), pos=ladderPos(S.club), L=s.ladder[S.club];
+  h+=`<section class="match-fixture"><div class="seasonbar"><b>Season ${s.year}${S.premierships?` · 🏆×${S.premierships}`:""}</b><span>${L.w+L.l+L.d?`${ordinal(pos)} · ${L.w}W ${L.l}L${L.d?" "+L.d+"D":""}`:"First bounce"}</span><button class="btn blue" id="ladder">Ladder</button></div>`;
+  if(f) h+=`<div class="match-fixture-round">Season fixture · ${f.name}</div><div class="matchup">
+    <div>${badgeImg(myClub())}<b>${myClub().name}</b></div><span>VS</span><div>${badgeImg(CLUBS[f.club])}<b>${CLUBS[f.club].name}</b></div>
+    </div><div class="match-fixture-foot"><small>Ranked results count on the Season ladder. Matchmaking picks your opponent.</small><button class="btn blue" id="playRound" ${!tutorial&&rankedLock?"disabled":""}>🏆 Play</button></div>`;
+  else h+=`<div class="fx next"><span class="nm">${s.premiers?"🏆 <b>Premiers!</b> What a season.":`Season over. You finished ${ordinal(s.place||pos)}.`}</span><button class="btn gold" id="newSeason">Start Season ${s.year+1}</button></div>`;
+  h+="</section>";
   const sb=S.starBonus||{stars:0,until:0}, sbWait=sb.until>Date.now();
   h+=`<div class="starbonus"><span>⭐ Star Bonus</span><div class="bar"><div style="width:${Math.min(100,100*sb.stars/STAR_GOAL)}%"></div></div><span>${Math.min(sb.stars,STAR_GOAL)}/${STAR_GOAL}${sbWait?` · ready in ${fmtTime((sb.until-Date.now())/1000)}`:""}</span></div>
     <p class="tiny center">Win 5 stars in Battles or Ranked for +${fmt(starBonusLoot().pies)} 🥧 and +${fmt(starBonusLoot().drink)} 💧. Resets 24 hours after you collect.</p>`;
-  h+=`<div class="modes"><button class="btn gold big" id="findMatch">⚔️ Battle<small>${cost} 🥧 · loot and Star Bonus, no trophies</small></button>
-    <button class="btn blue big" id="findRanked">🏆 Ranked<small>${cost} 🥧 · weekly league, and it counts on the Season ladder</small></button></div>
-    <div class="center"><button class="btn" id="rkTable">📊 ${rkName(rk.tier)} table</button></div>`;
   if(typeof NET!=="undefined"&&NET.online) h+= online?`<div class="center tiny">Playing online as <b>${esc(NET.user.name)}</b> · <a href="#" id="lbLink">Leaderboard</a></div>`:`<div class="banner">Play real people and climb the leaderboard. <button class="btn green" id="goOnline">Play online</button></div>`;
-  ensureSeason(); const s=S.season, f=nextFixture(), pos=ladderPos(S.club), L=s.ladder[S.club];
-  h+=`<h3>Season ${s.year}${S.premierships?` · 🏆×${S.premierships}`:""}</h3><div class="seasonbar"><span>${s.finals?"Finals":`Round ${Math.min(s.round+1,ROUNDS)} of ${ROUNDS}`}</span><span>${L.w+L.l+L.d?`${ordinal(pos)} on the ladder · ${L.w}W ${L.l}L${L.d?" "+L.d+"D":""}`:"First bounce coming up"}</span><button class="btn blue" id="ladder">Ladder</button></div>`;
-  if(f) h+=`<div class="fx next"><span class="nm"><small>Next Ranked match is</small><br><b>${f.name}${f.final?" 🔥":""}</b><br><small>Only Ranked matches count on the ladder. Battles don't.</small></span><button class="btn blue big" id="playRound">🏆 Play</button></div>`;
-  else h+=`<div class="fx next"><span class="nm">${s.premiers?"🏆 <b>Premiers!</b> What a season.":`Season over. You finished ${ordinal(s.place||pos)}.`}</span><button class="btn gold" id="newSeason">Start Season ${s.year+1}</button></div>`;
-  if(s.results.length) h+=`<div class="fixture">${[...s.results].reverse().slice(0,6).map(r=>`<div class="fx"><span class="wl ${r.res}">${r.res}</span>${badgeImg(CLUBS[r.club],"sm")}<span class="nm"><small>${r.name}</small><br>${fmtScore(r.my)} – ${fmtScore(r.their)}</span></div>`).join("")}</div>`;
-  modal(h); tut("match");
+  if(s.results.length) h+=`<h3>Recent results</h3><div class="fixture">${[...s.results].reverse().slice(0,6).map(r=>`<div class="fx"><span class="wl ${r.res}">${r.res}</span>${badgeImg(CLUBS[r.club],"sm")}<span class="nm"><small>${r.name}</small><br>${fmtScore(r.my)} – ${fmtScore(r.their)}</span></div>`).join("")}</div>`;
+  modal(h,{actions,matchDay:true}); tut("match");
+  if(unread) $("unreadLog").onclick=()=>openHub("battle","Log");
   const lb=$("lbLink"); if(lb) lb.onclick=e=>{ e.preventDefault(); openSocial("Leaderboard"); };
   const go=$("goOnline"); if(go) go.onclick=sub(()=>{ hubCtx=null; openAccount(); },()=>openHub("battle","Play"));
   const find=ranked=>{ if(online) return findOnlineMatch([],ranked);
@@ -297,9 +394,9 @@ function openMatch(){
     let c; do{ c=Math.random()*18|0; }while(c===S.club); const d=Math.max(1,Math.min(MAX_TH,th()+(tutActive()?-1:ranked?(Math.random()*3|0)-1:0)));
     closeModal(); startBattle({kind:"match",ranked,club:c,d,seed:Math.random()*1e9|0}); };
   $("findMatch").onclick=()=>find(false); $("findRanked").onclick=sub(()=>rankedConfirm(()=>find(true)),()=>openHub("battle","Play"));
-  $("rkTable").onclick=openRankedTable; if(rk.last){ delete rk.last; save(); }
+  $("rkTable").onclick=sub(openRankedTable,openMatch); if(rk.last){ delete rk.last; save(); }
   const pr=$("playRound"); if(pr) pr.onclick=()=>tutActive()?find(true):sub(()=>rankedConfirm(()=>find(true)),()=>openHub("battle","Play"))();
-  $("ladder").onclick=openLadder; const ns=$("newSeason"); if(ns) ns.onclick=startNextSeason;
+  $("ladder").onclick=sub(openLadder,openMatch); const ns=$("newSeason"); if(ns) ns.onclick=startNextSeason;
 }
 function openInfo(b){
   const d=BLD[b.t], i=b.lv-1;
@@ -341,6 +438,7 @@ function openSettings(){
     <p class="tiny">Club logos: put PNG files named after each club (for example <code>coll.png</code> or <code>wb.png</code>) in the <code>logos</code> folder next to the game and they replace the badges.</p>
     <div class="stat"><span>Tutorials</span><span><button class="btn green" id="tutAgain">Walkthrough</button> <button class="btn gold" id="clashG">Clash guide</button></span></div>
     <div class="stat"><span>Play it like an app</span><button class="btn blue" id="instBtn">Install</button></div>
+    ${document.fullscreenEnabled?`<div class="stat"><span>Screen</span><button class="btn blue" id="fullScreen">${document.fullscreenElement?"Exit full screen":"Full screen"}</button></div>`:""}
     <div class="stat"><span>Version ${VERSION}</span><button class="btn gold" id="updBtn">Check for updates</button></div>
     <p class="tiny">Progress saves on this device automatically.</p><button class="btn red" id="reset">Start over (new club)</button>
     <p class="madefor">Made for Jaxon and Jake 💙</p>`);
@@ -349,6 +447,14 @@ function openSettings(){
   const si=$("signIn"); if(si) si.onclick=sub(()=>openAccount(),back);
   $("updBtn").onclick=()=>{ $("updBtn").textContent="Updating…"; forceUpdate(); };
   $("instBtn").onclick=()=>{ closeModal(); if(isStandalone()) return toast("Already installed!"); showInstall(true); };
+  const full=$("fullScreen");
+  if(full) full.onclick=async()=>{
+    try {
+      if(document.fullscreenElement) await document.exitFullscreen();
+      else await document.documentElement.requestFullscreen({navigationUI:"hide"});
+      closeModal();
+    } catch(e) { toast("Full screen unavailable. Try installing from Settings."); }
+  };
   $("tutAgain").onclick=()=>{ closeModal(); TUT.forEach(s=>delete s._prepped); startTutorial(); };
   $("clashG").onclick=sub(()=>showClashGuide(false),back);
   $("thLight").onclick=()=>{ setTheme("light"); sfx("tap"); setTimeout(reopenSettings); };
@@ -381,7 +487,10 @@ $("rExit").onclick=()=>{ leaveBattle(); openHub("battle","Log"); };
 
 // ---------- touch / mouse ----------
 const ptrs=new Map(); let gesture=null;
-const toCanvas = e => [e.clientX*W/innerWidth, e.clientY*H/innerHeight];
+const toCanvas = e => {
+  const box=cv.getBoundingClientRect();
+  return [(e.clientX-box.left)*W/box.width,(e.clientY-box.top)*H/box.height];
+};
 // What did you tap? Anything whose picture covers the tap counts (like Clash), not just the ground tiles under it.
 // The front-most one wins, because it's drawn on top.
 function hitHome(gx,gy){
@@ -391,7 +500,11 @@ function hitHome(gx,gy){
     const inFoot=gx>=x&&gx<x+s&&gy>=y&&gy<y+s, inPic=sx>=left+TW*.12&&sx<=right-TW*.12&&sy>=top&&sy<=bottom;
     if(inFoot) foot=o;
     if(inPic&&x+y+s>bk){ bk=x+y+s; best=o; } };
-  for(const b of S.buildings){ const s=BLD[b.t].size; test(b,s,b.t==="fence"?.6:BLD[b.t].trap?0:b.t==="clubhouse"?s*1.15:s*.85); }
+  for(const b of S.buildings){
+    const d=BLD[b.t], s=d.size;
+    const h=b.t==="goalpost"&&built(b)?goalTowerHeight(b.lv)-s/2:b.t==="fence"?.6:d.trap?0:b.t==="clubhouse"?s*1.15:s*.85;
+    test(b,s,h);
+  }
   for(const o of S.obstacles){ const s=o.s||1; test(o,s,s*.6); }
   return foot||best;
 }
@@ -401,7 +514,11 @@ cv.addEventListener("pointerdown",e=>{
   const [gx,gy]=unIso(px,py);
   gesture={k:"tap",gx,gy};
   if(mode==="home"&&S){
-    if(placing&&!placing.moving){ const s=BLD[placing.t].size; if(gx>=placing.x&&gx<placing.x+s&&gy>=placing.y&&gy<placing.y+s) gesture={k:"ghost",ox:gx-placing.x,oy:gy-placing.y}; }
+    if(placing?.row){
+      const [x,y,r]=wallRowHandle();
+      if(Math.abs(px-x)<=r&&Math.abs(py-y)<=r) gesture={k:"row",ox:gx-placing.x,oy:gy-placing.y,x:placing.x,y:placing.y};
+    }
+    else if(placing&&!placing.moving){ const s=BLD[placing.t].size; if(gx>=placing.x&&gx<placing.x+s&&gy>=placing.y&&gy<placing.y+s) gesture={k:"ghost",ox:gx-placing.x,oy:gy-placing.y}; }
     else if(selected&&BLD[selected.t]&&hitHome(gx,gy)===selected) gesture={k:"maybeMove",b:selected,ox:gx-selected.x,oy:gy-selected.y,t0:performance.now()};
   }
   if(mode==="battle"){ gesture.hold=setTimeout(()=>{ if(gesture&&gesture.k==="tap"){ gesture.k="spam"; spamLoop(); } },280); }
@@ -411,11 +528,11 @@ cv.addEventListener("pointermove",e=>{
   const p=ptrs.get(e.pointerId); if(!p) return; const [px,py]=toCanvas(e); const dx=px-p.x, dy=py-p.y; p.x=px; p.y=py;
   if(!gesture) return;
   if(gesture.k==="pinch"&&ptrs.size===2){ const [a,b]=[...ptrs.values()]; const d=Math.hypot(a.x-b.x,a.y-b.y); zoomAt((a.x+b.x)/2,(a.y+b.y)/2,gesture.z*d/gesture.d); return; }
-  const moved=Math.hypot(px-p.sx,py-p.sy)>10*(W/innerWidth);
+  const moved=Math.hypot(px-p.sx,py-p.sy)>10*(W/cv.clientWidth);
   if(gesture.k==="spam") return;
-  if(gesture.k==="ghost"){ const [gx,gy]=unIso(px,py); placing.x=Math.round(gx-gesture.ox); placing.y=Math.round(gy-gesture.oy); return; }
+  if((gesture.k==="ghost"||gesture.k==="row")&&placing){ const [gx,gy]=unIso(px,py); placing.x=Math.round(gx-gesture.ox); placing.y=Math.round(gy-gesture.oy); return; }
   // A tap (even a wobbly one) never moves a building: it needs a proper drag, or a short hold then a drag.
-  const far=Math.hypot(px-p.sx,py-p.sy)>26*(W/innerWidth);
+  const far=Math.hypot(px-p.sx,py-p.sy)>26*(W/cv.clientWidth);
   if(gesture.k==="maybeMove"&&(far||(moved&&performance.now()-gesture.t0>300))){ const b=gesture.b; placing={t:b.t,x:b.x,y:b.y,moving:b}; gesture.k="move"; refreshUI(); }
   if(gesture.k==="move"){ const [gx,gy]=unIso(px,py); placing.x=Math.round(gx-gesture.ox); placing.y=Math.round(gy-gesture.oy); return; }
   if(gesture.k==="tap"&&moved){ clearTimeout(gesture.hold); gesture.k="pan"; }
@@ -425,6 +542,12 @@ function endPtr(e){
   ptrs.delete(e.pointerId); if(!gesture) return;
   if(gesture.k==="pinch"){ if(ptrs.size===0) gesture=null; return; }
   clearTimeout(gesture.hold);
+  if(e.type==="pointercancel"){
+    if(gesture.k==="row"&&placing){ placing.x=gesture.x; placing.y=gesture.y; }
+    if(gesture.k==="move"){ placing=null; refreshUI(); }
+    gesture=null;
+    return;
+  }
   if(gesture.k==="tap"){ if(mode==="home") homeTap(gesture.gx,gesture.gy); else battleTap(gesture.gx,gesture.gy); }
   if(gesture.k==="move"){ const b=gesture.b; if(footprintFree(placing.x,placing.y,BLD[b.t].size,b)){ b.x=placing.x; b.y=placing.y; sfx("tap"); save(); } else toast("Can't move it there"); placing=null; refreshUI(); }
   gesture=null;

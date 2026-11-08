@@ -6,14 +6,17 @@ const counts = b => b.t!=="fence" && !BLD[b.t].trap;
 const C0 = Math.floor(N/2); // map centre
 
 // AI base layout for clubhouse level d. Fence rings around a core, defences in the middle band, collectors outside.
-// tier: "easy" (online bots: lower levels, fewer defences and fences) or "hard" (boss bots: next Clubhouse's defences, maxed, double loot).
+// tier: "easy" (online bots: lower levels, fewer defences and fences), "hard" (boss bots: next Clubhouse's defences, maxed, double loot),
+// "boss" (boss battles at your level: this Clubhouse's defences, all maxed, 1.75x loot), or "scale" (a normal ground at your level).
+const BOSS_HP={1:1.2,2:1.2,3:1.2,4:1.2,5:1.2,6:1.2}, BOSS_EXTRA={3:1,5:1}; // boss battles: extra defence health, and an extra of each defence where the level tables are thin // extra defence health on boss battles, tuned by simulated attacks
 function genBase(d, seed, tier){
-  const dd = tier==="hard" ? Math.min(MAX_TH,d+1) : d;
+  const dd = tier==="hard"||(tier==="boss"&&d<=5) ? Math.min(MAX_TH,d+1) : d;
+  const lvd = tier==="boss" ? Math.min(MAX_TH,d+1) : dd; // boss battles: next Clubhouse's levels (and its number of buildings up to Clubhouse 5)
   const r=rng(seed), list=[], occ=new Set(), key=(i,j)=>i+","+j;
   const ring=(lo,hi)=>{ const c=[]; for(let i=lo;i<=hi;i++) c.push([i,lo]); for(let j=lo+1;j<=hi;j++) c.push([hi,j]); for(let i=hi-1;i>=lo;i--) c.push([i,hi]); for(let j=hi-1;j>lo;j--) c.push([lo,j]); return c; };
   const R1=ring(C0-6,C0+6), R2=ring(C0-10,C0+10), R3=ring(C0-14,C0+14);
   // Online bots build like real players, each with its own style (single-player grounds stay "classic").
-  const style = tier ? ["classic","trophy","farm","compact","spread","messy"][Math.abs(seed|0)%6] : "classic";
+  const style = tier==="boss" ? ["trophy","compact","classic"][Math.abs(seed|0)%3] : tier ? ["classic","trophy","farm","compact","spread","messy"][Math.abs(seed|0)%6] : "classic";
   const Z = {classic:{store:["core","mid"],def:["mid","out","core"],army:["out","mid","edge"],coll:["edge","out"]},
     trophy:{store:["out","mid"],def:["core","mid","out"],army:["edge","out"],coll:["edge","out"]},
     farm:{store:["core","mid"],def:["mid","core","out"],army:["edge","out"],coll:["out","edge"]},
@@ -27,13 +30,15 @@ function genBase(d, seed, tier){
     for(let i=x;i<x+s;i++) for(let j=y;j<y+s;j++){ if(occ.has(key(i,j))||zone(i,j)!==z) return false; }
     if(gap) for(let i=x-1;i<=x+s;i++) for(let j=y-1;j<=y+s;j++) if(occ.has("b"+key(i,j))) return false;
     return true; };
-  const lvOf=t=>tier==="hard" ? maxLevel(t,dd) : Math.max(1,Math.min(maxLevel(t,d), maxLevel(t,d)-(r()<.5?1:0)-(r()<.2?1:0)-(tier==="easy"?1:0)));
-  const put=(t,x,y)=>{ const s=BLD[t].size, lv=t==="clubhouse"?d:lvOf(t), hp=BLD[t].hp[lv-1];
+  const maxed = tier==="hard"||tier==="boss";
+  const lvOf=t=>maxed ? maxLevel(t,lvd) : Math.max(1,Math.min(maxLevel(t,d), maxLevel(t,d)-(r()<.5?1:0)-(r()<.2?1:0)-(tier==="easy"?1:0)));
+  const put=(t,x,y)=>{ const s=BLD[t].size, lv=t==="clubhouse"?d:lvOf(t), hp=Math.round(BLD[t].hp[lv-1]*(tier==="boss"&&isDef(t)?BOSS_HP[d]||1:1));
     for(let i=x;i<x+s;i++) for(let j=y;j<y+s;j++){ occ.add(key(i,j)); occ.add("b"+key(i,j)); }
     const b={id:list.length+1,t,x,y,lv,hp,max:hp,cd:r()}; list.push(b); return b; };
   const place=(t,zones)=>{ const s=BLD[t].size; for(const z of zones) for(let k=0;k<400;k++){ const x=1+(r()*(N-2-s))|0, y=1+(r()*(N-2-s))|0; if(fits(x,y,s,z,z!=="core")) return put(t,x,y); } return null; };
   if(style!=="farm") put("clubhouse",C0-2,C0-2);
-  const cnt=t=>{ const n=MAXC[t][dd-1]; return tier==="easy"&&n>1&&(isDef(t)||t==="fence") ? Math.ceil(n*(t==="fence"?.5:.65)) : n; };
+  const n0=t=>isDef(t)&&!BLD[t].trap&&MAXC[t][dd-1]>0;
+  const cnt=t=>{ const n=MAXC[t][dd-1]+(tier==="boss"&&n0(t)?BOSS_EXTRA[d]||0:0); return tier==="easy"&&n>1&&(isDef(t)||t==="fence") ? Math.ceil(n*(t==="fence"?.5:.65)) : n; };
   if(style==="trophy"||style==="compact") for(const t of ["catapult","floodlight","siren"]) if(cnt(t)) place(t,["core"]);
   for(const t of ["piewarmer","esky"]) for(let i=0;i<cnt(t);i++) place(t,Z.store);
   if(style==="farm"&&!place("clubhouse",["mid"])) put("clubhouse",C0-2,C0-2);
@@ -42,7 +47,7 @@ function genBase(d, seed, tier){
   for(const t of ["locker","office","coachbox","physio","oval"]) for(let i=0;i<cnt(t);i++) place(t,Z.army);
   for(const t of ["pieshop","drinktap","bench"]) for(let i=0;i<cnt(t);i++) place(t,Z.coll);
   place("shed",["edge"]); place("shed",["edge"]);
-  const addFence=(i,j)=>{ const lv=tier==="hard"?maxLevel("fence",dd):Math.max(1,Math.min(maxLevel("fence",d),d-(r()<.3?1:0))-(tier==="easy"?1:0)), hp=BLD.fence.hp[lv-1]; list.push({id:list.length+1,t:"fence",x:i,y:j,lv,hp,max:hp}); occ.add("b"+key(i,j)); };
+  const addFence=(i,j)=>{ const lv=maxed?maxLevel("fence",lvd):Math.max(1,Math.min(maxLevel("fence",d),d-(r()<.3?1:0))-(tier==="easy"?1:0)), hp=BLD.fence.hp[lv-1]; list.push({id:list.length+1,t:"fence",x:i,y:j,lv,hp,max:hp}); occ.add("b"+key(i,j)); };
   let budget=cnt("fence");
   for(const R of rings){ if(budget<=0) break;
     const take=Math.min(R.length,budget); if(take<R.length*.5) break; budget-=take;
@@ -56,7 +61,7 @@ function genBase(d, seed, tier){
     cells.forEach(([i,j])=>{ occ.add(key(i,j)); addFence(i,j); }); budget-=len; }
   for(let n=0;n<cnt("sprinkler");n++) for(let k=0;k<200;k++){ const i=C0-9+(r()*19|0), j=C0-9+(r()*19|0); if(zone(i,j)==="mid"&&!occ.has(key(i,j))&&!occ.has("b"+key(i,j))){ occ.add("b"+key(i,j)); list.push({id:list.length+1,t:"sprinkler",x:i,y:j,lv:Math.max(1,Math.min(5,d-2)),hp:1,max:1,armed:true}); break; } }
   // Loot on offer grows with Clubhouse level like Clash (a few thousand at level 1, a few hundred thousand at 8)
-  const lm=tier==="hard"?2:1;
+  const lm=tier==="hard"?2:tier==="boss"?1.75:1;
   const total={pies:Math.round((800+600*d*d*d)*(.7+r()*.6)*lm), drink:Math.round((800+600*d*d*d)*(.7+r()*.6)*lm)};
   const share=(res,types,frac)=>{ const bs=list.filter(b=>types.includes(b.t)); bs.forEach(b=>{ b.loot=b.loot||{pies:0,drink:0}; b.loot[res]+=Math.round(total[res]*frac/bs.length); }); };
   share("pies",["piewarmer"],.6); share("drink",["esky"],.6); share("pies",["pieshop"],.25); share("drink",["drinktap"],.25);

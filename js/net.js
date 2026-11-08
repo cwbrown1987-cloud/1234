@@ -167,6 +167,7 @@ async function findOnlineMatch(skip = [], ranked = false) {
     startBattle({ kind: "pvp", ranked, club: o.club, d: o.th, buildings: oppBuildings(o), opp: { id: o.id, name: o.name, bot: o.bot, trophies: o.trophies }, seen: skip.concat(o.id) });
     BT.skip = skip.concat(o.id);
     if (o.base && o.base.tier === "hard") toast("💀 Boss ground! Maxed defences, double loot");
+    if (o.base && o.base.tier === "boss") toast("💀 Boss battle! Every defence maxed for your level. Big loot if you win");
   } catch (e) { S.pies += cost; if (!e.cancelled) toast(e.message); }
 }
 function nextOpponent() { if (!BT || BT.started || BT.kind !== "pvp") return; const skip = BT.skip || [], ranked = BT.ranked; leaveBattle(); findOnlineMatch(skip, ranked); }

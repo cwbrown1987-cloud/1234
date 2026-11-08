@@ -101,3 +101,12 @@ INSERT OR IGNORE INTO users(id,name,email,pass,salt,recovery,bot,created) VALUES
 INSERT OR IGNORE INTO profiles(user_id,name,club,th,trophies,base,shield_until,last_seen,bot) VALUES('bot56','Tahlia05',9,3,272,'{"gen":59940719,"tier":"scale"}',0,0,1);
 INSERT OR IGNORE INTO users(id,name,email,pass,salt,recovery,bot,created) VALUES('bot57','MattyG',NULL,NULL,NULL,NULL,1,0);
 INSERT OR IGNORE INTO profiles(user_id,name,club,th,trophies,base,shield_until,last_seen,bot) VALUES('bot57','MattyG',17,4,221,'{"gen":12169594,"tier":"scale"}',0,0,1);
+-- Boss battles that scale to whoever they play: your Clubhouse level, every defence maxed, 1.75x loot.
+INSERT OR IGNORE INTO users(id,name,email,pass,salt,recovery,bot,created) VALUES('boss9','💀 The Gauntlet',NULL,NULL,NULL,NULL,1,0);
+INSERT OR IGNORE INTO profiles(user_id,name,club,th,trophies,base,shield_until,last_seen,bot) VALUES('boss9','💀 The Gauntlet',2,4,458,'{"gen":38911954,"tier":"boss"}',0,0,1);
+INSERT OR IGNORE INTO users(id,name,email,pass,salt,recovery,bot,created) VALUES('boss10','💀 Last Quarter Lou',NULL,NULL,NULL,NULL,1,0);
+INSERT OR IGNORE INTO profiles(user_id,name,club,th,trophies,base,shield_until,last_seen,bot) VALUES('boss10','💀 Last Quarter Lou',9,5,666,'{"gen":79460550,"tier":"boss"}',0,0,1);
+INSERT OR IGNORE INTO users(id,name,email,pass,salt,recovery,bot,created) VALUES('boss11','💀 Big Sticks Barry',NULL,NULL,NULL,NULL,1,0);
+INSERT OR IGNORE INTO profiles(user_id,name,club,th,trophies,base,shield_until,last_seen,bot) VALUES('boss11','💀 Big Sticks Barry',16,6,633,'{"gen":50893351,"tier":"boss"}',0,0,1);
+INSERT OR IGNORE INTO users(id,name,email,pass,salt,recovery,bot,created) VALUES('boss12','💀 Fortress Fiona',NULL,NULL,NULL,NULL,1,0);
+INSERT OR IGNORE INTO profiles(user_id,name,club,th,trophies,base,shield_until,last_seen,bot) VALUES('boss12','💀 Fortress Fiona',6,7,586,'{"gen":17488965,"tier":"boss"}',0,0,1);

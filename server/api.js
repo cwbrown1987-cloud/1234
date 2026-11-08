@@ -138,14 +138,15 @@ export async function handleApi(req, env) {
       await env.DB.prepare("CREATE TABLE IF NOT EXISTS recent_opps (user_id TEXT NOT NULL, opp_id TEXT NOT NULL, at INTEGER NOT NULL, PRIMARY KEY(user_id, opp_id))").run();
       const recent = (await env.DB.prepare("SELECT opp_id FROM recent_opps WHERE user_id = ? AND at > ? ORDER BY at DESC LIMIT 40").bind(me.id, now() - 30 * 60e3).all()).results.map(x => x.opp_id);
       // kind: "real" players, "easy" bots, "hard" boss bots, or "scale" bots that match your level. Bots never have shields.
-      const pick = async (kind, range, avoid) => { const ex = [...new Set([...skip, ...avoid])], holes = ex.map(() => "?").join(",") || "''", scale = kind === "scale";
+      const pick = async (kind, range, avoid) => { const ex = [...new Set([...skip, ...avoid])], holes = ex.map(() => "?").join(",") || "''", scale = kind === "scale" || kind === "boss";
         const who = kind === "real" ? "bot = 0 AND shield_until < ? AND last_seen > ?" : `bot = 1 AND COALESCE(json_extract(base, '$.tier'), 'easy') = '${kind}'`;
         const p = await env.DB.prepare(`SELECT * FROM profiles WHERE user_id != ? AND user_id NOT IN (${holes}) AND ${who} AND base IS NOT NULL
           ${scale ? "" : `AND ABS(trophies - ?) <= ? AND ABS(th - ?) <= ${ranked ? 2 : 1}`} ORDER BY RANDOM() LIMIT 1`)
           .bind(me.id, ...ex, ...(kind === "real" ? [now(), now() - 30 * 864e5] : []), ...(scale ? [] : [tro, ranked ? range : 99999, th])).first();
         return p && scale ? {...p, th, trophies: Math.max(0, tro + Math.round((Math.random() - .5) * 80))} : p; };
-      const roll = Math.random(), first = roll < 0.3 ? "real" : roll < 0.45 ? "scale" : roll < 0.55 ? "hard" : "easy";
-      const order = [first, ...["easy", "scale", "real", "hard"].filter(k => k !== first).sort(() => Math.random() - .5)];
+      const roll = Math.random(), first = roll < 0.28 ? "real" : roll < 0.42 ? "scale" : roll < 0.49 ? "boss" : roll < 0.55 ? "hard" : "easy";
+      // fall back through the friendlier kinds first; bosses only when they were rolled
+      const order = [first, ...["easy", "scale", "real"].filter(k => k !== first).sort(() => Math.random() - .5)];
       let opp = null;
       for (const avoid of [recent, recent.slice(0, 3), []]) { for (const kind of order) { for (const range of [150, 400, 99999]) { opp = await pick(kind, range, avoid); if (opp) break; } if (opp) break; } if (opp) break; }
       if (!opp) return fail("No one to play right now. Try again soon.", 404);

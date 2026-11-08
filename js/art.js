@@ -102,9 +102,9 @@ function drawBuildingArt(b, club, opts) {
       if (refreshed) {
         const [px,py] = heroPlinths[Math.min(3,b.lv||1)-1][i];
         const [ox,oy] = unIso(x+(px-256)*scale,y+(py-364)*scale);
-        drawHeroStatue(ox,oy,0,hc,hk,true);
+        drawHeroStatue(ox,oy,0,hc,hk,true,.2); // small statues standing on the three plinths
       } else {
-        drawHeroStatue(b.x+s*(.35+i*.25),b.y+s*(.85-i*.08),.08,hc,hk,true);
+        drawHeroStatue(b.x+s*(.35+i*.25),b.y+s*(.85-i*.08),.08,hc,hk,true,.24);
       }
     });
     if (!ks.some(hk=>opts.heroes?.[hk])) txt(ks.some(hk=>opts.heroes?.busy?.[hk])?"🔧":"💤",x+TW*.54,y-TH*.35,TH*.7);
@@ -258,6 +258,7 @@ function drawPlayerArt(x,y,k,club,opts) {
   const action = opts.atk && artSprites.has(base+"-attack");
   const pose = action ? base+"-attack" : stride ? base+"-run" : base;
   const named = base==="captain" && (!opts.heroKey||opts.heroKey==="captain") && namedHeroArt[club.abbr];
+  if (opts.ko && !motion) return false;
   const sprite = motion || (named && artSprites.get(named+(stride||opts.atk?"-run":"-body"))) || clubKit(pose,club) || clubKit(base,club);
   if (!sprite) return false;
   const bob = opts.moving ? Math.abs(Math.sin(phase))*k*.10 : 0;
@@ -393,8 +394,10 @@ function drawPitchMarkings() {
   ctx.restore();
 }
 
-function drawFlyerArt(x,y,kind,face) {
-  const motion = artSprites.get(motionFrame(kind,kind==="seagulls"?"flap":"float",performance.now(),kind==="seagulls"?12:8));
+function drawFlyerArt(x,y,kind,face,attacking) {
+  const row = attacking ? (kind==="seagulls"?"swoop":"drop") : (kind==="seagulls"?"flap":"float");
+  const motion = artSprites.get(motionFrame(kind,row,performance.now(),kind==="seagulls"?12:8)) ||
+    artSprites.get(motionFrame(kind,kind==="seagulls"?"flap":"float",performance.now(),kind==="seagulls"?12:8));
   const sprite = motion || artSprites.get(kind);
   if (!sprite) return false;
   const width = kind==="seagulls"?.93:1.9;
@@ -443,7 +446,8 @@ function drawArtIcon(key, context, x, y, width, height, club) {
   const namedClub = !club && Object.keys(namedHeroArt).find(abbr=>namedHeroArt[abbr]===key);
   const portrait = key==="portrait-coach" ? "coach" : namedClub ? "captain-"+namedClub :
     key==="portrait-captain" && club ? "captain-"+club.abbr : null;
-  const sprite = (portrait && artSprites.get("refresh-portrait-"+portrait)) ||
+  const flyer = (key==="seagulls"||key==="blimp") && artSprites.get(key+(key==="seagulls"?"-flap-0":"-float-0"));
+  const sprite = flyer || (portrait && artSprites.get("refresh-portrait-"+portrait)) ||
     (key.startsWith("portrait-") && club ? portraitKit(key,club) : artSprites.get(key));
   if (!sprite) return false;
   const {image,x:sx,y:sy,w,h} = sprite;

@@ -381,7 +381,8 @@ function renderHome(){
   const fenceMode=placing&&placing.t==="fence", ghost=f=>()=>{ ctx.save(); ctx.globalAlpha=.35; f(); ctx.restore(); };
   for(const o of S.obstacles){ const f=()=>{ if(selected===o) selectGlow(o.x,o.y,o.s||1); drawObstacle(o); }; ents.push({k:o.x+o.y+(o.s||1),f:fenceMode?ghost(f):f}); }
   const movingB = placing&&placing.moving;
-  for(const b of list){ if(b===movingB) continue; const d=BLD[b.t];
+  const ed=typeof EDIT!=="undefined"&&EDIT;
+  for(const b of list){ if(b===movingB||b.x<0||ed&&(ed.walls&&b.t!=="fence"||ed.scout&&BLD[b.t].trap)) continue; const d=BLD[b.t];
     const f=()=>drawBuilding(b,club,list,{selected:!row&&selected===b, deferLevel:true, fill:fillOf(b), heroes, collect:d.makes&&!b.busy&&b.store>=Math.max(1,d.cap[b.lv-1]*.1)?b.store:0});
     ents.push({k:b.x+b.y+d.size,f:fenceMode&&b.t!=="fence"?ghost(f):f}); }
   ents.sort((a,b)=>a.k-b.k).forEach(e=>e.f());
@@ -391,7 +392,7 @@ function renderHome(){
   drawSky();
   // Draw labels after the world so foreground fences cannot hide them.
   for(const b of list){
-    if(b===movingB || b.t==="fence" || BLD[b.t].trap || b.busy?.kind==="build" || fenceMode) continue;
+    if(b===movingB || b.t==="fence" || BLD[b.t].trap || b.busy?.kind==="build" || fenceMode || ed) continue;
     if(b.lv>=3 || b===selected) drawBuildingLevel(b);
   }
   if(row){

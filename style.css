@@ -818,20 +818,27 @@ body:not(.ffui) .albummode .rwd{background:linear-gradient(#2a2e37,#16181e);bord
 #searchFx .btn{min-width:140px}
 .lycode{font:900 34px/1.1 inherit;letter-spacing:6px;margin:10px 0 4px;color:#2b1d10}
 
-/* Layout Editor (placeholder look, to be polished) */
-body.editing #top,body.editing #homeBtns,body.editing #side,body.editing #eventBanner,body.editing #selPanel{display:none!important}
-#editUI{position:fixed;inset:0;pointer-events:none;z-index:400}
+/* Ground Edit Mode: laid out like Clash's Village Edit Mode (placeholder art) */
+body.editing #top,body.editing #homeBtns,body.editing #side,body.editing #eventBanner,body.editing #selPanel,body.editing #placePanel,body.editing #battleHint,body.editing #battleUI{display:none!important}
+#editUI{position:fixed;inset:0;pointer-events:none;z-index:400;font-family:inherit}
 #editUI>*{pointer-events:auto}
-#editUI .ed-top{position:absolute;top:calc(8px + env(safe-area-inset-top));left:8px;right:8px}
-#editUI .ed-title{background:linear-gradient(#fff6dc,#e3c58e);border:3px solid #2b1d10;border-radius:14px;padding:6px 10px;font-weight:900;color:#2b1d10;font-size:17px;box-shadow:0 3px 0 #2b1d10}
-#editUI .ed-title small{display:block;font-size:12px;color:#6b4a22}
-#editUI .ed-side{position:absolute;right:8px;top:90px;display:flex;flex-direction:column;gap:9px}
-#editUI .ed-sb{width:70px;border-radius:12px;border:3px solid #13314d;background:linear-gradient(#5aa9e6,#2f6fae);color:#fff;font:900 11px/1.2 inherit;padding:6px 2px;box-shadow:0 3px 0 #13314d}
-#editUI .ed-sb.red{background:linear-gradient(#ff8a6a,#d23a1c);border-color:#5a1206}
-#editUI .ed-bot{position:absolute;left:0;right:0;bottom:0;background:linear-gradient(#3b2a17,#24180c);border-top:3px solid #2b1d10;padding:8px 8px calc(12px + env(safe-area-inset-bottom))}
-#editUI .ed-trayh{color:#ffe6a8;font-weight:900;font-size:13px;margin:0 4px 6px}
-#editUI .ed-tray{display:flex;gap:7px;overflow-x:auto;padding-top:6px}
-#editUI .ed-ti{flex:0 0 76px;height:64px;border-radius:12px;background:linear-gradient(#fff6dc,#e3c58e);border:3px solid #2b1d10;position:relative;font:800 11px/1.1 inherit;color:#2b1d10;padding:4px}
-#editUI .ed-ti i{position:absolute;right:-4px;top:-6px;background:#d23a1c;color:#fff;font-style:normal;font-weight:900;font-size:12px;border-radius:10px;padding:1px 6px;border:2px solid #fff}
-#editUI .ed-acts{display:flex;gap:8px;margin-top:9px}
-#editUI .ed-acts .btn{flex:1}
+#editUI.photo>*{display:none}
+.vem-title{position:absolute;top:calc(8px + env(safe-area-inset-top));left:10px;color:#fff;font:900 22px/1 inherit;-webkit-text-stroke:1px #222;text-shadow:0 2px 0 #222;pointer-events:none!important}
+.vem-bar{position:absolute;right:0;top:calc(44px + env(safe-area-inset-top));bottom:150px;display:flex;align-items:center;transition:transform .2s}
+.barhide .vem-bar{transform:translateX(calc(100% - 30px))}
+.vem-tab{width:30px;height:84px;border:0;border-radius:14px 0 0 14px;background:linear-gradient(90deg,#e9e3d3,#bdb5a2);font-size:18px;box-shadow:0 0 0 3px #3a3a3a}
+.vem-list{background:#3a3a3acc;padding:8px;border-radius:12px 0 0 12px;display:flex;flex-direction:column;gap:7px;max-height:100%;overflow:auto}
+.vem-b{width:142px;height:38px;display:flex;align-items:center;gap:6px;padding:0 8px;border:2px solid #1d3a0a;border-radius:9px;background:linear-gradient(#a5e75a,#58b51f 55%,#3f9a16);color:#fff;font:900 14px/1 inherit;-webkit-text-stroke:.5px #222;text-shadow:0 2px 0 #2228;box-shadow:inset 0 2px 0 #ffffff66,0 3px 0 #1d3a0a}
+.vem-b i{font-style:normal;font-size:17px;width:22px;text-align:center;-webkit-text-stroke:0}
+.vem-b.grey{background:linear-gradient(#e6e6e6,#a9a9a9 55%,#8c8c8c);border-color:#444;box-shadow:inset 0 2px 0 #fff8,0 3px 0 #444}
+.vem-b.red{background:linear-gradient(#ff7b6b,#e0301c 55%,#b81e0e);border-color:#5a1206;box-shadow:inset 0 2px 0 #fff6,0 3px 0 #5a1206}
+.vem-b.on{background:linear-gradient(#ffe88c,#f0b21e 55%,#d58a12);border-color:#5b3a06}
+.vem-gap{height:8px;border-top:2px solid #0006;margin-top:4px}
+.vem-move{position:absolute;left:10px;bottom:160px;display:grid;grid-template-columns:repeat(2,48px);gap:6px}
+.vem-move button{height:44px;border:2px solid #1d3a0a;border-radius:10px;background:linear-gradient(#a5e75a,#3f9a16);color:#fff;font:900 22px/1 inherit;box-shadow:0 3px 0 #1d3a0a}
+.vem-hint{position:absolute;left:0;right:0;bottom:140px;text-align:center;color:#fff;font:900 14px/1.2 inherit;-webkit-text-stroke:.5px #222;text-shadow:0 2px 0 #222;pointer-events:none!important}
+.vem-inv{position:absolute;left:0;right:0;bottom:0;height:128px;padding:8px 6px calc(8px + env(safe-area-inset-bottom));display:flex;gap:6px;overflow-x:auto;background:linear-gradient(#ffffff22,#0000);border-top:2px solid #ffffff55}
+.vem-card{flex:0 0 92px;height:108px;border-radius:12px;background:radial-gradient(circle at 50% 40%,#8fd3ff,#2f9be0 70%,#1b78bf);border:3px solid #0d4f86;position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;touch-action:none;box-shadow:inset 0 2px 0 #fff6}
+.vem-card canvas{width:76px;height:76px;pointer-events:none}
+.vem-card b,.vem-card span{position:absolute;color:#fff;font:900 15px/1 inherit;-webkit-text-stroke:.6px #222;text-shadow:0 2px 0 #222;pointer-events:none}
+.vem-card b{top:4px}.vem-card span{bottom:5px;font-size:13px}

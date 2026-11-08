@@ -52,7 +52,7 @@ The first visit explains how: one tap on Android, or Share → Add to Home Scree
   - Sign in with email and password.
   - Battle real players or the 24 bot clubs.
   - Real attacks on your ground arrive with replays.
-  - **Friends** can visit your ground or attack it for ¼ loot.
+  - **Friends** can visit your ground or attack it for ⅛ of the loot (¼ once there's 300,000+ on offer). 10 attacks from the same friend in an hour gives a 2-hour loot shield from them.
   - **Cheer Squads** (clans) have chat, shown with a red dot on Online.
 
 ## Files

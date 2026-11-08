@@ -55,13 +55,15 @@ function makeBattle(o){
     left:{...o.army}, had:{...o.army}, spellsLeft:{...(o.spells||{})}, hadSpells:{...(o.spells||{})},
     heroesLeft:{...(o.heroes||{})}, heroU:{}, abilityUsed:{}, loot:{pies:0,drink:0}, lootTotal, uid:0, dirty:true, mask:2, sel:null, destroyed:0};
 }
-const FRIEND_LOOT = .25; // attacking a friend: a normal match, but you only take a quarter of the loot
+// Attacking a friend is a normal match for part of the loot: 1/8 of a small ground's loot, rising to 1/4 once there's 300,000+ on offer.
+const friendLootShare = lt => { const pool=Math.max(lt.pies,lt.drink); return pool<=50000 ? 1/8 : pool>=300000 ? 1/4 : 1/8+(pool-50000)/250000/8; };
 function startBattle(o){
   if(!Object.values(S.army).some(n=>n>0)) return toast("Train some players first!");
   const heroes={}; for(const h of heroPicked()) if(heroReady(h)) heroes[h]=true;
   if(o.ranked&&typeof nextFixture==="function"){ ensureSeason(); const f=nextFixture(); if(f&&!o.fixture) o.fixture=f.name; }
   BT=makeBattle({mode:"attack", kind:o.kind, ranked:!!o.ranked, round:o.round, fixture:o.fixture, d:o.d, club:o.club, atkClub:S.club, buildings:o.buildings||genBase(o.d,o.seed),
-    army:S.army, spells:S.spells, heroes, lvOf:u=>S.unitLv[u], heroStat:h=>heroStats(h), bonus:cardBonus, lootMul:o.kind==="friendly"?0:o.kind==="friend"?FRIEND_LOOT*(o.lootMul??1):(eventNow()&&eventNow().loot||1)*(o.lootMul||1), revenge:o.revenge, opp:o.opp});
+    army:S.army, spells:S.spells, heroes, lvOf:u=>S.unitLv[u], heroStat:h=>heroStats(h), bonus:cardBonus, lootMul:o.kind==="friendly"?0:o.kind==="friend"?(o.lootMul??1):(eventNow()&&eventNow().loot||1)*(o.lootMul||1), revenge:o.revenge, opp:o.opp});
+  if(o.kind==="friend") BT.lootMul*=friendLootShare(BT.lootTotal);
   S.lastArmy={...S.army}; S.lastSpells={...S.spells};
   BT.rec=[]; BT.origBase=o.buildings?JSON.parse(JSON.stringify(o.buildings)):null;
   BT.sel = firstSel();

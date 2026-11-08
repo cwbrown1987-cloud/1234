@@ -126,7 +126,7 @@ function updateHUD(force){
     $("bEnd").textContent=BT.visit?"🏠 Home":$("bEnd").dataset.sure?"Tap to confirm":"End Match";
     $("cards").style.display=BT.visit?"none":"";
     const clk=document.querySelector(".battleClock"); if(clk) clk.style.visibility=BT.visit?"hidden":"";
-    $("bLoot").textContent=BT.visit?"Visiting · tap Attack to take on your mate (¼ loot)":replay?(BT.live?"🔴 LIVE · attacking your ground":"Replay"):(BT.ranked&&BT.fixture?"🏆 "+BT.fixture+" · ":BT.kind==="revenge"?"Revenge! · ":"")+(BT.lootShield?"🛡️ Loot shield · no loot this time":`🥧 ${fmt(Math.max(0,BT.lootTotal.pies-BT.loot.pies)*(BT.lootMul??1))}  💧 ${fmt(Math.max(0,BT.lootTotal.drink-BT.loot.drink)*(BT.lootMul??1))}`);
+    $("bLoot").textContent=BT.visit?"Visiting · tap Attack to take on your mate (⅛–¼ loot)":replay?(BT.live?"🔴 LIVE · attacking your ground":"Replay"):(BT.ranked&&BT.fixture?"🏆 "+BT.fixture+" · ":BT.kind==="revenge"?"Revenge! · ":"")+(BT.lootShield?"🛡️ Loot shield · no loot this time":`🥧 ${fmt(Math.max(0,BT.lootTotal.pies-BT.loot.pies)*(BT.lootMul??1))}  💧 ${fmt(Math.max(0,BT.lootTotal.drink-BT.loot.drink)*(BT.lootMul??1))}`);
     const s=starsNow(), sc=scoreNow(), A=CLUBS[BT.atkClub], Hm=CLUBS[BT.club];
     $("bScore").innerHTML=`<div class="${sc.a.p>sc.h.p?"lead":""}">${A.short} <b>${fmtScore(sc.a)}</b></div><div class="${sc.h.p>=sc.a.p?"lead":""}">${Hm.short} <b>${fmtScore(sc.h)}</b></div>`;
     $("bStars").innerHTML="★".repeat(s)+`<span class="dim">${"★".repeat(3-s)}</span>`;
@@ -430,7 +430,7 @@ function openInfo(b){
 function scoreboard(away,home,sc){ return `<div class="board"><div class="${sc.a.p>sc.h.p?"won":""}">${badgeImg(away,"sm")}<span>${away.short}</span><b>${fmtScore(sc.a)}</b></div><div class="${sc.h.p>=sc.a.p?"won":""}">${badgeImg(home,"sm")}<span>${home.short}</span><b>${fmtScore(sc.h)}</b></div></div>`; }
 function showResult(r){
   const win=r.stars>0, margin=Math.abs(r.sc.a.p-r.sc.h.p), draw=r.sc.a.p===r.sc.h.p;
-  modal(`<div class="result"><h2>${draw?"It's a draw!":win?"You win!":"Siren. You lost"}</h2>${r.opp?`<div class="tiny">${r.friendly?"Friendly ":BT&&BT.kind==="friend"?"Friend match (¼ loot) ":""}vs ${esc(r.opp.name)}${r.opp.bot?" (bot)":""}</div>`:""}
+  modal(`<div class="result"><h2>${draw?"It's a draw!":win?"You win!":"Siren. You lost"}</h2>${r.opp?`<div class="tiny">${r.friendly?"Friendly ":BT&&BT.kind==="friend"?"Friend match ":""}vs ${esc(r.opp.name)}${r.opp.bot?" (bot)":""}</div>`:""}
     <div class="tiny">${r.fixture?r.fixture+" · ":""}${draw?"Scores level":"by "+margin+" point"+(margin===1?"":"s")} · ${r.p}% knocked down</div>
     ${scoreboard(r.away,r.home,r.sc)}
     <div class="stars">${"★".repeat(r.stars)}<span class="dim">${"★".repeat(3-r.stars)}</span></div>

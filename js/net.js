@@ -179,7 +179,7 @@ async function attackPlayer(id, kind) {
     const shielded = kind === "friend" && p.lootShield > Date.now();
     closeModal();
     startBattle({ kind, club: p.club, d: p.th, buildings: oppBuildings(p), lootMul: shielded ? 0 : undefined, opp: { id: p.id, name: p.name, bot: p.bot, trophies: p.trophies } });
-    if (shielded) { BT.lootShield = p.lootShield; toast(`🛡️ ${p.name} has a friend loot shield for ${fmtTime((p.lootShield - Date.now()) / 1000)}. Attack for fun, but no loot.`); }
+    if (shielded) { BT.lootShield = p.lootShield; toast(`🛡️ ${p.name} has a loot shield from you for ${fmtTime((p.lootShield - Date.now()) / 1000)}. Attack for fun, but no loot.`); }
   } catch (e) { toast(e.message); }
 }
 function netAttackStarted(bt) {
@@ -227,7 +227,7 @@ async function netReportAttack(bt, r) {
   const token=NET.token;
   body.startedNotice=!!(await bt.attackNotice);
   if(NET.token!==token) return;
-  api("/attack", { method: "POST", body }).then(x => { if (x && x.lootShield && bt.kind === "friend" && !bt.lootShield) toast(`🛡️ ${bt.opp.name} now has a 2-hour friend loot shield`); return pushSave(); }).catch(e => toast("Couldn't send the result: " + e.message));
+  api("/attack", { method: "POST", body }).then(x => { if (x && x.lootShield && bt.kind === "friend" && !bt.lootShield) toast(`🛡️ That's 10 attacks in an hour. ${bt.opp.name} has a 2-hour loot shield from you`); return pushSave(); }).catch(e => toast("Couldn't send the result: " + e.message));
 }
 
 // ---------- friends: add mates by name, visit their ground, play a friendly ----------
@@ -241,7 +241,7 @@ async function renderFriends(soc) {
     <form id="frAdd" class="fradd"><input id="frName" placeholder="Friend's player name" maxlength="16" autocomplete="off"><button class="btn green" type="submit">Add</button></form>
     <p class="tiny center">Your player name is <b>${esc(NET.user.name)}</b>. Give it to your mates so they can add you.</p>
     <div id="frList" class="fixture"><p class="center">Loading…</p></div>
-    <p class="tiny center">Visit to look around their ground. ⚔️ Attack is a normal match (shields don't stop friends), but you only take a quarter of their loot and no trophies change hands. After 5 friend attacks on a ground in 6 hours, it gets a 2-hour 🛡️ loot shield: friends can still attack, but take no loot.</p>`);
+    <p class="tiny center">Visit to look around their ground. ⚔️ Attack is a normal match (shields don't stop friends), but you take ⅛ of their loot (rising to ¼ once they have 300,000+ on offer) and no trophies change hands. Attack the same friend 10 times in an hour and they get a 2-hour 🛡️ loot shield from you: you can still attack, but take no loot.</p>`);
   $("frAdd").onsubmit = async e => { e.preventDefault(); const name = $("frName").value.trim(); if (!name) return;
     try { const r = await api("/friends", { method: "POST", body: { name } }); toast(r.mutual ? `You and ${r.friend.name} are now friends!` : `Friend request sent to ${r.friend.name}`); openFriends(); } catch (err) { toast(err.message); } };
   try {

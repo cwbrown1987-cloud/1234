@@ -33,11 +33,11 @@ async function newSession(env, userId) {
 }
 const profileOut = p => p && ({id: p.user_id, name: p.name, club: p.club, th: p.th, trophies: p.trophies, bot: !!p.bot, squad: p.squad_id, shield: p.shield_until});
 const LIVE_ATTACK_MS = 210000;
-// Friend loot shield: after 5 friend attacks on a ground within 6 hours, friends can still attack it but take no loot for 2 hours.
-const FRIEND_RAIDS = 5, FRIEND_WINDOW = 6 * 3600e3, FRIEND_SHIELD = 2 * 3600e3;
+// Friend loot shield: after 10 attacks by the same friend within an hour, that friend can still attack but takes no loot for 2 hours.
+const FRIEND_RAIDS = 10, FRIEND_WINDOW = 3600e3, FRIEND_SHIELD = 2 * 3600e3;
 let friendLootSchema;
-const ensureFriendLoot = db => friendLootSchema ??= db.prepare("CREATE TABLE IF NOT EXISTS friend_loot (defender_id TEXT PRIMARY KEY, n INTEGER NOT NULL, first INTEGER NOT NULL, until INTEGER NOT NULL DEFAULT 0)").run();
-async function friendLootUntil(db, id) { await ensureFriendLoot(db); const r = await db.prepare("SELECT until FROM friend_loot WHERE defender_id = ?").bind(id).first(); return r && r.until > now() ? r.until : 0; }
+const ensureFriendLoot = db => friendLootSchema ??= db.prepare("CREATE TABLE IF NOT EXISTS friend_loot (attacker_id TEXT NOT NULL, defender_id TEXT NOT NULL, n INTEGER NOT NULL, first INTEGER NOT NULL, until INTEGER NOT NULL DEFAULT 0, PRIMARY KEY(attacker_id, defender_id))").run();
+async function friendLootUntil(db, atk, def) { await ensureFriendLoot(db); const r = await db.prepare("SELECT until FROM friend_loot WHERE attacker_id = ? AND defender_id = ?").bind(atk, def).first(); return r && r.until > now() ? r.until : 0; }
 let attackNoticeSchema;
 function ensureAttackNotices(db) {
   return attackNoticeSchema ??= db.prepare("CREATE TABLE IF NOT EXISTS attack_notices (attacker_id TEXT PRIMARY KEY, defender_id TEXT NOT NULL, at INTEGER NOT NULL, active INTEGER NOT NULL)").run()
@@ -148,7 +148,7 @@ export async function handleApi(req, env) {
     if (path.startsWith("/player/") && m === "GET") {
       const p = await env.DB.prepare("SELECT * FROM profiles WHERE user_id = ?").bind(path.slice(8)).first();
       if (!p) return fail("Player not found.", 404);
-      return json({player: {...profileOut(p), base: p.base ? JSON.parse(p.base) : null, lootShield: await friendLootUntil(env.DB, p.user_id)}});
+      return json({player: {...profileOut(p), base: p.base ? JSON.parse(p.base) : null, lootShield: await friendLootUntil(env.DB, me.id, p.user_id)}});
     }
     if (path === "/attack/start" && m === "POST") {
       const b = await body(req), defender = String(b.defender || "");
@@ -201,13 +201,13 @@ export async function handleApi(req, env) {
       let lootShield = 0;
       if (b.friend && !friendly) {
         await ensureFriendLoot(env.DB);
-        const t = now(), fl = await env.DB.prepare("SELECT * FROM friend_loot WHERE defender_id = ?").bind(def.user_id).first();
+        const t = now(), fl = await env.DB.prepare("SELECT * FROM friend_loot WHERE attacker_id = ? AND defender_id = ?").bind(me.id, def.user_id).first();
         if (fl && fl.until > t) { lootShield = fl.until; b.loot = {pies: 0, drink: 0}; b.lootShielded = true; }
         else {
           const n = fl && fl.first > t - FRIEND_WINDOW ? fl.n + 1 : 1, first = n === 1 ? t : fl.first;
           if (n >= FRIEND_RAIDS) lootShield = t + FRIEND_SHIELD;
-          await env.DB.prepare("INSERT INTO friend_loot(defender_id,n,first,until) VALUES(?,?,?,?) ON CONFLICT(defender_id) DO UPDATE SET n=excluded.n, first=excluded.first, until=excluded.until")
-            .bind(def.user_id, lootShield ? 0 : n, first, lootShield).run();
+          await env.DB.prepare("INSERT INTO friend_loot(attacker_id,defender_id,n,first,until) VALUES(?,?,?,?,?) ON CONFLICT(attacker_id,defender_id) DO UPDATE SET n=excluded.n, first=excluded.first, until=excluded.until")
+            .bind(me.id, def.user_id, lootShield ? 0 : n, first, lootShield).run();
         }
       }
       const data = JSON.stringify({attacker: me.name, ...b, defTro, stars, pct});
@@ -240,7 +240,7 @@ export async function handleApi(req, env) {
         ]);
         const out = p => ({...profileOut(p), online: p.last_seen > now() - 10 * 60e3});
         await ensureFriendLoot(env.DB);
-        const ls = await env.DB.prepare("SELECT defender_id, until FROM friend_loot WHERE until > ?").bind(now()).all(), lsOf = Object.fromEntries(ls.results.map(x => [x.defender_id, x.until]));
+        const ls = await env.DB.prepare("SELECT defender_id, until FROM friend_loot WHERE attacker_id = ? AND until > ?").bind(me.id, now()).all(), lsOf = Object.fromEntries(ls.results.map(x => [x.defender_id, x.until]));
         return json({friends: fr.results.map(f => ({...out(f), lootShield: lsOf[f.user_id] || 0})), requests: req.results.map(out), sent: sent.results.map(out), suggestions: sug.results.map(p => ({...out(p), from: p.from_name}))});
       }
       if (path === "/friends" && m === "POST") {

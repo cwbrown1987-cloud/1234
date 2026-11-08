@@ -8,9 +8,9 @@ const C0 = Math.floor(N/2); // map centre
 // AI base layout for clubhouse level d. Fence rings around a core, defences in the middle band, collectors outside.
 // tier: "easy" (online bots: lower levels, fewer defences and fences), "hard" (boss bots: next Clubhouse's defences, maxed, double loot),
 // "boss" (boss battles at your level: this Clubhouse's defences, all maxed, 1.75x loot), or "scale" (a normal ground at your level).
-const BOSS_HP={1:1.2,2:1.2,3:1.2,4:1.2,5:1.2,6:1.2}, BOSS_EXTRA={3:1,5:1}; // boss battles: extra defence health, and an extra of each defence where the level tables are thin // extra defence health on boss battles, tuned by simulated attacks
+const BOSS_HP={1:1.5,2:1.6,3:1,4:.95,5:1.2,6:1.5,7:1.1}, BOSS_EXTRA={2:1,3:1,5:1,6:1}; // boss battles: extra defence health, and an extra of each defence where the level tables are thin // extra defence health on boss battles, tuned by simulated attacks
 function genBase(d, seed, tier){
-  const dd = tier==="hard"||(tier==="boss"&&d<=5) ? Math.min(MAX_TH,d+1) : d;
+  const dd = tier==="hard"||(tier==="boss"&&d>=3&&d<=5) ? Math.min(MAX_TH,d+1) : d;
   const lvd = tier==="boss" ? Math.min(MAX_TH,d+1) : dd; // boss battles: next Clubhouse's levels (and its number of buildings up to Clubhouse 5)
   const r=rng(seed), list=[], occ=new Set(), key=(i,j)=>i+","+j;
   const ring=(lo,hi)=>{ const c=[]; for(let i=lo;i<=hi;i++) c.push([i,lo]); for(let j=lo+1;j<=hi;j++) c.push([hi,j]); for(let i=hi-1;i>=lo;i--) c.push([i,hi]); for(let j=hi-1;j>lo;j--) c.push([lo,j]); return c; };
@@ -37,6 +37,7 @@ function genBase(d, seed, tier){
     const b={id:list.length+1,t,x,y,lv,hp,max:hp,cd:r()}; list.push(b); return b; };
   const place=(t,zones)=>{ const s=BLD[t].size; for(const z of zones) for(let k=0;k<400;k++){ const x=1+(r()*(N-2-s))|0, y=1+(r()*(N-2-s))|0; if(fits(x,y,s,z,z!=="core")) return put(t,x,y); } return null; };
   if(style!=="farm") put("clubhouse",C0-2,C0-2);
+  const hasRes = tier==="hard"||tier==="boss" ? true : r()<.5; // like Clash: not every base has clan castle troops
   const n0=t=>isDef(t)&&!BLD[t].trap&&MAXC[t][dd-1]>0;
   const cnt=t=>{ const n=MAXC[t][dd-1]+(tier==="boss"&&n0(t)?BOSS_EXTRA[d]||0:0); return tier==="easy"&&n>1&&(isDef(t)||t==="fence") ? Math.ceil(n*(t==="fence"?.5:.65)) : n; };
   if(style==="trophy"||style==="compact") for(const t of ["catapult","floodlight","siren"]) if(cnt(t)) place(t,["core"]);
@@ -61,6 +62,7 @@ function genBase(d, seed, tier){
     cells.forEach(([i,j])=>{ occ.add(key(i,j)); addFence(i,j); }); budget-=len; }
   for(const t of ["sendoff","flooder","swoop","kite","streaker","gust","spark"]) for(let n=0;n<cnt(t);n++) { const b=place(t,["mid","core","out"]); if(b){ b.armed=true; b.hp=b.max=1; } }
   for(let n=0;n<cnt("sprinkler");n++) for(let k=0;k<200;k++){ const i=C0-9+(r()*19|0), j=C0-9+(r()*19|0); if(zone(i,j)==="mid"&&!occ.has(key(i,j))&&!occ.has("b"+key(i,j))){ occ.add("b"+key(i,j)); list.push({id:list.length+1,t:"sprinkler",x:i,y:j,lv:Math.max(1,Math.min(5,d-2)),hp:1,max:1,armed:true}); break; } }
+  const chB=list.find(b=>b.t==="clubhouse"); if(chB) chB.res=hasRes;
   // Loot on offer grows with Clubhouse level like Clash (a few thousand at level 1, a few hundred thousand at 8)
   const lm=tier==="hard"?2:tier==="boss"?1.75:1;
   const total={pies:Math.round((800+600*d*d*d)*(.7+r()*.6)*lm), drink:Math.round((800+600*d*d*d)*(.7+r()*.6)*lm)};
@@ -178,7 +180,7 @@ function hurtDefender(d,dmg){ d.hp-=dmg; if(d.hp<=0){ BT.fx.push({k:"poof",x:d.x
 // The Clubhouse sends out its Reserves once attackers get within 7 tiles (like a clan castle); heroes at home come out too.
 function checkReserves(){
   if(BT.reservesOut||BT.mode==="attack"&&BT.visit) return;
-  const ch=BT.buildings.find(b=>b.t==="clubhouse"); if(!ch||ch.hp<=0) return;
+  const ch=BT.buildings.find(b=>b.t==="clubhouse"); if(!ch||ch.hp<=0||ch.res===false) return; // empty Reserves bench: nobody comes out
   const [cx,cy]=cen(ch); if(!BT.units.some(u=>u.hp>0&&Math.hypot(u.x-cx,u.y-cy)<7)) return;
   BT.reservesOut=true; const d=BT.d||ch.lv||1;
   if(d>=2){ const n=Math.min(8,d+1); for(let i=0;i<n;i++){ const k=i===0&&d>=5?"ruck":i%3===2?"forward":"rover"; spawnDefender(k,cx+Math.cos(i*2.4)*1.2,cy+Math.sin(i*2.4)*1.2,d); } }
@@ -393,7 +395,8 @@ function scoreNow(){
   return {a:{g:ag,b:ab,p:ag*6+ab}, h:{g:hg,b:hb,p:hg*6+hb}};
 }
 // ★ = win, ★★ = win + Clubhouse down, ★★★ = whole ground flattened
-function starsNow(){ const sc=scoreNow(); if(sc.a.p<=sc.h.p) return 0; const ch=BT.buildings.find(b=>b.t==="clubhouse"); return 1+(ch&&ch.hp<=0?1:0)+(pct()>=100?1:0); }
+// Stars like Clash: one for 50% destroyed, one for the Clubhouse, one for 100%. (The footy score is shown alongside for fun.)
+function starsNow(){ const p=pct(), ch=BT.buildings.find(b=>b.t==="clubhouse"); return (p>=50?1:0)+(ch&&ch.hp<=0?1:0)+(p>=100?1:0); }
 function battleStep(dt){
   BT.mask=Math.max(0,BT.mask-dt);
   if(BT.dirty) rebuildGrid();

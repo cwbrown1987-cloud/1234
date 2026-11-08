@@ -103,6 +103,10 @@ function undoLayout(){
   S.layoutUndo=null; selected=null; save(); refreshUI(); toast("Layout put back");
 }
 
+// Reserves bench (our clan castle): empty after it defends, refilled 6 hours later (until friends can lend players)
+const RES_REFILL = 6*3600e3;
+const reservesReady = () => !S.resUsedAt || Date.now() - S.resUsedAt >= RES_REFILL;
+
 // ---------- shop / build / upgrade ----------
 // Your first Pie Shop and Drink Tap are free, so spending everything can never leave you with no income.
 const FREE_FIRST = ["pieshop","drinktap"];

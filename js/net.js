@@ -17,7 +17,7 @@ function signOutLocal() { NET.token = null; NET.user = null; NET.liveAttacks = [
 
 // ---------- what other players see when they attack you ----------
 function publicBase() {
-  return homeBattleBase().map(b => { const o = { t: b.t, x: b.x, y: b.y, lv: b.lv, hp: b.hp, max: b.max }; if (b.loot) o.loot = b.loot; if (b.armed) o.armed = true; return o; });
+  return homeBattleBase().map(b => { const o = { t: b.t, x: b.x, y: b.y, lv: b.lv, hp: b.hp, max: b.max }; if (b.loot) o.loot = b.loot; if (b.armed) o.armed = true; if (b.t === "clubhouse") o.res = reservesReady(); return o; });
 }
 // ---------- cross-device saves: whichever save is newer wins ----------
 // Each upload gets a revision number. A device remembers the last revision it synced; if the cloud has a higher one
@@ -138,6 +138,7 @@ async function checkInbox() {
       const lost = { pies: Math.min(S.pies, Math.floor(a.loot?.pies || 0)), drink: Math.min(S.drink, Math.floor(a.loot?.drink || 0)) };
       if (a.ranked) { lost.pies = 0; lost.drink = 0; }
       if (!a.friendly) { S.pies -= lost.pies; S.drink -= lost.drink; S.trophies = Math.max(0, S.trophies + (a.defTro || 0)); }
+      if (a.resOut) S.resUsedAt = Math.max(S.resUsedAt || 0, a.at); // your Reserves defended: the bench needs refilling
       if (!a.friendly && a.magicShield) S.shield = Math.max(S.shield || 0, a.at + MAGIC_SHIELD);
       if (!a.friendly && !a.stars) track("defend", 1);
       S.raids.unshift({ id: "p" + a.id, at: a.at, club: a.atkClub ?? a.club ?? 0, attacker: a.attacker, attackerId: a.attackerId, real: true, friendly: !!a.friendly, friend: !!a.friend, ranked: !!a.ranked,
@@ -156,7 +157,7 @@ const liveAttackText=()=> (NET.liveAttacks||[]).map(a=>a.name+" is attacking you
 // ---------- real-player matches ----------
 function oppBuildings(opp) {
   if (opp.base && opp.base.gen) return genBase(opp.th, opp.base.gen, opp.base.tier); // bot clubs
-  return (opp.base || []).map((b, i) => ({ id: i + 1, t: b.t, x: b.x, y: b.y, lv: b.lv, hp: b.max || b.hp, max: b.max || b.hp, cd: 0, loot: b.loot ? { ...b.loot } : undefined, armed: BLD[b.t] && BLD[b.t].trap ? true : undefined }));
+  return (opp.base || []).map((b, i) => ({ id: i + 1, t: b.t, x: b.x, y: b.y, lv: b.lv, hp: b.max || b.hp, max: b.max || b.hp, cd: 0, loot: b.loot ? { ...b.loot } : undefined, res: b.res, armed: BLD[b.t] && BLD[b.t].trap ? true : undefined }));
 }
 async function findOnlineMatch(skip = [], ranked = false) {
   if (!Object.values(S.army).some(n => n > 0)) return toast("Train some players first!");
@@ -225,7 +226,7 @@ async function netReportAttack(bt, r) {
   const body = { defender: bt.opp.id, friendly: !!r.friendly, friend: bt.kind === "friend", ranked: !!bt.ranked, magicShield: !r.friendly && !bt.ranked && bt.kind !== "friend" && share >= .3, stars: r.stars, pct: r.p, sc: r.sc, loot: { pies: Math.floor(bt.loot.pies * Math.min(1, bt.lootMul ?? 1)), drink: Math.floor(bt.loot.drink * Math.min(1, bt.lootMul ?? 1)) },
     plan: bt.rec || [], endT: Math.round(bt.elapsed * 1000) / 1000, army: bt.had, spells: bt.hadSpells, lv: { ...S.unitLv }, heroLv: Object.fromEntries(Object.keys(HEROES).map(h => [h, S.heroes[h].lv])),
     bonus: Object.fromEntries(["mid", "fwd", "ruck", "def"].map(p => [p, cardBonus(p)])), base: bt.opp.bot ? [] : (bt.origBase || []).map(b => ({ t: b.t, x: b.x, y: b.y, lv: b.lv, hp: b.max, max: b.max, loot: b.loot, armed: b.armed })),
-    atkClub: S.club, myTrophies: S.trophies };
+    atkClub: S.club, myTrophies: S.trophies, resOut: !!bt.reservesOut };
   const token=NET.token;
   body.startedNotice=!!(await bt.attackNotice);
   if(NET.token!==token) return;

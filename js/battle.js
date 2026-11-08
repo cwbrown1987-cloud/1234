@@ -61,7 +61,7 @@ function startBattle(o){
   const heroes={}; for(const h of heroPicked()) if(heroReady(h)) heroes[h]=true;
   if(o.ranked&&typeof nextFixture==="function"){ ensureSeason(); const f=nextFixture(); if(f&&!o.fixture) o.fixture=f.name; }
   BT=makeBattle({mode:"attack", kind:o.kind, ranked:!!o.ranked, round:o.round, fixture:o.fixture, d:o.d, club:o.club, atkClub:S.club, buildings:o.buildings||genBase(o.d,o.seed),
-    army:S.army, spells:S.spells, heroes, lvOf:u=>S.unitLv[u], heroStat:h=>heroStats(h), bonus:cardBonus, lootMul:o.kind==="friendly"?0:o.kind==="friend"?FRIEND_LOOT:(eventNow()&&eventNow().loot||1)*(o.lootMul||1), revenge:o.revenge, opp:o.opp});
+    army:S.army, spells:S.spells, heroes, lvOf:u=>S.unitLv[u], heroStat:h=>heroStats(h), bonus:cardBonus, lootMul:o.kind==="friendly"?0:o.kind==="friend"?FRIEND_LOOT*(o.lootMul??1):(eventNow()&&eventNow().loot||1)*(o.lootMul||1), revenge:o.revenge, opp:o.opp});
   S.lastArmy={...S.army}; S.lastSpells={...S.spells};
   BT.rec=[]; BT.origBase=o.buildings?JSON.parse(JSON.stringify(o.buildings)):null;
   BT.sel = firstSel();
@@ -143,7 +143,7 @@ function hurt(b,dmg){
     BT.dirty=true; const [x,y]=cen(b);
     BT.fx.push(collapseEffect(b,x,y));
     if(b.t!=="fence"){ shake=Math.max(shake,.25); sfx("boom"); BT.destroyed++; }
-    if(b.loot&&(b.loot.pies+b.loot.drink)>0&&BT.mode!=="raid") floatText(x,y,`+${Math.round((b.loot.pies+b.loot.drink)*(BT.lootMul||1))}`);
+    if(b.loot&&(b.loot.pies+b.loot.drink)>0&&BT.mode!=="raid"&&(BT.lootMul??1)>0) floatText(x,y,`+${Math.round((b.loot.pies+b.loot.drink)*(BT.lootMul??1))}`);
     for(const u of BT.units) if(u.tgt===b||u.blocker===b){ if(u.tgt===b) u.tgt=null; u.blocker=null; u.path=null; }
   }
 }
@@ -336,7 +336,7 @@ function endBattle(){
   if(BT.over) return; BT.over=true; BT.finishing=false;
   const stars=starsNow(), p=Math.round(pct());
   if(BT.mode==="replay"){ showReplayEnd(); return; }
-  const mul=BT.lootMul||1;
+  const mul=BT.lootMul??1;
   const got={pies:addRes("pies",Math.floor(BT.loot.pies*mul)), drink:addRes("drink",Math.floor(BT.loot.drink*mul))};
   const friendly=BT.kind==="friendly";
   let tro = BT.ranked&&!BT.visit ? rankedTrophies(stars,p) : 0;

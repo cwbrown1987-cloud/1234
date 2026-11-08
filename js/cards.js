@@ -240,29 +240,32 @@ function statsPanel(c, t) {
 
 // ---------- album: a leather binder like the mock-up ----------
 let albumClub = null, albumSel = null, albumPage = 0, albumTab = "album";
-const slotsPerSpread = () => albumClub === "sp" ? 8 : 12; // a club's 11 cards fit on one spread (two pages of 2 x 3)
+const ALBUM_SPREAD_SIZE = 8; // Two facing pages of four cards each.
 function openAlbum(club, keepScroll=false) { menuBack = null; hubCtx=null;
   if (club !== undefined && club !== albumClub) { albumSel = null; albumPage = 0; }
   albumClub = club ?? albumClub ?? S.club;
   const tokens = S.tokens || 0, canOpen = tokens >= PACK_COST;
   const list = albumClub === "sp" ? ALL_CARDS.filter(c => c.special) : ALL_CARDS.filter(c => c.club === albumClub && !c.special);
-  const spreads = Math.max(1, Math.ceil(list.length / slotsPerSpread())); albumPage = Math.min(albumPage, spreads - 1);
-  const sel = (albumSel && list.find(c => c.id === albumSel && bestTier(c))) || list.filter(c => bestTier(c)).sort((a, b) => TIER_ORDER.indexOf(bestTier(b)) - TIER_ORDER.indexOf(bestTier(a)) || cardRatings(b).ovr - cardRatings(a).ovr)[0];
+  const spreads = Math.max(1, Math.ceil(list.length / ALBUM_SPREAD_SIZE)); albumPage = Math.min(albumPage, spreads - 1);
+  const spread = list.slice(albumPage * ALBUM_SPREAD_SIZE, (albumPage + 1) * ALBUM_SPREAD_SIZE);
+  const ownedOnSpread = spread.filter(c => bestTier(c));
+  const sel = ownedOnSpread.find(c => c.id === albumSel) || ownedOnSpread[0];
   const sets = CLUBS.filter((c, i) => { const [o, t] = albumCount(x => x.club === i && !x.special); return t && o === t; }).length;
   const slot = c => { if (!c) return `<div class="aslot blank"></div>`; const t = bestTier(c);
-    return t ? `<div class="aslot acard t-${t}${sel === c ? " sel" : ""}${isNewCard(c) ? " isnew" : ""}" data-ac="${c.id}"><img src="${cardFace(c, t)}" alt="${c.name}">${dupInfo(c)}${isNewCard(c) ? '<span class="newrib">NEW</span>' : ""}</div>`
-      : `<div class="aslot acard empty" data-ac="${c.id}"><span>${c.special ? SPECIALS[c.kind].name : "#" + pad3(c.num)}</span><small>${c.name}</small></div>`; };
-  const spread = list.slice(albumPage * slotsPerSpread(), (albumPage + 1) * slotsPerSpread()); while (spread.length < slotsPerSpread()) spread.push(null);
+    return t ? `<button type="button" class="aslot acard t-${t}${sel === c ? " sel" : ""}${isNewCard(c) ? " isnew" : ""}" data-ac="${c.id}" aria-pressed="${sel === c}"><img src="${cardFace(c, t)}" alt="${c.name}">${dupInfo(c)}${isNewCard(c) ? '<span class="newrib">NEW</span>' : ""}</button>`
+      : `<button type="button" class="aslot acard empty" data-ac="${c.id}"><span>${c.special ? SPECIALS[c.kind].name : "#" + pad3(c.num)}</span><small>${c.name}</small></button>`; };
+  while (spread.length < ALBUM_SPREAD_SIZE) spread.push(null);
   const clubName = albumClub === "sp" ? "Specials" : CLUBS[albumClub].name;
-  const tab = (k, icon, label) => `<button class="atab${albumTab === k ? " on" : ""}" data-tab="${k}"><b>${icon}</b>${label}${k === "rewards" && (dailyReady() || S.prizePacks) ? '<i class="bang">!</i>' : ""}</button>`;
+  const tab = (k, icon, label) => `<button class="atab${albumTab === k ? " on" : ""}" data-tab="${k}" aria-pressed="${albumTab === k}"><b>${icon}</b>${label}${k === "rewards" && (dailyReady() || S.prizePacks) ? '<i class="bang">!</i>' : ""}</button>`;
   let body = "";
   if (albumTab === "album") {
-    body = `<div class="pagehead">${albumClub === "sp" ? "<b class='spstar'>⭐</b>" : badgeImg(CLUBS[albumClub], "sm")}<span>${clubName}<small>${albumClub === "sp" ? "Special cards" : "2026 season"} · ${albumCount(c => list.includes(c))[0]}/${list.length}</small></span></div>
-    <div class="binder"><div class="bpage">${spread.slice(0, slotsPerSpread() / 2).map(slot).join("")}</div>
-      <div class="rings"><i></i><i></i><i></i><i></i></div>
-      <div class="bpage">${spread.slice(slotsPerSpread() / 2).map(slot).join("")}</div></div>
-    ${spreads > 1 ? `<div class="pager"><button class="pg" id="pgPrev" ${albumPage ? "" : "disabled"}>‹</button><span>Page ${albumPage + 1} / ${spreads}</span><button class="pg" id="pgNext" ${albumPage < spreads - 1 ? "" : "disabled"}>›</button></div>` : ""}
-    ${sel ? statsPanel(sel, bestTier(sel)) : `<div class="statpanel emptyp">No ${clubName} cards yet. Open packs to find them!</div>`}`;
+    body = `<div class="fcc-main"><div class="fcc-spread">
+      <div class="pagehead">${albumClub === "sp" ? "<b class='spstar'>⭐</b>" : badgeImg(CLUBS[albumClub], "sm")}<span>${clubName}<small>${albumClub === "sp" ? "Special cards" : "2026 season"} · ${albumCount(c => list.includes(c))[0]}/${list.length}</small></span>
+        ${spreads > 1 ? `<div class="pager"><button class="pg" id="pgPrev" aria-label="Previous spread" ${albumPage ? "" : "disabled"}>‹</button><span>${albumPage + 1}/${spreads}</span><button class="pg" id="pgNext" aria-label="Next spread" ${albumPage < spreads - 1 ? "" : "disabled"}>›</button></div>` : ""}</div>
+      <div class="binder"><div class="bpage">${spread.slice(0, ALBUM_SPREAD_SIZE / 2).map(slot).join("")}</div>
+        <div class="rings" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+        <div class="bpage">${spread.slice(ALBUM_SPREAD_SIZE / 2).map(slot).join("")}</div></div>
+      </div><div class="fcc-detail">${sel ? statsPanel(sel, bestTier(sel)) : '<div class="statpanel emptyp">No cards on this spread yet. Open packs to find them!</div>'}</div></div>`;
   } else if (albumTab === "sets") {
     body = `<div class="setlist">${CLUBS.map((c, i) => { const [o, t] = albumCount(x => x.club === i && !x.special); return `<button class="setrow${o === t ? " done" : ""}" data-set="${i}">${badgeImg(c, "xs")}<span>${c.name}</span><i><b style="width:${o / t * 100}%"></b></i><em>${o}/${t}</em></button>`; }).join("")}
       <button class="setrow" data-set="sp"><b class="spstar">⭐</b><span>Specials</span><i><b style="width:${albumCount(x => x.special)[0] / albumCount(x => x.special)[1] * 100}%"></b></i><em>${albumCount(x => x.special)[0]}/${albumCount(x => x.special)[1]}</em></button></div>`;
@@ -274,11 +277,12 @@ function openAlbum(club, keepScroll=false) { menuBack = null; hubCtx=null;
       <div class="rwd"><b>⬆️ Upgrades</b><span>3 matching duplicates upgrade a card: Common → Rare → Epic → Legendary. Cards are for collecting and don't change match stats.</span></div></div>`;
   }
   const header = `<div class="album-head">
-    <div class="fccbanner menu-banner">${uiArt("ico-cards","🏉")}<div><b>Footy Card Collectors</b><small>Club card album</small></div></div>
-    <div class="atabs">${tab("album", '<span class="cicon"><i></i><i></i></span>', "Album")}<button class="atab soon" data-tab="trade"><b>⇄</b>Trade<i class="soontag">Soon</i></button>${tab("sets", "🛡️", "Sets")}${tab("rewards", "🎁", "Rewards")}</div>
-    <div class="woodbar"><div class="clubstrip">${CLUBS.map((c, i) => { const [o, t] = albumCount(x => x.club === i && !x.special); return `<button aria-label="${c.name}" class="${i === albumClub ? "on" : ""}${o === t ? " done" : ""}" data-club="${i}">${badgeImg(c, "xs")}${i !== albumClub && clubHasNew(x => x.club === i && !x.special) ? '<i class="ndot"></i>' : ""}</button>`; }).join("")}<button aria-label="Special cards" class="${albumClub === "sp" ? "on" : ""}" data-club="sp"><b class="spstar">⭐</b>${albumClub !== "sp" && clubHasNew(x => x.special) ? '<i class="ndot"></i>' : ""}</button></div><button class="stripnext" id="stripNext" aria-label="More clubs">›</button></div></div>`;
+    <div class="fccbanner">${uiArt("ico-cards","🏉")}<div><b>Footy Card Collectors</b><small>Collect · Build your dream team</small></div></div>
+    <div class="atabs">${tab("album", '<span class="cicon"><i></i><i></i></span>', "Album")}<button class="atab soon" data-tab="trade"><b>⇄</b>Trade<i class="soontag">Soon</i></button>${tab("sets", "🛡️", "Sets")}${tab("rewards", "🎁", "Rewards")}</div></div>`;
+  const clubRail = `<div class="woodbar"><button class="stripnext" id="stripPrev" aria-label="Previous clubs">‹</button><div class="clubstrip">${CLUBS.map((c, i) => { const [o, t] = albumCount(x => x.club === i && !x.special); return `<button aria-label="${c.name}" aria-pressed="${i === albumClub}" class="${i === albumClub ? "on" : ""}${o === t ? " done" : ""}" data-club="${i}">${badgeImg(c, "xs")}${i !== albumClub && clubHasNew(x => x.club === i && !x.special) ? '<i class="ndot"></i>' : ""}</button>`; }).join("")}<button aria-label="Special cards" aria-pressed="${albumClub === "sp"}" class="${albumClub === "sp" ? "on" : ""}" data-club="sp"><b class="spstar">⭐</b>${albumClub !== "sp" && clubHasNew(x => x.special) ? '<i class="ndot"></i>' : ""}</button></div><button class="stripnext" id="stripNext" aria-label="More clubs">›</button></div>`;
   const actions = `<div class="fccfoot">
       <div class="sets"><b class="setsicon"><span class="cicon"><i></i><i></i></span></b><div><span>Sets</span><i><b style="width:${sets / 18 * 100}%"></b></i></div><em>${sets}/18</em></div>
+      ${clubRail}
       <button class="btn green openpack" id="openPackBtn" ${canOpen ? "" : "disabled"}><b class="packicon"><span class="cicon"><i></i><i></i></span></b>Open Pack<small>${PACK_COST} 🎟️ · you have ${tokens}</small>${canOpen ? '<span class="bang">!</span>' : ""}</button>
     </div>`;
   modal(`<div class="fcc">${body}</div>`,{header,actions,album:true,keepScroll}); tut("cards");
@@ -292,6 +296,7 @@ function openAlbum(club, keepScroll=false) { menuBack = null; hubCtx=null;
   document.querySelectorAll("[data-view]").forEach(el => el.onclick = () => showAlbumCard(CARD_BY_ID[el.dataset.view]));
   const pp = $("pgPrev"), pn = $("pgNext"); if (pp) pp.onclick = () => { albumPage--; openAlbum(); }; if (pn) pn.onclick = () => { albumPage++; openAlbum(); };
   const strip = document.querySelector(".clubstrip"), sc = strip.querySelector(".on"); if (sc) strip.scrollLeft = sc.offsetLeft - strip.clientWidth / 2 + sc.clientWidth / 2;
+  $("stripPrev").onclick = () => strip.scrollBy({left:-strip.clientWidth * .7, behavior:"smooth"});
   $("stripNext").onclick = () => strip.scrollBy({left:strip.clientWidth * .7, behavior:"smooth"});
   $("openPackBtn").onclick = () => { if ((S.tokens || 0) < PACK_COST) return toast("Win matches to earn Footy Tokens 🎟️"); S.tokens -= PACK_COST; packTear(rollPack(false), "Footy Pack", "footy"); };
   const pz = $("openPrize"); if (pz) pz.onclick = () => { S.prizePacks--; packTear(rollPack(true), "Prize Pack", "prize"); };

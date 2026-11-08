@@ -364,7 +364,7 @@ p.clash{color:#8a6d45;font-size:13px;margin:-4px 0 6px}
 .tag.epic{background:#8e44ad}
 
 /* ---------- Footy Card Collectors album (matches docs/card-style-reference.png) ---------- */
-.card.albummode{background:radial-gradient(ellipse at 50% 0%,#4a3420 0%,#2a1c10 55%,#170f08 100%);border-color:#0b0704;color:#e9e3cf;padding:10px 8px 12px;box-shadow:0 6px 0 #000,inset 0 0 0 2px #ffffff10}
+.card.albummode{background:linear-gradient(150deg,#533c2755,#151214c9),url("art/album/binder-leather.webp") #222329 center/320px auto;border-color:#0b0806;color:#f1e5cb;box-shadow:0 6px 0 #0c0704,inset 0 0 0 2px #ad8a5d}
 .fcc{display:flex;flex-direction:column;gap:9px;text-shadow:0 2px 0 #000}
 /* wooden banner with metal corner brackets */
 .fccbanner{position:relative;display:flex;align-items:center;gap:8px;padding:8px 12px 9px;margin:0 46px 0 0;border:3px solid #120b05;border-radius:10px;
@@ -389,17 +389,19 @@ p.clash{color:#8a6d45;font-size:13px;margin:-4px 0 6px}
 .pagehead span{display:flex;flex-direction:column;font-size:19px;line-height:1.05}.pagehead small{font-size:12px;color:#cbbf9f}
 .spstar{font-size:22px}
 /* leather binder: stitched edge, two dark pages, chrome rings */
-.binder{position:relative;display:grid;grid-template-columns:1fr 22px 1fr;gap:0;padding:10px 8px;border-radius:14px;border:4px solid #0a0705;
-  background:radial-gradient(ellipse at 30% 20%,#3b2c22,#21170f 70%);box-shadow:inset 0 0 0 2px #ffffff12,0 6px 0 #000,0 10px 18px #0009}
-.binder::before{content:"";position:absolute;inset:5px;border:2px dashed #8a6a4866;border-radius:10px;pointer-events:none}
-.bpage{display:grid;grid-template-columns:1fr 1fr;gap:7px;padding:8px;border-radius:8px;align-content:start;
-  background:linear-gradient(160deg,#2c303a,#191b21);box-shadow:inset 0 0 12px #000c,inset 0 0 0 1px #ffffff10}
-.rings{display:flex;flex-direction:column;justify-content:space-around;align-items:center;z-index:2;margin:0 -9px}
-.rings i{width:34px;height:15px;border-radius:9px;border:4px solid #d9dee4;border-left-color:#9aa3ad;border-bottom-color:#7e8792;background:transparent;box-shadow:0 2px 3px #000,inset 0 1px 1px #000a}
-.aslot{aspect-ratio:240/336;border-radius:8px}
+.binder{position:relative;display:grid;grid-template-columns:minmax(0,1fr) clamp(17px,4vw,28px) minmax(0,1fr);gap:0;padding:10px 8px;border-radius:14px;border:4px solid #0a0908;
+  background:linear-gradient(90deg,#18191b15 43%,#080809b5 50%,#18191b15 57%),url("art/album/binder-leather.webp") #272526 center/300px auto;box-shadow:inset 0 0 0 2px #c4a27b5e,inset 0 0 15px #000,0 6px 0 #000,0 10px 18px #0009}
+.binder::before{content:"";position:absolute;inset:5px;border:1px dashed #d7b78b80;border-radius:10px;pointer-events:none}
+.bpage{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:clamp(4px,1vw,9px);padding:clamp(4px,1.1vw,10px);border-radius:8px;align-content:start;
+  background:linear-gradient(160deg,#71809a39,#12141b57 34%,#111318b0),url("art/album/binder-leather.webp") #272b35 center/280px auto;box-shadow:inset 0 0 12px #000c,inset 0 0 0 1px #bec4d03b}
+.rings{display:flex;flex-direction:column;justify-content:space-around;align-items:center;z-index:2;margin:0 -9px;background:linear-gradient(90deg,#100d0c00 24%,#0e0d0bd9 43%,#57483b7a 48%,#09090a 54%,#100d0c00 76%)}
+.rings i{width:clamp(25px,5vw,41px);height:clamp(13px,2.4vw,19px);border-radius:12px;border:4px solid transparent;
+  background:linear-gradient(#322a24,#100e0e) padding-box,linear-gradient(160deg,#322c28 3%,#8f7f6a 18%,#ffedc7 33%,#b9b1a4 46%,#4f4a45 59%,#262223 74%,#a99575 96%) border-box;
+  box-shadow:0 3px 4px #000,inset 0 1px 2px #000a}
+.aslot{aspect-ratio:240/336;border-radius:7px;min-width:0}
 .aslot.blank{background:#ffffff06;border:2px dashed #ffffff10}
-.aslot.empty{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:4px;cursor:pointer;color:#a99f86;border:2px dashed #ffffff26;
-  background:radial-gradient(circle at 50% 42%,#ffffff12 0 18%,#0000 19%),#1b1d24;text-shadow:none}
+.aslot.empty{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:4px;cursor:pointer;color:#b9ad98;border:1px dashed #9496a36b;
+  background:radial-gradient(ellipse at 50% 43%,#b3a78920 0 17%,#0000 18%),linear-gradient(135deg,#52596a6b,#181b25c9 65%);text-shadow:none;box-shadow:inset 0 2px 0 #eef2ff19,inset 0 -3px 7px #0008}
 .aslot.empty span{font-size:14px;color:#d6caa8}.aslot.empty small{font-size:10px;opacity:.8}
 .aslot img{width:100%;height:100%;display:block;border-radius:8px}
 .acard{position:relative;cursor:pointer}
@@ -473,20 +475,9 @@ p.clash{color:#8a6d45;font-size:13px;margin:-4px 0 6px}
 .sets .setsicon .cicon{transform:scale(.9)}
 .openpack .packicon .cicon{transform:scale(1.1)}
 
-/* ---------- landscape phones: side buttons go along the bottom, album goes side by side ---------- */
+/* Keep the home controls clear of the landscape playfield. */
 @media (orientation:landscape) and (max-height:600px){
   #side{top:auto;bottom:max(10px,env(safe-area-inset-bottom));right:calc(max(8px,env(safe-area-inset-right)) + 128px);flex-direction:row}
-  .card.albummode{width:min(96vw,980px);max-height:94vh}
-  .fcc{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);gap:8px 10px;align-items:start}
-  .fcc>*{min-width:0}
-  .fcc>*{grid-column:1}
-  .fcc>.binder{grid-row:2 / span 2}
-  .fccbanner b{font-size:24px}.fccbanner .emblem{width:34px;height:34px;font-size:18px}
-  .atab{padding:3px 2px;font-size:11px}.atab b{font-size:17px}
-  .fcc>.statpanel{grid-column:2;grid-row:1 / span 3}
-  .fcc>.setlist,.fcc>.rewards{grid-column:1 / -1}
-  .fcc .statpanel{grid-template-columns:96px 1fr;gap:8px;padding:8px}
-  .fcc .sbar{grid-template-columns:auto minmax(46px,1fr) 22px;font-size:11px;gap:4px}
 }
 .fradd{display:flex;gap:6px;margin:4px 0}
 .fradd input{flex:1;min-width:0;font:inherit;font-size:16px;padding:8px 10px;border-radius:10px;border:3px solid #3a2a18;background:#fffdf6;color:#222;text-shadow:none}
@@ -631,13 +622,13 @@ body.ffui .profhead.uibg,body.ffui .passhead.uibg{background-size:100% 100%!impo
 .evcard>.uia img{width:52px;height:52px}
 .soon .uia img{width:48px;height:48px}
 /* ---------- colour pop: bright Clash-style panels and buttons around Codex's painted icons ---------- */
-body:not(.ffui) .modal>.card{background:linear-gradient(#fff6dc,#f1dcae 60%,#e3c58e);border:4px solid #2b1d10;box-shadow:0 6px 0 #1a120a,inset 0 0 0 3px #fffbe9,inset 0 -6px 0 #0000001a}
+body:not(.ffui) .modal>.card:not(.albummode){background:linear-gradient(#fff6dc,#f1dcae 60%,#e3c58e);border:4px solid #2b1d10;box-shadow:0 6px 0 #1a120a,inset 0 0 0 3px #fffbe9,inset 0 -6px 0 #0000001a}
 body:not(.ffui) .card:not(.albummode) h2{color:#fff;-webkit-text-stroke:1.5px #3a2410;text-shadow:0 3px 0 #3a2410}
 body:not(.ffui) .card .x{background:linear-gradient(#ff8b6e,#e8402b 55%,#b22a1a);border:3px solid #2b1d10;box-shadow:0 3px 0 #1a120a,inset 0 2px 0 #fff8}
 body:not(.ffui) #modalHead .menu-banner{background:linear-gradient(#344451,#14202c);color:#fff;border:0;box-shadow:none}
 body:not(.ffui) #modalHead .menu-banner small{color:#ffd34d}
-body:not(.ffui) .card :is(.tabs,.hubtabs,.atabs) button{background:linear-gradient(#cdb48a,#a58756);border:3px solid #3a2a18;color:#fff;text-shadow:0 2px 0 #3a2a18}
-body:not(.ffui) .card :is(.tabs,.hubtabs,.atabs) button.on{background:linear-gradient(#ffe88c,#f4b62f 55%,#d58a12);color:#3a2408;text-shadow:0 1px 0 #fff8}
+body:not(.ffui) .card :is(.tabs,.hubtabs) button{background:linear-gradient(#cdb48a,#a58756);border:3px solid #3a2a18;color:#fff;text-shadow:0 2px 0 #3a2a18}
+body:not(.ffui) .card :is(.tabs,.hubtabs) button.on{background:linear-gradient(#ffe88c,#f4b62f 55%,#d58a12);color:#3a2408;text-shadow:0 1px 0 #fff8}
 body:not(.ffui) .item,body:not(.ffui) .fx,body:not(.ffui) .evcard,body:not(.ffui) .ach,body:not(.ffui) .profgrid div,body:not(.ffui) .task,body:not(.ffui) .raid,body:not(.ffui) .herocard,body:not(.ffui) .rwd{background:#fffaf0;border:3px solid #c9a46a;box-shadow:0 3px 0 #b08a50}
 body:not(.ffui) .round.attack{background:linear-gradient(#ffd67a,#ff9a2e 40%,#e8531c 75%,#b83a12)!important;border:4px solid #2b1d10;box-shadow:0 6px 0 #1a120a,inset 0 3px 0 #fff9,inset 0 -6px 0 #0003}
 body:not(.ffui) .round.shop{background:linear-gradient(#fff0a0,#ffd24a 45%,#f0a81e 80%,#c47e0c)!important;border:4px solid #2b1d10;box-shadow:0 6px 0 #1a120a,inset 0 3px 0 #fff9,inset 0 -6px 0 #0003}
@@ -729,40 +720,62 @@ body:not(.ffui) .match-day #modalActions{
 .social-head .tabs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr))}
 .live-attacks{background:#ffedc3;color:#6f3118;border:2px solid #b86440;border-radius:10px;padding:8px;margin:6px 0}
 .live-attacks:empty{display:none}
+/* The collector's binder has its own materials and keeps the club rail in reach. */
 .card.pinned.albummode{
-  max-height:min(88dvh,100%);padding:14px;background:linear-gradient(#f9edce,#e1c18b);color:#2b3549;
-  border-color:#25344a;box-shadow:inset 0 0 0 2px #fff4d7,0 4px 12px #101a3050;
+  width:min(96vw,600px);max-height:min(94dvh,100%);padding:clamp(7px,2vw,14px);
 }
-.album-head{display:grid;grid-template-columns:minmax(0,1fr);gap:8px}
-.album-head .atabs{grid-template-columns:repeat(4,minmax(0,1fr))}
-.album-head .clubstrip{min-width:0}
+.album-head{display:grid;gap:8px;min-width:0}
 .album-head .fccbanner{
-  padding:6px 44px 6px 7px;margin:0;background:linear-gradient(#3678ad,#214c78);
-  border:2px solid #244262;box-shadow:inset 0 1px 0 #ffffff60;
+  min-height:54px;margin:0;padding:6px 40px 6px 12px;border-color:#25150c;
+  box-shadow:inset 0 0 0 1px #c5a372,inset 0 2px 0 #f7d3a368,0 3px 0 #100b08;
 }
-.album-head .fccbanner::before,.album-head .fccbanner::after{content:none}
-.album-head .fccbanner .uia img{width:32px;height:32px}
-.album-head .fccbanner b{font-size:clamp(17px,5.4vw,26px);color:#fff3d2;letter-spacing:0;text-shadow:0 2px 0 #183b62}
-.album-head .fccbanner small{font-size:11px;color:#d8e9fa}
-.album-head .atab{background:linear-gradient(#68a7d8,#316d9f);border:2px solid #28517d;box-shadow:inset 0 1px 0 #fff7}
-.album-head .atab.on{background:linear-gradient(#ffe895,#e7aa37);border-color:#9b691d;color:#322311;text-shadow:none}
-.album-head .atab.soon{opacity:.64}
-.album-head .woodbar{background:#e5c999;border:1px solid #ad8953;padding:3px;box-shadow:none}
-.album-head .clubstrip button{width:36px;height:36px;border-width:2px;background:#233d5b}
-.album-head .clubstrip button.on{border-color:#eaae37;box-shadow:none}
-.albummode .fcc{text-shadow:none}
-.albummode .pagehead small{color:#645132}
-.albummode .binder{background:#2c4058;border:2px solid #1c2b40;box-shadow:inset 0 0 0 2px #ffffff30,0 2px 5px #15233850}
-.albummode .bpage{background:linear-gradient(150deg,#fff5df,#e7d1a5);box-shadow:inset 0 0 6px #9b744e66}
-.albummode .aslot.empty{background:#e1cba3;color:#45351d;border-color:#a88b5b}
-.albummode .aslot.empty span{color:#65471f}
-.albummode .aslot.blank{background:#e5d4b0;border-color:#b69b70}
-.albummode #modalActions{display:block;margin:0;padding:4px;background:#fff1ce;border:1px solid #b89b69}
-.albummode .fccfoot .openpack,.albummode .fccfoot .sets{min-height:44px}
-.albummode .fccfoot .sets{background:#f2dcae;color:#49351b;border:2px solid #b4935f;box-shadow:none}
-.albummode .fccfoot .openpack{display:grid;grid-template-columns:auto 1fr;gap:0 5px;font-size:16px}
-.albummode .openpack .packicon{grid-row:span 2}
-.albummode .openpack small{grid-column:2}
+.album-head .fccbanner .uia{flex:none;display:grid;place-items:center;width:clamp(26px,7vw,46px);height:clamp(26px,7vw,46px)}
+.album-head .fccbanner .uia img{width:100%;height:100%}
+.album-head .fccbanner b{font-size:clamp(16px,4.8vw,32px);letter-spacing:.02em}
+.album-head .fccbanner small{font-size:clamp(10px,2.8vw,14px);color:#edc978}
+.album-head .atabs{grid-template-columns:repeat(4,minmax(0,1fr))}
+.album-head .atab{min-height:44px;flex-direction:row;justify-content:center;gap:4px;padding:3px 1px;border-width:2px;font-size:clamp(10px,3vw,14px)}
+.album-head .atab b{font-size:15px}
+.album-head .cicon{transform:scale(.72);width:25px}
+.album-head .atab.on{background:linear-gradient(#af8044,#5a391d);border-color:#e3bb75;box-shadow:inset 0 1px 0 #fff6,0 2px 0 #150b05}
+.album-head .atab.soon{opacity:.72}
+.albummode #modalBody{padding:2px 5px 10px;touch-action:pan-y}
+.fcc-main,.fcc-spread{display:grid;min-width:0;gap:8px}
+.fcc-spread .pagehead{min-width:0}
+.fcc-spread .pagehead>span{font-size:clamp(14px,4vw,19px);min-width:0}
+.fcc-spread .pager{margin-left:auto;gap:4px;white-space:nowrap}
+.fcc-spread .pager span{font-size:12px}
+.fcc-spread .pg{width:32px;height:36px;flex:none}
+.albummode .binder{padding:clamp(5px,1.4vw,11px);grid-template-columns:minmax(0,1fr) clamp(13px,3vw,27px) minmax(0,1fr)}
+.albummode .bpage{box-shadow:inset 0 0 12px #000b,inset 0 0 0 1px #c6a87965}
+.albummode button.aslot{display:block;border:0;padding:0;background:none;box-shadow:none}
+.albummode button.aslot.empty{display:flex;border:1px dashed #9496a36b;background:linear-gradient(145deg,#333945,#181b25);box-shadow:inset 0 2px 0 #eef2ff19,inset 0 -3px 7px #0008}
+.albummode .aslot.empty small{font-size:clamp(8px,2.6vw,12px);overflow-wrap:anywhere}
+.albummode .aslot.empty span{font-size:clamp(10px,3vw,14px)}
+.albummode .acard.sel img{outline:2px solid #f1cf83;outline-offset:0}
+.albummode #modalActions{display:block;margin:0;padding:0;border:0;box-shadow:none;background:transparent}
+.albummode .fccfoot{grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:6px}
+.albummode .fccfoot .sets,.albummode .fccfoot .openpack{min-height:44px}
+.albummode .fccfoot .sets{padding:4px 6px;gap:5px;color:#f1e5cb;grid-template-columns:minmax(0,1fr) auto}
+.albummode .fccfoot .setsicon,.albummode .openpack .packicon{display:none}
+.albummode .fccfoot .sets div,.albummode .fccfoot .sets em{font-size:13px}
+.albummode .fccfoot .openpack{padding:2px 4px;font-size:15px;line-height:1.1}
+.albummode .fccfoot .openpack small{font-size:10px;color:inherit}
+.albummode .woodbar{grid-row:1;grid-column:1/-1;min-width:0;padding:2px;gap:3px}
+.albummode .clubstrip{min-width:0;position:relative;gap:4px;scroll-snap-type:x proximity}
+.albummode .clubstrip button{width:42px;height:42px;border-width:2px;scroll-snap-align:start}
+.albummode .stripnext{height:44px;width:25px}
+.albummode .statpanel{grid-template-columns:minmax(56px,.42fr) minmax(0,1fr);padding:8px}
+.albummode .sbar{grid-template-columns:minmax(58px,auto) minmax(20px,1fr) 20px}
+.albummode .setrow{grid-template-columns:auto minmax(0,1fr) minmax(25px,20%) 34px;gap:5px}
+body:not(.ffui) .albummode .rwd{background:linear-gradient(#2a2e37,#16181e);border-color:#69563e;box-shadow:0 3px 0 #0b0806}
+@media (min-width:740px) and (orientation:landscape){
+  .card.pinned.albummode{width:min(96vw,990px)}
+  .fcc-main{grid-template-columns:minmax(0,1.9fr) minmax(0,1fr);align-items:start;gap:12px}
+  .fcc-detail{padding-top:40px}
+  .albummode .fccfoot{grid-template-columns:140px minmax(0,1fr) 155px}
+  .albummode .woodbar{grid-row:auto;grid-column:auto}
+}
 @media (max-width:360px){
   #shopGrid{grid-template-columns:repeat(2,minmax(0,1fr))}
   .match-heading h2{font-size:21px}

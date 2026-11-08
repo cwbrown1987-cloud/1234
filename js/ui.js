@@ -78,11 +78,11 @@ function updateHUD(force){
     const replay=BT.mode==="replay";
     $("bBadge").src=badgeURL(CLUBS[replay?BT.atkClub:BT.club],96);
     $("bVs").textContent=replay?`${BT.raid&&BT.raid.attacker?BT.raid.attacker+" · ":""}${CLUBS[BT.atkClub].name}`:BT.opp?`vs ${BT.opp.name}${BT.opp.bot?" (bot)":""} · ${CLUBS[BT.club].short}`:"vs "+CLUBS[BT.club].name;
-    const nx=$("bNext"); if(nx){ nx.style.display=(BT.kind==="pvp"||BT.visit)&&!BT.started&&!replay?"block":"none"; nx.textContent=BT.visit?"⚔️ Friendly":"Next ⏭"; }
+    const nx=$("bNext"); if(nx){ nx.style.display=(BT.kind==="pvp"||BT.visit)&&!BT.started&&!replay?"block":"none"; nx.textContent=BT.visit?"⚔️ Attack":"Next ⏭"; }
     $("bEnd").textContent=BT.visit?"🏠 Home":$("bEnd").dataset.sure?"Tap to confirm":"End Match";
     $("cards").style.display=BT.visit?"none":"";
     const clk=document.querySelector(".battleClock"); if(clk) clk.style.visibility=BT.visit?"hidden":"";
-    $("bLoot").textContent=BT.visit?"Visiting · tap Friendly to play a practice match":replay?"Replay":(BT.ranked&&BT.fixture?"🏆 "+BT.fixture+" · ":BT.kind==="revenge"?"Revenge! · ":"")+`🥧 ${fmt(Math.max(0,BT.lootTotal.pies-BT.loot.pies)*(BT.lootMul||1))}  💧 ${fmt(Math.max(0,BT.lootTotal.drink-BT.loot.drink)*(BT.lootMul||1))}`;
+    $("bLoot").textContent=BT.visit?"Visiting · tap Attack to take on your mate (¼ loot)":replay?"Replay":(BT.ranked&&BT.fixture?"🏆 "+BT.fixture+" · ":BT.kind==="revenge"?"Revenge! · ":"")+`🥧 ${fmt(Math.max(0,BT.lootTotal.pies-BT.loot.pies)*(BT.lootMul||1))}  💧 ${fmt(Math.max(0,BT.lootTotal.drink-BT.loot.drink)*(BT.lootMul||1))}`;
     const s=starsNow(), sc=scoreNow(), A=CLUBS[BT.atkClub], Hm=CLUBS[BT.club];
     $("bScore").innerHTML=`<div class="${sc.a.p>sc.h.p?"lead":""}">${A.short} <b>${fmtScore(sc.a)}</b></div><div class="${sc.h.p>=sc.a.p?"lead":""}">${Hm.short} <b>${fmtScore(sc.h)}</b></div>`;
     $("bStars").innerHTML="★".repeat(s)+`<span class="dim">${"★".repeat(3-s)}</span>`;
@@ -251,10 +251,10 @@ function openLog(){
   if(!S.raids.length) h+=`<p class="center">No visitors yet. They will come…</p>`;
   for(const r of S.raids){ const c=CLUBS[r.club]||CLUBS[0], ago=fmtTime((Date.now()-r.at)/1000);
     const who=r.attacker?`${esc(r.attacker)}${r.real?"":' <span class="tag bot">BOT</span>'} <small>${c.short}</small>`:c.name;
-    h+=`<div class="raid ${r.stars?"lost":"won"}">${badgeImg(c)}<div class="grow"><div><b>${who}</b> ${r.friendly?'<span class="tag fr">FRIENDLY</span>':""} ${r.seen?"":'<span class="tag">NEW</span>'}</div>
+    h+=`<div class="raid ${r.stars?"lost":"won"}">${badgeImg(c)}<div class="grow"><div><b>${who}</b> ${r.friendly?'<span class="tag fr">FRIENDLY</span>':r.friend?'<span class="tag fr">FRIEND</span>':""} ${r.seen?"":'<span class="tag">NEW</span>'}</div>
       <div class="tiny">${ago} ago · ${r.sc?`${c.short} ${fmtScore(r.sc.a)} v ${myClub().short} ${fmtScore(r.sc.h)}`:r.pct+"% destroyed"} · <span class="stars">${"★".repeat(r.stars)}<span class="dim">${"★".repeat(3-r.stars)}</span></span></div>
       <div class="tiny">${r.stars?`Lost 🥧 ${fmt(r.lost.pies)} 💧 ${fmt(r.lost.drink)}`:"Defence win!"} · ${r.tro>0?"+":""}${r.tro} 🏆</div></div>
-      <div class="col"><button class="btn blue" data-replay="${r.id}">▶ Replay</button>${r.stars&&!r.revenged&&!r.friendly?`<button class="btn red" data-rev="${r.id}">Revenge</button>`:""}</div></div>`; }
+      <div class="col"><button class="btn blue" data-replay="${r.id}">▶ Replay</button>${r.stars&&!r.revenged&&!r.friendly&&!r.friend?`<button class="btn red" data-rev="${r.id}">Revenge</button>`:""}</div></div>`; }
   modal(h);
   S.raids.forEach(r=>r.seen=true); save(); uiDirty=true;
   document.querySelectorAll("[data-replay]").forEach(b=>b.onclick=()=>watchReplay(S.raids.find(r=>r.id==b.dataset.replay)));
@@ -306,7 +306,7 @@ function openInfo(b){
 function scoreboard(away,home,sc){ return `<div class="board"><div class="${sc.a.p>sc.h.p?"won":""}">${badgeImg(away,"sm")}<span>${away.short}</span><b>${fmtScore(sc.a)}</b></div><div class="${sc.h.p>=sc.a.p?"won":""}">${badgeImg(home,"sm")}<span>${home.short}</span><b>${fmtScore(sc.h)}</b></div></div>`; }
 function showResult(r){
   const win=r.stars>0, margin=Math.abs(r.sc.a.p-r.sc.h.p), draw=r.sc.a.p===r.sc.h.p;
-  modal(`<div class="result"><h2>${draw?"It's a draw!":win?"You win!":"Siren. You lost"}</h2>${r.opp?`<div class="tiny">${r.friendly?"Friendly ":""}vs ${esc(r.opp.name)}${r.opp.bot?" (bot)":""}</div>`:""}
+  modal(`<div class="result"><h2>${draw?"It's a draw!":win?"You win!":"Siren. You lost"}</h2>${r.opp?`<div class="tiny">${r.friendly?"Friendly ":BT&&BT.kind==="friend"?"Friend match (¼ loot) ":""}vs ${esc(r.opp.name)}${r.opp.bot?" (bot)":""}</div>`:""}
     <div class="tiny">${r.fixture?r.fixture+" · ":""}${draw?"Scores level":"by "+margin+" point"+(margin===1?"":"s")} · ${r.p}% knocked down</div>
     ${scoreboard(r.away,r.home,r.sc)}
     <div class="stars">${"★".repeat(r.stars)}<span class="dim">${"★".repeat(3-r.stars)}</span></div>
@@ -350,9 +350,9 @@ $("btnCards").onclick=()=>openAlbum();
 $("btnTasks").onclick=openTasks;
 $("btnLog").onclick=openLog;
 $("btnSocial").onclick=()=>openSocial();
-$("btnFriends").onclick=()=>openFriends();
+
 $("cardsIco").src=cardsButtonIcon();
-$("bNext").onclick=()=>{ if(BT&&BT.visit){ const id=BT.opp.id; leaveBattle(); attackPlayer(id,"friendly"); } else nextOpponent(); };
+$("bNext").onclick=()=>{ if(BT&&BT.visit){ const id=BT.opp.id; leaveBattle(); attackPlayer(id,"friend"); } else nextOpponent(); };
 $("placeYes").onclick=confirmPlace;
 $("placeNo").onclick=()=>{ placing=null; refreshUI(); };
 $("bEnd").onclick=()=>{ const b=$("bEnd"); if(BT&&BT.visit){ leaveBattle(); openFriends(); return; }
@@ -364,10 +364,16 @@ $("rExit").onclick=()=>{ leaveBattle(); openLog(); };
 // ---------- touch / mouse ----------
 const ptrs=new Map(); let gesture=null;
 const toCanvas = e => [e.clientX*W/innerWidth, e.clientY*H/innerHeight];
+// What did you tap? Anything whose picture covers the tap counts (like Clash), not just the ground tiles under it.
+// The front-most one wins, because it's drawn on top.
 function hitHome(gx,gy){
-  const x=Math.floor(gx), y=Math.floor(gy);
-  for(const b of S.buildings){ const s=BLD[b.t].size; if(x>=b.x&&x<b.x+s&&y>=b.y&&y<b.y+s) return b; }
-  return S.obstacles.find(o=>{ const s=o.s||1; return x>=o.x&&x<o.x+s&&y>=o.y&&y<o.y+s; })||null;
+  const [sx,sy]=P(gx,gy); let best=null, bk=-1e9;
+  const test=(o,s,h)=>{ const x=o.x,y=o.y, left=P(x,y+s)[0], right=P(x+s,y)[0], bottom=P(x+s,y+s)[1], top=P(x,y)[1]-h*TH;
+    const inFoot=gx>=x&&gx<x+s&&gy>=y&&gy<y+s, inPic=sx>=left+TW*.12&&sx<=right-TW*.12&&sy>=top&&sy<=bottom;
+    if((inFoot||inPic)&&x+y+s>bk){ bk=x+y+s; best=o; } };
+  for(const b of S.buildings){ const s=BLD[b.t].size; test(b,s,b.t==="fence"?.6:BLD[b.t].trap?0:b.t==="clubhouse"?s*1.15:s*.85); }
+  for(const o of S.obstacles){ const s=o.s||1; test(o,s,s*.6); }
+  return best;
 }
 cv.addEventListener("pointerdown",e=>{
   cv.setPointerCapture(e.pointerId); const [px,py]=toCanvas(e); ptrs.set(e.pointerId,{x:px,y:py,sx:px,sy:py});

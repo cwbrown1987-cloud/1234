@@ -35,8 +35,8 @@ function playSeasonMatch(){
 function simScore(str,rnd){ const g=Math.round(6+str*14*rnd()+rnd()*4), b=Math.round(4+rnd()*9); return {g,b}; }
 function addResult(c,forS,agS){ const r=S.season.ladder[c], pf=forS.g*6+forS.b, pa=agS.g*6+agS.b; r.pf+=pf; r.pa+=pa; if(pf>pa) r.w++; else if(pf<pa) r.l++; else r.d++; }
 // Called when your season match ends. my/their = {g,b}
-function seasonResult(my,their){
-  const s=S.season, f=nextFixture(), myP=my.g*6+my.b, thP=their.g*6+their.b;
+function seasonResult(my,their,oppClub){
+  const s=S.season, f={...nextFixture()}; if(oppClub!=null&&oppClub!==S.club) f.club=oppClub; const myP=my.g*6+my.b, thP=their.g*6+their.b;
   const res = myP>thP?"W":myP<thP?"L":"D";
   s.results.push({name:f.name, club:f.club, my, their, res});
   let note="";

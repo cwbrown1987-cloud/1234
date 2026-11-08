@@ -464,3 +464,23 @@ p.clash{color:#8a6d45;font-size:13px;margin:-4px 0 6px}
 .cicon i:first-child{left:2px;transform:rotate(-12deg)}.cicon i:last-child{left:10px;transform:rotate(9deg);background:linear-gradient(160deg,#fff4c8,#e7b23a)}
 .sets .setsicon .cicon{transform:scale(.9)}
 .openpack .packicon .cicon{transform:scale(1.1)}
+
+/* ---------- landscape phones: side buttons go along the bottom, album goes side by side ---------- */
+@media (orientation:landscape) and (max-height:600px){
+  #side{top:auto;bottom:max(10px,env(safe-area-inset-bottom));right:calc(max(8px,env(safe-area-inset-right)) + 128px);flex-direction:row}
+  .card.albummode{width:min(96vw,980px);max-height:94vh}
+  .fcc{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);gap:8px 10px;align-items:start}
+  .fcc>*{min-width:0}
+  .fcc>*{grid-column:1}
+  .fcc>.fccbanner{margin:0;padding:5px 10px}
+  .fccbanner b{font-size:24px}.fccbanner .emblem{width:34px;height:34px;font-size:18px}
+  .fcc>.atabs{grid-column:2;grid-row:1;margin-right:46px}
+  .atab{padding:3px 2px;font-size:11px}.atab b{font-size:17px}
+  .fcc>.statpanel,.fcc>.setlist,.fcc>.rewards{grid-column:2;grid-row:2 / span 3}
+  .fcc>.woodbar{grid-column:1}
+  .fcc .statpanel{grid-template-columns:96px 1fr;gap:8px;padding:8px}
+  .fcc .sbar{grid-template-columns:auto minmax(46px,1fr) 22px;font-size:11px;gap:4px}
+  .fcc>.fccfoot{grid-column:2}
+}
+.fradd{display:flex;gap:6px;margin:4px 0}
+.fradd input{flex:1;min-width:0;font:inherit;font-size:16px;padding:8px 10px;border-radius:10px;border:3px solid #3a2a18;background:#fffdf6;color:#222;text-shadow:none}

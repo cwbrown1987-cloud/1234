@@ -135,7 +135,8 @@ function hurt(b,dmg){
 }
 const healUnit = (u,amt) => { u.hp=Math.min(u.max,u.hp+amt); };
 function damageUnit(u,dmg){ if(u.hp<=0||u.immune>0) return; if(u.shield>0) dmg*=.5;
-  const rl=BT.heroU&&BT.heroU.rleg; if(rl&&rl.hp>0&&Math.hypot(rl.x-u.x,rl.y-u.y)<=3) dmg*=.85; // Ruck Legend's aura if(u.armor) dmg*=1-u.armor; u.hp-=dmg;
+  const rl=BT.heroU&&BT.heroU.rleg; if(rl&&rl.hp>0&&Math.hypot(rl.x-u.x,rl.y-u.y)<=3) dmg*=.85; // Ruck Legend's aura
+  if(u.armor) dmg*=1-u.armor; u.hp-=dmg;
   if(u.hp<=0){ if(!u.air) (BT.kos=BT.kos||[]).push({u,at:performance.now(),stub:{y:u.y,atk:0}}); else BT.fx.push({k:"poof",x:u.x,y:u.y,t:0,air:u.air}); if(u.hero||(UNITS[u.kind]&&UNITS[u.kind].space>=5)) BT.koBig=(BT.koBig||0)+1; else BT.koSmall=(BT.koSmall||0)+1; } }
 
 function updateUnit(u,dt){

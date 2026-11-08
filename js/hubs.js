@@ -112,7 +112,7 @@ function openProfile(tab = "Profile") { menuBack = null;
     ensureRanked();
     h += `<div class="xpbar"><span>⭐ Level ${S.lvl}</span><i><b style="width:${100 * (S.xp || 0) / xpNeed(S.lvl)}%"></b></i><span>${S.xp || 0}/${xpNeed(S.lvl)} XP</span></div>
       <div class="profgrid">
-        <div><b>🏆 ${S.trophies}</b><small>Trophies</small></div><div><b>${rkName(S.rk.tier)}</b><small>Ranked league</small></div>
+        <div><b>🏆 ${S.trophies}</b><small>Trophies</small></div><div><b>${rkBadge(S.rk.tier)} ${rkName(S.rk.tier)}</b><small>Ranked league</small></div>
         <div><b>${fmt(st.win || 0)}</b><small>Matches won</small></div><div><b>${fmt(st.stars || 0)}</b><small>Stars won</small></div>
         <div><b>${fmt(st.defend || 0)}</b><small>Defences won</small></div><div><b>${fmt(st.destroy || 0)}</b><small>Buildings knocked down</small></div>
         <div><b>${albumCount(x => !x.special)[0]}/198</b><small>Cards</small></div><div><b>${S.premierships || 0}</b><small>Premierships</small></div>
@@ -137,6 +137,8 @@ function openProfile(tab = "Profile") { menuBack = null;
 const RK_LEAGUES = [["Auskick", 6], ["Under-12s", 6], ["Under-18s", 8], ["Local Footy", 8], ["State League", 10], ["VFL", 10], ["Reserves", 12], ["AFL", 12], ["All-Australian", 15], ["Hall of Fame", 20]];
 const RK_TIERS = RK_LEAGUES.length * 3;
 const rkName = t => t >= RK_TIERS - 1 ? "Hall of Fame Legend" : `${RK_LEAGUES[Math.floor(t / 3)][0]} ${t + 1}`;
+// League badge: art/ui/league-1..10 when Codex's art is loaded, else a trophy
+const rkBadge = (t, cls = "") => `<i class="uia lgb ${cls}" data-ui="league-${Math.min(RK_LEAGUES.length, Math.floor(t / 3) + 1)}">🏆</i>`;
 const rkAttacks = t => RK_LEAGUES[Math.min(RK_LEAGUES.length - 1, Math.floor(t / 3))][1];
 const rkFloor = () => Math.min(RK_TIERS - 4, Math.max(0, (th() - 1) * 3 - 3)); // your Clubhouse sets your lowest league
 const RK_EPOCH = Date.UTC(2026, 0, 5); // a Monday
@@ -178,7 +180,7 @@ function rankedConfirm(go) {
   const rk = ensureRanked(), left = rkAttacks(rk.tier) - rk.attacks;
   if (left <= 0) return toast(`No Ranked attacks left this week. New week in ${fmtTime((weekEnds() - Date.now()) / 1000)}.`);
   const army = Object.entries(S.army).filter(([, n]) => n > 0);
-  modal(`<h2>Ranked Battle</h2><div class="center">${rkName(rk.tier)} · attack ${rk.attacks + 1} of ${rkAttacks(rk.tier)}</div>
+  modal(`<h2>Ranked Battle</h2><div class="center">${rkBadge(rk.tier)} ${rkName(rk.tier)} · attack ${rk.attacks + 1} of ${rkAttacks(rk.tier)}</div>
     <p class="center tiny">There's no Next in Ranked: once you go in, the attack counts. Trophies can't be lost this week.</p>
     <div class="rkarmy">${army.map(([u, n]) => `<span><img src="${playerIcon(u)}" alt="">×${n}</span>`).join("") || "No players!"}</div>
     <div class="center"><button class="btn" id="rkEdit">Edit Army</button> <button class="btn blue big" id="rkGo">🏆 Attack</button></div>`);
@@ -187,7 +189,7 @@ function rankedConfirm(go) {
 }
 function openRankedTable() {
   const rk = ensureRanked(), tbl = rkTable((Date.now() - (RK_EPOCH + rk.week * 6048e5)) / 6048e5), n = tbl.length, up = Math.ceil(n * .4), down = n - Math.ceil(n * .1);
-  let h = `<h2>${rkName(rk.tier)}</h2><div class="center tiny">Week ends in ${fmtTime((weekEnds() - Date.now()) / 1000)} · ${rkAttacks(rk.tier) - rk.attacks} of ${rkAttacks(rk.tier)} attacks left</div>
+  let h = `<div class="center">${rkBadge(rk.tier, "big")}</div><h2>${rkName(rk.tier)}</h2><div class="center tiny">Week ends in ${fmtTime((weekEnds() - Date.now()) / 1000)} · ${rkAttacks(rk.tier) - rk.attacks} of ${rkAttacks(rk.tier)} attacks left</div>
     <div class="ladwrap"><table class="ladder"><tr><th>#</th><th></th><th>Club</th><th>🏆</th></tr>${tbl.map((r, i) =>
     `<tr class="${r.me ? "me" : ""} ${i === up - 1 ? "cut" : ""} ${i === down - 1 ? "cutdn" : ""}"><td>${i + 1}${i < up ? " ⬆" : i >= down ? " ⬇" : ""}</td><td>${badgeImg(CLUBS[r.club], "xs")}</td><td>${esc(r.name)}</td><td><b>${r.tro}</b></td></tr>`).join("")}</table></div>
     <p class="tiny center">Top ${up} move up a league, bottom ${n - down} move down. Each attack earns up to 40 trophies: 3 stars = 40.</p><div class="center"><button class="btn" id="rkBack">Back</button></div>`;
@@ -245,7 +247,7 @@ function openEvents() { menuBack = null;
   let h = `<h2>Events</h2>`;
   h += card("ev-today", e ? "Today: " + e.name : "No event today", e ? e.desc : "Check back tomorrow");
   h += card("ev-star", "Star Bonus", sb.until > Date.now() ? `Ready again in ${fmtTime((sb.until - Date.now()) / 1000)}` : `${Math.min(sb.stars, STAR_GOAL)}/${STAR_GOAL} stars`, `<button class="btn gold" data-go="play">Play</button>`);
-  h += card("ev-ranked", rkName(rk.tier), `${rkAttacks(rk.tier) - rk.attacks} attacks left · week ends in ${fmtTime((weekEnds() - Date.now()) / 1000)}`, `<button class="btn blue" data-go="rk">Table</button>`);
+  h += card("ev-ranked", rkBadge(rk.tier) + " " + rkName(rk.tier), `${rkAttacks(rk.tier) - rk.attacks} attacks left · week ends in ${fmtTime((weekEnds() - Date.now()) / 1000)}`, `<button class="btn blue" data-go="rk">Table</button>`);
   h += card("ev-pass", "Footy Pass", `Tier ${Math.min(PASS_TIERS, Math.floor(p.pts / PASS_PER))} · ${passReady()} to claim`, `<button class="btn green" data-go="pass">Open</button>`);
   h += card("ev-afl", "AFL season", seasonCountdown().replace("🏉 ", "Starts in "));
   h += `<h3>This week</h3>${[1, 2, 3, 4, 5, 6, 0].map(d => { const ev = EVENTS[d], nm = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][d]; return `<div class="stat ${d === new Date().getDay() ? "today" : ""}"><span>${nm}</span><b>${ev ? ev.name + " · " + ev.desc : "–"}</b></div>`; }).join("")}`;

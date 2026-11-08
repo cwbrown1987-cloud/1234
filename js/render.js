@@ -419,7 +419,6 @@ function selectGlow(x,y,s){
   ctx.globalAlpha=.55+t*.3; ctx.shadowColor="#6dff5a"; ctx.shadowBlur=TW*.25; poly(pts,null,"#a8ff8f",Math.max(2,TW*.045));
   ctx.restore();
 }
-function selectRing(x,y,s){ selectGlow(x,y,s); }
 function bubble(x,y,ic){ ctx.lineWidth=2; ctx.strokeStyle=OUT; ctx.beginPath(); ctx.arc(x,y,TW*.32,0,7); ctx.fillStyle="#fff"; ctx.fill(); ctx.stroke(); txt(ic,x,y+1,TW*.32); }
 function fmtTime(s){ s=Math.ceil(s); if(s<60) return s+"s"; if(s<3600) return Math.floor(s/60)+"m "+(s%60?s%60+"s":""); return Math.floor(s/3600)+"h "+Math.floor(s%3600/60)+"m"; }
 

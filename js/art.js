@@ -202,7 +202,7 @@ function clubKit(key, club, material) {
   return tinted;
 }
 
-// Placeholder bodies for the Hero Hall heroes until their own sprites arrive (see ART_HANDOFF.md).
+// Placeholder bodies for the Hero Hall heroes until their own sprites arrive (see CODEX_HANDOFF.md).
 const HERO_ART = {captain:"captain", vice:"rover", star:"forward", rleg:"ruck"};
 
 function motionFrame(key, row, clock, fps, single = false) {
@@ -305,14 +305,6 @@ function drawSceneryArt(t,x,y,k) {
   return paintArt(sprite,x,y,k*widths[t.k]/sprite.w,.92,t.h>.5?-1:1);
 }
 
-// Stadium dressing sits on the distant banks and has no gameplay footprint.
-function drawStadium() {
-  const sprite = artSprites.get("grandstand");
-  if (!sprite) return;
-  for (const [gx,gy,width,face] of [[-3.1,8,5.8,1],[7,-3.1,5.8,-1],[24,-3.1,5.8,-1],[-3.1,24,5.8,1]]) {
-    paintArt(sprite,...P(gx,gy),TW*width/sprite.w,.79,face);
-  }
-}
 
 function loadFootyArt() {
   // Cell order of the buildings sheet. Fixed list: adding a building to artBuildings must never shift these.

@@ -73,7 +73,7 @@ function upgradeGear(id, useVotes) {
   return true;
 }
 
-// ---------- Squad → Heroes: gear section ----------
+// ---------- Build → Heroes: gear section ----------
 function gearHTML(hk) {
   if (!kitRoom()) return `<div class="tiny">Build a <b>Kit Room</b> (Clubhouse 4) to unlock hero gear.</div>`;
   const st = gearState(), eq = st.eq[hk];

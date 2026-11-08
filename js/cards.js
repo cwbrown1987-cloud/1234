@@ -141,7 +141,6 @@ const pad3 = n => String(n).padStart(3, "0");
 
 // ---------- card artwork (layout from docs/card-style-reference.png) ----------
 const roleFor = pos => ({mid:"rover", fwd:"forward", ruck:"ruck", def:"shepherd"})[pos] || "rover";
-function frameFill(g, cols, W, H) { const gr = g.createLinearGradient(0, 0, W, H); cols.forEach((c, i) => gr.addColorStop(i / (cols.length - 1), c)); return gr; }
 const isLight = hex => { const n = parseInt(hex.slice(1, 7), 16); return ((n >> 16) * .3 + (n >> 8 & 255) * .59 + (n & 255) * .11) > 170; };
 function fitText(g, text, maxW, size, min = 9) { let fs = size; g.font = `${fs}px "Lilita One",sans-serif`; while (g.measureText(text).width > maxW && fs > min) { fs--; g.font = `${fs}px "Lilita One",sans-serif`; } }
 function cardFace(c, t) {

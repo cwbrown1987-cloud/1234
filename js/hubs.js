@@ -7,14 +7,26 @@
 // uiArt("battle","⚔️") draws the emoji now; when art/ui/battle.webp is in art/manifest.json the picture replaces it.
 const uiArtFiles = new Set();
 const uiArt = (name, fallback) => `<i class="uia" data-ui="${name}">${fallback}</i>`;
+// Light mode (default): bright Clash-style "colour pop". Dark mode: Codex's dark "Scoreboard" style with his dark button tiles.
+const DARK_ONLY = new Set(["btn-battle", "btn-build", "side-pass", "side-events", "side-online", "profile-badge", "profile-banner", "hub-battle-dark", "hub-build-dark"]);
+const getTheme = () => { try { return localStorage.getItem("ffTheme") === "dark" ? "dark" : "light"; } catch (e) { return "light"; } };
+function applyTheme() {
+  const dark = getTheme() === "dark" && uiArtFiles.has("art/ui/ff-panel-tile.webp");
+  document.body.classList.toggle("ffui", dark);
+  document.querySelectorAll("[data-uibg]").forEach(el => { delete el.dataset.uiDone; el.style.backgroundImage = ""; el.classList.remove("uibg"); });
+  applyUiArt();
+}
+function setTheme(t) { try { localStorage.setItem("ffTheme", t); } catch (e) {} applyTheme(); }
 function applyUiArt(root = document) {
   if (!uiArtFiles.size) return;
+  const dark = document.body.classList.contains("ffui");
   root.querySelectorAll("[data-ui]:not([data-ui-done])").forEach(el => {
     const f = "art/ui/" + el.dataset.ui + ".webp"; el.dataset.uiDone = 1;
     if (uiArtFiles.has(f)) el.innerHTML = `<img src="${f}" alt="">`;
   });
   root.querySelectorAll("[data-uibg]:not([data-ui-done])").forEach(el => {
     const f = "art/ui/" + el.dataset.uibg + ".webp"; el.dataset.uiDone = 1;
+    if (DARK_ONLY.has(el.dataset.uibg) && !dark) return;
     if (uiArtFiles.has(f)) { el.style.backgroundImage = `url("${f}")`; el.classList.add("uibg"); }
   });
 }
@@ -22,10 +34,7 @@ function applyUiArt(root = document) {
   if (typeof fetch !== "function" || location.protocol === "file:") return;
   fetch("art/manifest.json").then(r => r.ok ? r.json() : null).then(m => {
     for (const f of (m && m.files) || []) if (typeof f === "string" && f.startsWith("art/ui/")) uiArtFiles.add(f);
-    // Codex's "Scoreboard" menu style: dark teal panels, gold main buttons, navy secondary buttons
-    // Dark "Scoreboard" panels are off: bright Clash-style panels keep the colour pop. (Set FF_DARK_UI = true to try them.)
-    if (window.FF_DARK_UI && uiArtFiles.has("art/ui/ff-panel-tile.webp")) document.body.classList.add("ffui");
-    applyUiArt();
+    applyTheme();
     new MutationObserver(() => applyUiArt()).observe(document.body, { childList: true, subtree: true });
   }).catch(() => {});
 })();

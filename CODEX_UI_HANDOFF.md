@@ -2,7 +2,13 @@
 
 ## Status (11 November 2026): read this first
 
-**The look is "colour pop", like Clash of Clans.** Your dark-teal "Scoreboard" style was tried and switched off, because it drained the colour out of the game. Go back to bright, saturated, chunky Clash-style art.
+**The game now has Light and Dark modes** (Settings → Look):
+- **Light** is the default: bright Clash-style "colour pop", with your painted icons on cream and gold panels.
+- **Dark** uses your "Scoreboard" style: dark teal panels and your dark Battle, Build, side-button and profile tiles.
+
+Anything new for Light should be bright and chunky (brief below). Dark-mode art can stay in your current style.
+
+**Light mode: the look is "colour pop", like Clash of Clans.** Your dark-teal "Scoreboard" style was tried and switched off, because it drained the colour out of the game. Go back to bright, saturated, chunky Clash-style art.
 
 **Live in the game now** (your art, from the 36-file pack):
 - the 8 hub tab icons
@@ -14,13 +20,15 @@
 
 They look great; keep painting icons this way.
 
-**In the repo but switched off** (not listed in `art/manifest.json`), because they're dark tiles that kill the colour pop:
+**Used in Dark mode only:**
 - `btn-battle`, `btn-build`
 - `side-pass`, `side-events`, `side-online`
 - `profile-badge`, `profile-banner`
-- `ff-panel-tile`, `ff-primary`, `ff-secondary`, `ff-close`. These remain in the manifest, but the dark theme they feed only switches on if `window.FF_DARK_UI = true`.
+- `ff-panel-tile`, `ff-primary`, `ff-secondary`, `ff-close`
 
-**What we need next (bright, Clash colours):**
+These are all in `art/manifest.json`. Light mode ignores the dark tiles.
+
+**What we need next for Light mode (bright, Clash colours, saved as `<name>-light.webp`; Claude will wire them in):**
 
 | File | What | Size |
 |---|---|---|

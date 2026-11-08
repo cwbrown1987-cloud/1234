@@ -612,16 +612,16 @@ body.ffui .hubbar{background:#0f2626;border:2px solid var(--sb-line);box-shadow:
 body.ffui .hubtabs button{border:2px solid #0b1716;background:#173434;color:var(--sb-ink)}
 body.ffui .hubtabs button.on{background:url("art/ui/ff-primary.webp") center/100% 100% no-repeat;color:#2a1d08;text-shadow:none;border-color:#0b1716}
 /* ---------- Codex menu art (art/ui): button faces, banners, hub headers ---------- */
-.round.uibg{width:96px;height:96px;border:0;border-radius:22px;box-shadow:0 4px 0 #000a;background-color:transparent!important;justify-content:flex-end;padding-bottom:4px}
-.round.uibg>b{display:none}
-.round.uibg>span{font-size:17px;-webkit-text-stroke:1px #000;text-shadow:0 2px 0 #000,0 0 6px #000}
-.sidebtn.uibg{border:0;box-shadow:0 3px 0 #000a;font-size:0;justify-content:flex-end;padding-bottom:3px;background-color:transparent!important}
-.sidebtn.uibg>span{font-size:11px;-webkit-text-stroke:.6px #000;text-shadow:0 2px 0 #000,0 0 4px #000}
-#btnTasks.uibg{background-size:84% auto!important;background-repeat:no-repeat;background-position:center 30%!important;background-color:#1f3a3a!important;border:2px solid #c9a24a}
-.badge.uibg{border:0;background-color:transparent!important;background-size:100% 100%!important}
+body.ffui .round.uibg{width:96px;height:96px;border:0;border-radius:22px;box-shadow:0 4px 0 #000a;background-color:transparent!important;justify-content:flex-end;padding-bottom:4px}
+body.ffui .round.uibg>b{display:none}
+body.ffui .round.uibg>span{font-size:17px;-webkit-text-stroke:1px #000;text-shadow:0 2px 0 #000,0 0 6px #000}
+body.ffui .sidebtn.uibg{border:0;box-shadow:0 3px 0 #000a;font-size:0;justify-content:flex-end;padding-bottom:3px;background-color:transparent!important}
+body.ffui .sidebtn.uibg>span{font-size:11px;-webkit-text-stroke:.6px #000;text-shadow:0 2px 0 #000,0 0 4px #000}
+body.ffui #btnTasks.uibg{background-size:84% auto!important;background-repeat:no-repeat;background-position:center 30%!important;background-color:#1f3a3a!important;border:2px solid #c9a24a}
+body.ffui .badge.uibg{border:0;background-color:transparent!important;background-size:100% 100%!important}
 .hubbar.uibg{background-size:100% auto!important;background-repeat:no-repeat;background-position:top center!important;background-color:#0f2626!important;padding-top:calc((100% * .25) - 34px)}
 .hubbar.uibg .hubtitle{font-size:24px;-webkit-text-stroke:1px #000;text-shadow:0 2px 0 #000,0 0 8px #000;margin-top:-6px}
-.profhead.uibg,.passhead.uibg{background-size:100% 100%!important;color:#fff;text-shadow:0 2px 0 #000;padding:12px 16px}
+body.ffui .profhead.uibg,body.ffui .passhead.uibg{background-size:100% 100%!important;color:#fff;text-shadow:0 2px 0 #000;padding:12px 16px}
 .passhead.uibg small{color:#f0c46a}
 .uia.lgb img{width:1.6em;height:1.6em}.uia.lgb.big img{width:96px;height:96px}.uia.lgb.big{font-size:48px}
 /* painted tab and event icons are framed tiles: show them bigger so the detail reads */
@@ -629,19 +629,23 @@ body.ffui .hubtabs button.on{background:url("art/ui/ff-primary.webp") center/100
 .evcard>.uia img{width:52px;height:52px}
 .soon .uia img{width:48px;height:48px}
 /* ---------- colour pop: bright Clash-style panels and buttons around Codex's painted icons ---------- */
-.card:not(.albummode){background:linear-gradient(#fff6dc,#f1dcae 60%,#e3c58e);border:4px solid #2b1d10;box-shadow:0 6px 0 #1a120a,inset 0 0 0 3px #fffbe9,inset 0 -6px 0 #0000001a}
-.card:not(.albummode) h2{color:#fff;-webkit-text-stroke:1.5px #3a2410;text-shadow:0 3px 0 #3a2410}
-.card .x{background:linear-gradient(#ff8b6e,#e8402b 55%,#b22a1a);border:3px solid #2b1d10;box-shadow:0 3px 0 #1a120a,inset 0 2px 0 #fff8}
-.hubbar{background:linear-gradient(#3fa3e8,#1f6fb8);border:3px solid #13314d;box-shadow:0 4px 0 #0d2236,inset 0 2px 0 #ffffff55}
-.hubbar.uibg{border-color:#13314d}
-.hubtabs button{background:linear-gradient(#5aa9e6,#2f6fae);border:3px solid #13314d;box-shadow:0 3px 0 #0d2236,inset 0 2px 0 #ffffff55}
-.hubtabs button.on{background:linear-gradient(#ffe88c,#f4b62f 55%,#d58a12);color:#3a2408;text-shadow:0 1px 0 #fff8;border-color:#5a3a08}
-.tabs button{background:linear-gradient(#cdb48a,#a58756);border:3px solid #3a2a18;color:#fff;text-shadow:0 2px 0 #3a2a18;box-shadow:0 3px 0 #2b1d10}
-.tabs button.on{background:linear-gradient(#ffe88c,#f4b62f 55%,#d58a12);color:#3a2408;text-shadow:0 1px 0 #fff8}
-.item,.fx,.evcard,.ach,.profgrid div,.task,.raid,.herocard,.rwd{background:#fffaf0;border:3px solid #c9a46a;box-shadow:0 3px 0 #b08a50}
-.round.attack{background:linear-gradient(#ffd67a,#ff9a2e 40%,#e8531c 75%,#b83a12)!important;border:4px solid #2b1d10;box-shadow:0 6px 0 #1a120a,inset 0 3px 0 #fff9,inset 0 -6px 0 #0003}
-.round.shop{background:linear-gradient(#fff0a0,#ffd24a 45%,#f0a81e 80%,#c47e0c)!important;border:4px solid #2b1d10;box-shadow:0 6px 0 #1a120a,inset 0 3px 0 #fff9,inset 0 -6px 0 #0003}
-.sidebtn{background:linear-gradient(#5fb2ee,#2a74c0 60%,#1d5594);border:3px solid #13314d;box-shadow:0 4px 0 #0d2236,inset 0 2px 0 #ffffff66}
-.ptier{opacity:1;background:#efe1c2;border:3px solid #c9a46a;color:#7a6040}.ptier b{color:#5a4428}
-.ptier.open{background:#fffaf0;border-color:#f0a81e;box-shadow:0 0 8px #ffd24a,0 3px 0 #b08a50;color:#3a2a18}.ptier.open b{color:#3a2a18}
-.ptier.got{opacity:.6}
+body:not(.ffui) .card:not(.albummode){background:linear-gradient(#fff6dc,#f1dcae 60%,#e3c58e);border:4px solid #2b1d10;box-shadow:0 6px 0 #1a120a,inset 0 0 0 3px #fffbe9,inset 0 -6px 0 #0000001a}
+body:not(.ffui) .card:not(.albummode) h2{color:#fff;-webkit-text-stroke:1.5px #3a2410;text-shadow:0 3px 0 #3a2410}
+body:not(.ffui) .card .x{background:linear-gradient(#ff8b6e,#e8402b 55%,#b22a1a);border:3px solid #2b1d10;box-shadow:0 3px 0 #1a120a,inset 0 2px 0 #fff8}
+body:not(.ffui) .hubbar{background:linear-gradient(#3fa3e8,#1f6fb8);border:3px solid #13314d;box-shadow:0 4px 0 #0d2236,inset 0 2px 0 #ffffff55}
+body:not(.ffui) .hubbar.uibg{border-color:#13314d}
+body:not(.ffui) .hubtabs button{background:linear-gradient(#5aa9e6,#2f6fae);border:3px solid #13314d;box-shadow:0 3px 0 #0d2236,inset 0 2px 0 #ffffff55}
+body:not(.ffui) .hubtabs button.on{background:linear-gradient(#ffe88c,#f4b62f 55%,#d58a12);color:#3a2408;text-shadow:0 1px 0 #fff8;border-color:#5a3a08}
+body:not(.ffui) .tabs button{background:linear-gradient(#cdb48a,#a58756);border:3px solid #3a2a18;color:#fff;text-shadow:0 2px 0 #3a2a18;box-shadow:0 3px 0 #2b1d10}
+body:not(.ffui) .tabs button.on{background:linear-gradient(#ffe88c,#f4b62f 55%,#d58a12);color:#3a2408;text-shadow:0 1px 0 #fff8}
+body:not(.ffui) .item,body:not(.ffui) .fx,body:not(.ffui) .evcard,body:not(.ffui) .ach,body:not(.ffui) .profgrid div,body:not(.ffui) .task,body:not(.ffui) .raid,body:not(.ffui) .herocard,body:not(.ffui) .rwd{background:#fffaf0;border:3px solid #c9a46a;box-shadow:0 3px 0 #b08a50}
+body:not(.ffui) .round.attack{background:linear-gradient(#ffd67a,#ff9a2e 40%,#e8531c 75%,#b83a12)!important;border:4px solid #2b1d10;box-shadow:0 6px 0 #1a120a,inset 0 3px 0 #fff9,inset 0 -6px 0 #0003}
+body:not(.ffui) .round.shop{background:linear-gradient(#fff0a0,#ffd24a 45%,#f0a81e 80%,#c47e0c)!important;border:4px solid #2b1d10;box-shadow:0 6px 0 #1a120a,inset 0 3px 0 #fff9,inset 0 -6px 0 #0003}
+body:not(.ffui) .sidebtn{background:linear-gradient(#5fb2ee,#2a74c0 60%,#1d5594);border:3px solid #13314d;box-shadow:0 4px 0 #0d2236,inset 0 2px 0 #ffffff66}
+body:not(.ffui) .ptier{opacity:1;background:#efe1c2;border:3px solid #c9a46a;color:#7a6040}.ptier b{color:#5a4428}
+body:not(.ffui) .ptier.open{background:#fffaf0;border-color:#f0a81e;box-shadow:0 0 8px #ffd24a,0 3px 0 #b08a50;color:#3a2a18}.ptier.open b{color:#3a2a18}
+body:not(.ffui) .ptier.got{opacity:.6}
+
+/* light mode: these painted tiles are dark-mode only, so hide them if they were applied */
+body:not(.ffui) .round.uibg,body:not(.ffui) .sidebtn.uibg,body:not(.ffui) .badge.uibg,body:not(.ffui) .profhead.uibg{background-image:none!important}
+.madefor{text-align:center;margin:14px 0 2px;font-size:15px;opacity:.9}

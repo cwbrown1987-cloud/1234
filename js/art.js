@@ -78,11 +78,13 @@ function buildingArtScale(type,sprite) {
   return Math.min(BLD[type].size*width/sprite.w,maxHeight/sprite.h);
 }
 
+// Level art: art/buildings/<type>-lv<N>.webp is used from level N up (so buildings can grow or change look as they level).
+function levelSprite(t, lv){ for (let n = lv || 1; n >= 1; n--) { const s = artSprites.get(t + "-lv" + n); if (s) return s; } return artSprites.get(t) || null; }
 function drawBuildingArt(b, club, opts) {
   const isNewBuilding = b.t==="kitroom" || b.t==="herohall";
   const level = b.t==="kitroom" ? 5 : 3;
   const refreshed = isNewBuilding && clubKit(b.t+"-"+Math.min(level,b.lv||1),club,"building");
-  const sprite = refreshed || artSprites.get(b.t==="kitroom"?"office":b.t==="herohall"?"locker":b.t);
+  const sprite = refreshed || (artBuildings[b.t] && levelSprite(b.t, b.lv)) || artSprites.get(b.t==="kitroom"?"office":b.t==="herohall"?"locker":b.t);
   if (!sprite) return 0;
   const s = BLD[b.t].size;
   const anchor = refreshed ? 1-sprite.w/(4*sprite.h) : artBuildings[b.t][1];

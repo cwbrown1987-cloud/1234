@@ -59,6 +59,7 @@ function genBase(d, seed, tier){
   if(style==="messy") for(let k=0;k<400&&budget>2;k++){ const len=3+(r()*4|0), h=r()<.5, x=2+(r()*(N-4-len))|0, y=2+(r()*(N-4-len))|0;
     const cells=[...Array(len)].map((_,n)=>h?[x+n,y]:[x,y+n]); if(cells.some(([i,j])=>occ.has(key(i,j))||occ.has("b"+key(i,j)))) continue;
     cells.forEach(([i,j])=>{ occ.add(key(i,j)); addFence(i,j); }); budget-=len; }
+  for(const t of ["sendoff","flooder","swoop","kite","streaker","gust","spark"]) for(let n=0;n<cnt(t);n++) { const b=place(t,["mid","core","out"]); if(b){ b.armed=true; b.hp=b.max=1; } }
   for(let n=0;n<cnt("sprinkler");n++) for(let k=0;k<200;k++){ const i=C0-9+(r()*19|0), j=C0-9+(r()*19|0); if(zone(i,j)==="mid"&&!occ.has(key(i,j))&&!occ.has("b"+key(i,j))){ occ.add("b"+key(i,j)); list.push({id:list.length+1,t:"sprinkler",x:i,y:j,lv:Math.max(1,Math.min(5,d-2)),hp:1,max:1,armed:true}); break; } }
   // Loot on offer grows with Clubhouse level like Clash (a few thousand at level 1, a few hundred thousand at 8)
   const lm=tier==="hard"?2:tier==="boss"?1.75:1;
@@ -193,6 +194,7 @@ function damageUnit(u,dmg){ if(u.hp<=0||u.immune>0) return; if(u.shield>0) dmg*=
 
 function updateUnit(u,dt){
   if(u.hp<=0) return;
+  if(u.stun>0){ u.stun-=dt; return; } // held up by a trap
   u.cd-=dt; u.rage=Math.max(0,u.rage-dt); u.shield=Math.max(0,u.shield-dt); u.immune=Math.max(0,(u.immune||0)-dt); u.atk=Math.max(0,(u.atk||0)-dt);
   const spd=u.spd*(u.rage>0?1.4:1), mul=u.rage>0?1.6:1;
   if(u.pref==="heal"){
@@ -247,9 +249,30 @@ function updateDefence(b,dt){
   else { BT.proj.push({k:d.shot,x0:cx,y0:cy,x1:t.x,y1:t.y,z0:b.t==="goalpost"?goalTowerHeight(b.lv)*.7:1.2,z1:t.air?2.4:0,t:0,dur:d.shot==="siren"?.25:.45,arc:d.shot==="footy"?2:.3,tu:t,hit:()=>damageUnit(t,dmg)}); if(d.shot==="siren") sfx("siren",.25); else sfx("kick",.25); }
 }
 function updateTrap(b,dt){
+  if(b.t!=="sprinkler") return updateTrap2(b,dt);
   if(!b.armed) return;
   if(b.fuse!==undefined){ b.fuse-=dt; if(b.fuse<=0){ b.armed=false; b.hp=0; const x=b.x+.5,y=b.y+.5,r=1.6; BT.fx.push({k:"splash",x,y,t:0,r}); sfx("splash"); for(const u of BT.units) if(u.hp>0&&!u.air&&Math.hypot(u.x-x,u.y-y)<=r) damageUnit(u,BLD.sprinkler.dmg[b.lv-1]); } return; }
   for(const u of BT.units) if(u.hp>0&&!u.air&&Math.hypot(u.x-b.x-.5,u.y-b.y-.5)<.9){ b.sprung=true; b.fuse=.4; break; }
+}
+
+// The other traps. b.on = seconds left for traps that keep working after they're sprung.
+function updateTrap2(b,dt){
+  const d=BLD[b.t], lv=b.lv-1, s=d.size, cx=b.x+s/2, cy=b.y+s/2, near=(r,air)=>BT.units.filter(u=>u.hp>0&&(air===undefined||!!u.air===air)&&Math.hypot(u.x-cx,u.y-cy)<=r);
+  if(b.on!==undefined){ b.on-=dt;
+    if(b.t==="gust") for(const u of near(3.2)){ if(u.hero&&u.air) continue; const dx=cx-u.x, dy=cy-u.y, m=Math.hypot(dx,dy)||1; if(m>.4){ u.x+=dx/m*dt*1.6; u.y+=dy/m*dt*1.6; } u.stun=Math.max(u.stun||0,.15); }
+    if(b.t==="spark"){ b.cd=(b.cd||0)-dt; if(b.cd<=0){ const t=near(6).sort((a,c)=>Math.hypot(a.x-cx,a.y-cy)-Math.hypot(c.x-cx,c.y-cy))[0]; if(t){ b.cd=.6; BT.fx.push({k:"bolt",x:t.x,y:t.y,t:0}); damageUnit(t,d.dmg[lv]); } } }
+    if(b.on<=0){ b.armed=false; b.hp=0; delete b.on; } return; }
+  if(!b.armed) return;
+  const trig = d.air ? near(4,true)[0] : b.t==="spark" ? near(5)[0] : near(.9*s,false)[0];
+  if(!trig) return;
+  b.sprung=true; sfx("boom",.4);
+  if(b.t==="sendoff"){ let cap=d.cap[lv]; for(const u of near(1.2,false)){ const sp=(UNITS[u.kind]||{}).space||1; if(u.hero||sp>cap) continue; cap-=sp; u.hp=0; BT.fx.push({k:"poof",x:u.x,y:u.y,t:0}); } b.armed=false; b.hp=0; return; }
+  if(b.t==="flooder"){ BT.fx.push({k:"splash",x:cx,y:cy,t:0,r:3}); for(const u of near(3,false)) damageUnit(u,d.dmg[lv]); b.armed=false; b.hp=0; return; }
+  if(b.t==="swoop"){ BT.fx.push({k:"boom",x:trig.x,y:trig.y,t:0,s:1.3}); for(const u of BT.units) if(u.hp>0&&u.air&&Math.hypot(u.x-trig.x,u.y-trig.y)<=2.5) damageUnit(u,d.dmg[lv]); b.armed=false; b.hp=0; return; }
+  if(b.t==="kite"){ const big=near(4,true).sort((a,c)=>c.max-a.max)[0]; BT.fx.push({k:"boom",x:big.x,y:big.y,t:0,s:1}); damageUnit(big,d.dmg[lv]); b.armed=false; b.hp=0; return; }
+  if(b.t==="streaker"){ for(const u of near(2.5,false)) u.stun=Math.max(u.stun||0,d.stun[lv]); BT.fx.push({k:"poof",x:cx,y:cy,t:0}); b.armed=false; b.hp=0; return; }
+  if(b.t==="gust"){ b.on=d.dur[lv]; return; }
+  if(b.t==="spark"){ b.on=8; b.cd=0; return; }
 }
 
 // ---------- spells & hero abilities ----------

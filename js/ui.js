@@ -18,7 +18,8 @@ function playerIcon(kind, club){
   const role=hk0==="coach"?"coach":hk0?HERO_ART[hk0]:kind;
   const likeness=role==="captain" && namedHeroArt[club.abbr];
   const icon=c.getContext("2d");
-  if ((likeness && drawArtIcon(likeness,icon,48,96,96,92)) || drawArtIcon("portrait-"+role,icon,48,96,96,92,club) || (UNITS[role]?.air && drawArtIcon(role,icon,48,83,90,76))){ heroStarBadge(icon,hk0); return iconCache[key]=c.toDataURL(); }
+  const heroPortrait = hk0 && hk0!=="captain" && hk0!=="coach" && "refresh-portrait-"+hk0+"-"+club.abbr; // Codex's hero portraits
+  if ((heroPortrait && artSprites.has(heroPortrait) && drawArtIcon(heroPortrait,icon,48,96,96,92)) || (likeness && drawArtIcon(likeness,icon,48,96,96,92)) || drawArtIcon("portrait-"+role,icon,48,96,96,92,club) || (UNITS[role]?.air && drawArtIcon(role,icon,48,83,90,76))){ heroStarBadge(icon,hk0); return iconCache[key]=c.toDataURL(); }
   const save={ctx,TW,TH}; ctx=icon; TW=60; TH=30;
   if(kind==="seagulls"){ for(const [dx,dy] of [[0,0],[-14,10],[14,12],[-4,-14]]) gull(48+dx,52+dy,14,dx,1); }
   else if(kind==="blimp") blimp(48,50,{club,face:1,id:0});

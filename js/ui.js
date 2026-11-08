@@ -350,7 +350,7 @@ $("btnCards").onclick=()=>openAlbum();
 $("btnTasks").onclick=openTasks;
 $("btnLog").onclick=openLog;
 $("btnSocial").onclick=()=>openSocial();
-$("btnFriends").onclick=()=>openFriends();
+
 $("cardsIco").src=cardsButtonIcon();
 $("bNext").onclick=()=>{ if(BT&&BT.visit){ const id=BT.opp.id; leaveBattle(); attackPlayer(id,"friend"); } else nextOpponent(); };
 $("placeYes").onclick=confirmPlace;
@@ -364,10 +364,16 @@ $("rExit").onclick=()=>{ leaveBattle(); openLog(); };
 // ---------- touch / mouse ----------
 const ptrs=new Map(); let gesture=null;
 const toCanvas = e => [e.clientX*W/innerWidth, e.clientY*H/innerHeight];
+// What did you tap? Anything whose picture covers the tap counts (like Clash), not just the ground tiles under it.
+// The front-most one wins, because it's drawn on top.
 function hitHome(gx,gy){
-  const x=Math.floor(gx), y=Math.floor(gy);
-  for(const b of S.buildings){ const s=BLD[b.t].size; if(x>=b.x&&x<b.x+s&&y>=b.y&&y<b.y+s) return b; }
-  return S.obstacles.find(o=>{ const s=o.s||1; return x>=o.x&&x<o.x+s&&y>=o.y&&y<o.y+s; })||null;
+  const [sx,sy]=P(gx,gy); let best=null, bk=-1e9;
+  const test=(o,s,h)=>{ const x=o.x,y=o.y, left=P(x,y+s)[0], right=P(x+s,y)[0], bottom=P(x+s,y+s)[1], top=P(x,y)[1]-h*TH;
+    const inFoot=gx>=x&&gx<x+s&&gy>=y&&gy<y+s, inPic=sx>=left+TW*.12&&sx<=right-TW*.12&&sy>=top&&sy<=bottom;
+    if((inFoot||inPic)&&x+y+s>bk){ bk=x+y+s; best=o; } };
+  for(const b of S.buildings){ const s=BLD[b.t].size; test(b,s,b.t==="fence"?.6:BLD[b.t].trap?0:b.t==="clubhouse"?s*1.15:s*.85); }
+  for(const o of S.obstacles){ const s=o.s||1; test(o,s,s*.6); }
+  return best;
 }
 cv.addEventListener("pointerdown",e=>{
   cv.setPointerCapture(e.pointerId); const [px,py]=toCanvas(e); ptrs.set(e.pointerId,{x:px,y:py,sx:px,sy:py});

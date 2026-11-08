@@ -148,13 +148,13 @@ function netReportAttack(bt, r) {
 }
 
 // ---------- friends: add mates by name, visit their ground, play a friendly ----------
-async function openFriends() {
-  if (!NET.online) return toast("Friends work on the website: ff.backyardlegendsgames.app");
+const openFriends = () => openSocial("Friends");
+async function renderFriends() {
   if (!signedIn()) {
-    modal(`<h2>Friends</h2><p class="center">Sign in to add friends, visit their grounds and play friendlies against them.</p><div class="center"><button class="btn green big" id="frSign">Play online</button></div>`);
+    $("soc").innerHTML = `<p class="center">Sign in to add friends, visit their grounds and attack them.</p><div class="center"><button class="btn green big" id="frSign">Play online</button></div>`;
     $("frSign").onclick = () => openAccount(); return;
   }
-  modal(`<h2>Friends</h2>
+  $("soc").innerHTML = (`
     <form id="frAdd" class="fradd"><input id="frName" placeholder="Friend's player name" maxlength="16" autocomplete="off"><button class="btn green" type="submit">Add</button></form>
     <p class="tiny center">Your player name is <b>${esc(NET.user.name)}</b>. Give it to your mates so they can add you.</p>
     <div id="frList" class="fixture"><p class="center">Loading…</p></div>
@@ -185,10 +185,10 @@ async function visitPlayer(id) {
 // ---------- leaderboard & cheer squads ----------
 async function openSocial(tab = "Leaderboard") {
   if (!NET.online) return toast("Online play works on the website: ff.backyardlegendsgames.app");
-  const tabs = ["Leaderboard", "Cheer Squad"];
+  const tabs = ["Leaderboard", "Friends", "Cheer Squad"];
   modal(`<h2>Footy Fortress Online</h2>${tabsHTML(tabs, tab)}<div id="soc"><p class="center">Loading…</p></div>`, { tick: tab === "Cheer Squad" ? refreshChat : null });
   bindTabs(openSocial);
-  try { if (tab === "Leaderboard") await renderLeaderboard(); else await renderSquad(); } catch (e) { $("soc").innerHTML = `<p class="center err">${e.message}</p>`; }
+  try { if (tab === "Leaderboard") await renderLeaderboard(); else if (tab === "Friends") await renderFriends(); else await renderSquad(); } catch (e) { $("soc").innerHTML = `<p class="center err">${e.message}</p>`; }
 }
 async function renderLeaderboard() {
   const r = await api("/leaderboard"), meId = NET.user && NET.user.id;
@@ -199,7 +199,7 @@ async function renderLeaderboard() {
   const b = $("lbSign"); if (b) b.onclick = () => openAccount();
 }
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
-let chatLast = 0;
+let chatLast = 0, chatMembers = [];
 async function renderSquad() {
   if (!signedIn()) { $("soc").innerHTML = `<p class="center">Sign in to join a Cheer Squad and chat with your mates.</p><div class="center"><button class="btn green big" id="sqSign">Play online</button></div>`; $("sqSign").onclick = () => openAccount(); return; }
   const r = await api("/squad");
@@ -212,20 +212,22 @@ async function renderSquad() {
     document.querySelectorAll("[data-join]").forEach(b => b.onclick = async () => { try { await api(`/squads/${b.dataset.join}/join`, { method: "POST" }); openSocial("Cheer Squad"); } catch (x) { toast(x.message); } });
     return;
   }
-  chatLast = 0;
+  chatLast = 0; chatMembers = r.members;
   $("soc").innerHTML = `<div class="sqhead">${badgeImg(CLUBS[r.squad.club] || CLUBS[0], "sm")}<b>${esc(r.squad.name)}</b><span class="tiny">${r.members.length}/30</span><button class="btn red" id="sqLeave">Leave</button></div>
-    <div class="chat" id="chat"></div><form id="chatForm" class="acct row"><input id="chatIn" maxlength="200" placeholder="Say something…" autocomplete="off"><button class="btn green" type="submit">Send</button></form>
+    <div class="chat" id="chat"></div><form id="chatForm" class="chatform"><input id="chatIn" maxlength="200" placeholder="Say something…" autocomplete="off" enterkeyhint="send"><button class="btn green" type="submit">➤</button></form>
     <h3>Members</h3><div class="fixture">${r.members.map(m => `<div class="fx">${badgeImg(CLUBS[m.club] || CLUBS[0], "sm")}<span class="nm">${esc(m.name)}${m.id === NET.user.id ? " (you)" : ""}<br><small>Clubhouse ${m.th} · 🏆 ${m.trophies}</small></span>${m.id !== NET.user.id ? `<button class="btn blue" data-friendly="${m.id}">Friendly</button>` : ""}</div>`).join("")}</div>
     <p class="tiny center">Friendlies don't cost loot or trophies on either side.</p>`;
   addMessages(r.messages);
   $("sqLeave").onclick = async () => { const b = $("sqLeave"); if (!b.dataset.sure) { b.dataset.sure = 1; b.textContent = "Tap to confirm"; return; } await api("/squad/leave", { method: "POST" }); openSocial("Cheer Squad"); };
-  $("chatForm").onsubmit = async e => { e.preventDefault(); const t = $("chatIn").value.trim(); if (!t) return; $("chatIn").value = ""; try { await api("/squad/chat", { method: "POST", body: { text: t } }); refreshChat(); } catch (x) { toast(x.message); } };
+  $("chatForm").onsubmit = async e => { e.preventDefault(); const t = $("chatIn").value.trim(); if (!t) return; $("chatIn").value = ""; $("chatIn").focus(); try { await api("/squad/chat", { method: "POST", body: { text: t } }); refreshChat(); } catch (x) { toast(x.message); } };
   document.querySelectorAll("[data-friendly]").forEach(b => b.onclick = () => attackPlayer(b.dataset.friendly, "friendly"));
 }
 function addMessages(msgs) {
   const box = $("chat"); if (!box || !msgs.length) return;
   for (const m of msgs) { if (m.id <= chatLast) continue; chatLast = m.id; const d = document.createElement("div"); d.className = "msg" + (m.user_id ? "" : " sys") + (NET.user && m.user_id === NET.user.id ? " mine" : "");
-    d.innerHTML = m.user_id ? `<b>${esc(m.name)}</b> ${esc(m.text)}` : esc(m.text); box.append(d); }
+    const mine = NET.user && m.user_id === NET.user.id, t = m.at ? new Date(m.at).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }) : "";
+    const mem = (chatMembers || []).find(x => x.id === m.user_id), col = mem && CLUBS[mem.club] ? CLUBS[mem.club].b : "#ffd34d";
+    d.innerHTML = m.user_id ? `${mine ? "" : `<b style="color:${col === "#ffffff" || col === "#111111" ? "#ffd34d" : col}">${esc(m.name)}</b>`}<span>${esc(m.text)}</span><i>${t}</i>` : esc(m.text); box.append(d); }
   box.scrollTop = box.scrollHeight;
 }
 async function refreshChat() { if (!$("chat")) return; try { const r = await api("/squad?after=" + chatLast); addMessages(r.messages || []); } catch (e) {} }

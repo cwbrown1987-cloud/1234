@@ -143,13 +143,7 @@ function drawBuildingArt(b, club, opts) {
     ctx.fillRect(x-TW*.62,glowY-TW*.62,TW*1.24,TW*1.24);
     ctx.restore();
   }
-  if (b.lv>=3) {
-    const [px,py] = P(b.x+s-.38,b.y+s-.38);
-    ctx.lineWidth = Math.max(1,TW*.026);
-    ctx.strokeStyle = "#604422";
-    rr(px-TW*.21,py-TH*.49,TW*.42,TH*.46,TW*.12,b.lv>=5?"#ffcd63":"#e1d1a1");
-    txt(String(b.lv),px,py-TH*.25,TH*.35,"#fff4c2");
-  }
+  if (b.lv>=3 && !opts.deferLevel) drawBuildingLevel(b);
   return height+.45;
 }
 

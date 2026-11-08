@@ -333,7 +333,7 @@ function fenceStyle(lv,club){
   const lum=c=>{ const [r,g,b2]=rgb(c); return r*.3+g*.59+b2*.11; };
   return { stone:lv<3?"#a89f92":lv<6?"#9c9cab":"#aeb0c4", mortar:"#4a4652",
     cap:lv<3?"#b8b0a2":lv<6?"#e8b02a":"#ffcc3a", gold:lv>=3,
-    panel:lv<3?null:(lum(club.a)<45?club.b:club.a), h:.95+lv*.04, pw:.52, wt:.44 };
+    panel:lv<3?null:(lum(club.a)<45?club.b:club.a), h:.78+lv*.055, pw:lv<3?.44:.55, wt:lv<3?.34:.48 };
 }
 function fencePillar(lv,club){
   const st=fenceStyle(lv,club), {h,pw}=st, x0=.5-pw/2, y0=.5-pw/2;
@@ -346,6 +346,40 @@ function fencePillar(lv,club){
   ctx.strokeStyle="#ffffff80"; ctx.lineWidth=Math.max(1,TW*.014); ctx.beginPath(); ctx.moveTo(...P(x0-.06,y0+pw+.06,h+.135)); ctx.lineTo(...P(x0+pw+.06,y0+pw+.06,h+.135)); ctx.stroke();
   if(st.gold){ for(const [i,j] of [[0,0],[1,0],[0,1],[1,1]]) prism(x0-.06+i*(pw+.12-.13),y0-.06+j*(pw+.12-.13),.13,.13,h+.14,.07,"#ffd84a","#fff1a8");
     prism(x0+pw*.3,y0+pw*.3,pw*.4,pw*.4,h+.14,.1,st.cap,"#fff0a0"); }
+}
+function fenceTexture(sprite, a, b, c){
+  ctx.save();
+  ctx.transform(b[0]-a[0],b[1]-a[1],c[0]-a[0],c[1]-a[1],a[0],a[1]);
+  ctx.drawImage(sprite.image,sprite.x,sprite.y,sprite.w,sprite.h,0,0,1,1);
+  ctx.restore();
+}
+function paintFenceWall(dir,lv,club,stone,coping){
+  const {h,wt}=fenceStyle(lv,club), wh=h*.74, half=wt/2;
+  const p=dir==="x"?(a,b,z)=>P(a,b,z):(a,b,z)=>P(b,a,z);
+  const near=.5+half, far=.5-half;
+  const face=[p(.5,near,wh),p(1.5,near,wh),p(1.5,near,0),p(.5,near,0)];
+  poly([p(.5,far,0),p(1.5,far,0),p(1.57,near+.10,0),p(.52,near+.10,0)],"#16211148",null);
+  fenceTexture(stone,face[0],face[1],face[3]);
+  if(dir==="y") poly(face,"#18233424",null);
+  const capTop=wh+.10, edge=near+.025, back=far-.025;
+  const [a,b,c,d]=[p(.5,back,capTop),p(1.5,back,capTop),p(.5,edge,capTop),p(1.5,edge,capTop)];
+  fenceTexture(coping,a,b,c);
+  poly([c,d,p(1.5,edge,wh),p(.5,edge,wh)],lv>=3?"#8d795b":"#686a68",null);
+  ctx.beginPath(); ctx.moveTo(...c); ctx.lineTo(...d);
+  ctx.strokeStyle=lv>=3?"#dbbd83b8":"#bab9a875"; ctx.lineWidth=Math.max(.8,TW*.018); ctx.stroke();
+  if(lv>=3){
+    ctx.beginPath(); ctx.moveTo(...p(.5,edge,wh+.025)); ctx.lineTo(...p(1.5,edge,wh+.025));
+    ctx.strokeStyle=hexShade(club.b,.72); ctx.lineWidth=Math.max(.55,TW*.013); ctx.stroke();
+  }
+}
+function paintFencePier(sprite,lv,club){
+  const {h,pw}=fenceStyle(lv,club);
+  const [x,y]=P(.5,.5), width=TW*(pw+.16);
+  const scale=Math.min(width/sprite.w,TH*(h+.73)/sprite.h);
+  ctx.save();
+  if(lv<3) ctx.filter="saturate(.35)";
+  paintArt(sprite,x,y+TH*(pw+.16)/2,scale,1);
+  ctx.restore();
 }
 function fenceWall(dir,lv,club){
   const st=fenceStyle(lv,club), wh=st.h*.74, wt=st.wt;
@@ -366,44 +400,69 @@ function fenceWall(dir,lv,club){
   if(dir==="x") prism(.5,.5-wt/2-.05,1,wt+.1,wh,.09,hexShade(st.stone,.85),hexShade(st.stone,1.25));
   else prism(.5-wt/2-.05,.5,wt+.1,1,wh,.09,hexShade(st.stone,.85),hexShade(st.stone,1.25));
 }
-function fenceBanner(dir,pennant,lv,club){
-  const painted=artSprites.has("fence-post"), st=fenceStyle(lv,club), wh=painted?.74:st.h*.74, wt=painted?.2:st.wt, lw=Math.max(1,TW*.016);
-  const lum=c=>{ const [r,g,b2]=rgb(c); return r*.3+g*.59+b2*.11; };
+function fenceBanner(dir,league,lv,club){
+  const st=fenceStyle(lv,club), wh=st.h*.74, wt=st.wt, lw=Math.max(1,TW*.016);
   const g=dir==="x"?(a,z)=>P(a,.5+wt/2+.015,z):(a,z)=>P(.5+wt/2+.015,a,z);
-  const top=wh*1.02, bot=pennant?wh*.12:wh*.24, fill=pennant?club.a:(lum(club.b)>200?club.a:club.b), trim=pennant?club.b:club.a;
-  const shapeOuter=pennant?[g(.74,top),g(1.26,top),g(1.26,wh*.45),g(1,bot),g(.74,wh*.45)]:[g(.72,top),g(1.28,top),g(1.28,bot),g(1.14,bot+.06),g(1,bot),g(.86,bot+.06),g(.72,bot)];
-  const t0=g(1,top), b0=g(1,bot), gr=ctx.createLinearGradient(t0[0],t0[1],b0[0],b0[1]); gr.addColorStop(0,hexShade(fill,1.25)); gr.addColorStop(1,hexShade(fill,.75));
-  poly(shapeOuter,gr,"#000",lw);
-  if(pennant) poly([g(.78,top-.04),g(1.22,top-.04),g(1.22,wh*.48),g(1,bot+.07),g(.78,wh*.48)],null,trim,Math.max(1,TW*.018));
-  prism(...(dir==="x"?[.68,.5+wt/2,.64,.04]:[.5+wt/2,.68,.04,.64]),top-.02,.05,"#e8b02a","#fff0a0");                  // gold rail
-  const [bx,by]=g(1,pennant?wh*.66:wh*.63); drawBadge(ctx,bx,by,TW*.095,club);
-}
-// Painted walls: slices of the painted fence-post's wall stubs, repeated along the wall.
-// The left stub runs along the x axis and the right stub along the y axis (both point backwards from the post).
-const FENCE_SLICE={x:[40,62], y:[194,216]};
-function paintedWall(post,x,y,dir){
-  const sc=TW*.68/post.w, [a0,a1]=FENCE_SLICE[dir], w=a1-a0, sw=w*sc, dx=dir==="x"?1:-1;
-  const [cx,cy]=P(x+.5,y+.5), base=(a0-post.w/2)*sc, along=TW/2;
-  // strip screen x = cx + base + dx*t ; it must sweep from this post to the next one
-  const t0=dir==="x"?-base-sw:base, t1=t0+along+sw*2;
-  for(let t=t0;t<=t1;t+=sw){
-    ctx.drawImage(post.image,post.x+a0,post.y,w,post.h,cx+base+dx*t,cy+t*.5-post.h*.89*sc,sw+.7,post.h*sc);
+  const bot=wh*.14, top=wh+.10, hem=bot+(top-bot)*.34;
+  const fill=league?"#142b57":club.a, trim=league?"#dd3449":club.b;
+  const sprite=league?artSprites.get("fence-pennant-afl"):clubKit("fence-pennant-club",club,"building");
+  if(sprite) fenceTexture(sprite,g(.60,top),g(1.40,top),g(.60,bot));
+  else{
+    const shapeOuter=[g(.63,top),g(1.37,top),g(1.37,hem),g(1,bot),g(.63,hem)];
+    const t0=g(1,top), b0=g(1,bot), gr=ctx.createLinearGradient(t0[0],t0[1],b0[0],b0[1]);
+    gr.addColorStop(0,hexShade(fill,1.25)); gr.addColorStop(1,hexShade(fill,.75));
+    poly(shapeOuter,gr,"#131016",lw);
+    poly([g(.68,top-.04),g(1.32,top-.04),g(1.32,hem+.04),g(1,bot+.07),g(.68,hem+.04)],null,trim,Math.max(1,TW*.025));
+    prism(...(dir==="x"?[.59,.5+wt/2,.82,.05]:[.5+wt/2,.59,.05,.82]),top-.02,.06,"#d9a43a","#fff0ae");
   }
+  const [bx,by]=g(1,bot+(top-bot)*.56);
+  if(league){
+    ctx.save();
+    ctx.font=`900 ${Math.max(6,TW*.18)}px sans-serif`; ctx.textAlign="center"; ctx.textBaseline="middle";
+    ctx.lineWidth=Math.max(1,TW*.018); ctx.strokeStyle="#162235"; ctx.strokeText("AFL",bx,by,TW*.30);
+    ctx.fillStyle="#fff5e5"; ctx.fillText("AFL",bx,by,TW*.30);
+    ctx.restore();
+  } else drawBadge(ctx,bx,by,TW*.12,club);
 }
 function drawFence(b,club,list,lv){
   const x=b.x,y=b.y, fs=fenceSet(list), has=(i,j)=>fs.has(i+","+j);
   const E=has(x+1,y), Wn=has(x-1,y), S=has(x,y+1), Nn=has(x,y-1);
-  const run=dir=>{ let s0=dir==="x"?x:y, s1=s0; if(dir==="x"){ while(has(s0-1,y)) s0--; while(has(s1+1,y)) s1++; } else { while(has(x,s0-1)) s0--; while(has(x,s1+1)) s1++; } return {k:(dir==="x"?x:y)-s0, len:s1-s0}; };
+  const run=dir=>{ let s0=dir==="x"?x:y, s1=s0; if(dir==="x"){ while(has(s0-1,y)) s0--; while(has(s1+1,y)) s1++; } else { while(has(x,s0-1)) s0--; while(has(x,s1+1)) s1++; } return {k:(dir==="x"?x:y)-s0, len:s1-s0+1}; };
   const straightX=(E||Wn)&&!S&&!Nn, straightY=(S||Nn)&&!E&&!Wn;
-  const pillar=!(straightX||straightY) || (straightX&&(run("x").k%3===0||!E)) || (straightY&&(run("y").k%3===0||!S));
-  const id=lv+club.abbr, post=artSprites.get("fence-post");
+  const runs={x:E||Wn?run("x"):null,y:S||Nn?run("y"):null};
+  const pillar=!(straightX||straightY) || (straightX&&(runs.x.k%3===0||!E)) || (straightY&&(runs.y.k%3===0||!S));
+  const id=lv+club.abbr, stone=artSprites.get("fence-stone"), coping=artSprites.get("fence-coping"), pier=artSprites.get("fence-pier");
   for(const dir of ["x","y"]){ if(!(dir==="x"?E:S)) continue;
-    if(post) paintedWall(post,x,y,dir); else fenceCached("w"+dir+id,x,y,()=>fenceWall(dir,lv,club));
-    const r=run(dir); if(r.len>=FENCE_RUN_BANNER && r.k%3===1){ const pen=Math.floor(r.k/3)%2===0; fenceCached("b"+dir+pen+id,x,y,()=>fenceBanner(dir,pen,lv,club)); } }
-  if(pillar){ if(post) paintArt(post,...P(x+.5,y+.5),TW*.68/post.w,.89); else fenceCached("p"+id,x,y,()=>fencePillar(lv,club)); }
+    if(stone && coping) fenceCached("paint-w"+dir+id,x,y,()=>paintFenceWall(dir,lv,club,stone,coping));
+    else fenceCached("w"+dir+id,x,y,()=>fenceWall(dir,lv,club));
+    const r=runs[dir], slot=r.k%6;
+    if(r.len>=FENCE_RUN_BANNER && (slot===1||slot===4)){
+      const league=slot===4;
+      const finish=artSprites.has(league?"fence-pennant-afl":"fence-pennant-club")?"paint":"fallback";
+      const hasLogo=!league&&Boolean(logoImg(club));
+      fenceCached("b"+finish+dir+league+id+hasLogo,x,y,()=>fenceBanner(dir,league,lv,club));
+    }
+  }
+  if(pillar){
+    if(pier) fenceCached("paint-p"+id,x,y,()=>paintFencePier(pier,lv,club));
+    else fenceCached("p"+id,x,y,()=>fencePillar(lv,club));
+  }
 }
 function drawTrap(b){ const [x,y]=P(b.x+.5,b.y+.5); ctx.fillStyle="#425657"; ctx.strokeStyle=OUT; ctx.lineWidth=1.5; ctx.beginPath(); ctx.ellipse(x,y,TW*.21,TH*.23,0,0,7); ctx.fill(); ctx.stroke();
   ctx.beginPath(); ctx.arc(x,y-TH*.15,TW*.06,0,7); ctx.fillStyle="#d6ad59"; ctx.fill(); ctx.stroke(); }
+function drawBuildingLevel(b){
+  const size=BLD[b.t].size, scale=W/(cv.clientWidth||W);
+  const [x,y]=P(b.x+size-.38,b.y+size-.38,.34);
+  const w=Math.max(16*scale,TW*.48), h=Math.max(14*scale,TH*.57);
+  ctx.lineWidth=Math.max(scale,TW*.025);
+  ctx.strokeStyle="#493420";
+  rr(x-w/2,y-h/2,w,h,h*.34,b.lv>=5?"#ffcd63":"#e1d1a1");
+  ctx.font=`bold ${h*.76}px "Trebuchet MS",sans-serif`;
+  ctx.textAlign="center";
+  ctx.textBaseline="middle";
+  ctx.fillStyle="#392615";
+  ctx.fillText(String(b.lv),x,y);
+}
 function rubble(x,y,s){ const sprite=artSprites.get("rubble");
   if(sprite){ const [px,py]=P(x+s/2,y+s/2); ctx.save(); ctx.translate(px,py); ctx.scale(1,.6); paintArt(sprite,0,0,TW*s*.82/sprite.w,.7); ctx.restore(); return; } poly([P(x+.1,y+.1),P(x+s-.1,y+.1),P(x+s-.1,y+s-.1),P(x+.1,y+s-.1)],"#6d5d48","#4a3f33",1);
   const r=rng(x*131+y*7); for(let i=0;i<s*s*1.5+1;i++){ const a=x+.2+r()*(s-.5),c=y+.2+r()*(s-.5); prism(a,c,.22+r()*.15,.22+r()*.15,0,.15+r()*.25,r()<.5?"#9a8f80":"#b07a4a"); } }

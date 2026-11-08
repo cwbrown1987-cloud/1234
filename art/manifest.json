@@ -1,6 +1,11 @@
 {
   "version": 1,
   "files": [
+    "art/buildings/fence-coping.webp",
+    "art/buildings/fence-pennant-afl.webp",
+    "art/buildings/fence-pennant-club.webp",
+    "art/buildings/fence-pier.webp",
+    "art/buildings/fence-stone.webp",
     "art/buildings/goalpost.webp",
     "art/buildings/herohall-1.webp",
     "art/buildings/herohall-2.webp",

@@ -86,8 +86,9 @@ function searching(work){
   let el=$("searchFx");
   if(!el){ el=document.createElement("div"); el.id="searchFx";
     el.innerHTML=`<div class="cl c1"></div><div class="cl c2"></div><div class="cl c3"></div><div class="cl c4"></div><div class="cl c5"></div>
-      <div class="sbox"><div class="sfoot">🏉</div><div class="stxt">Searching for opponent<span class="sdots"></span></div><button class="btn red" id="searchCancel">Cancel</button></div>`;
+      <div class="sbox"><div class="sfoot"><i class="uia" data-ui="ico-search">🏉</i></div><div class="stxt">Searching for opponent<span class="sdots"></span></div><button class="btn red" id="searchCancel">Cancel</button></div>`;
     document.body.appendChild(el); }
+  if(typeof applyUiArt==="function") applyUiArt(el);
   el.classList.add("on"); sfx("whistle",.3);
   let cancel; const cancelled=new Promise((_,rej)=>{ cancel=()=>rej({cancelled:true}); });
   $("searchCancel").onclick=()=>cancel();

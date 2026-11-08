@@ -17,11 +17,14 @@ function applyTheme() {
   applyUiArt();
 }
 function setTheme(t) { try { localStorage.setItem("ffTheme", t); } catch (e) {} applyTheme(); }
+// Reuse existing art in new spots until Codex paints their own (their own file wins when it exists)
+const UI_ALIAS = { "vem-wrench": "ico-build", "vem-pencil": "ico-recipes", "ico-layouts": "ico-recipes", "ico-copy": "ico-recipes", "ico-search": "ico-battle" };
+const uiFile = n => { const f = "art/ui/" + n + ".webp"; return uiArtFiles.has(f) || !UI_ALIAS[n] ? f : "art/ui/" + UI_ALIAS[n] + ".webp"; };
 function applyUiArt(root = document) {
   if (!uiArtFiles.size) return;
   const dark = document.body.classList.contains("ffui");
   root.querySelectorAll("[data-ui]:not([data-ui-done])").forEach(el => {
-    const f = "art/ui/" + el.dataset.ui + ".webp"; el.dataset.uiDone = 1;
+    const f = uiFile(el.dataset.ui); el.dataset.uiDone = 1;
     if (uiArtFiles.has(f)) el.innerHTML = `<img src="${f}" alt="">`;
   });
   root.querySelectorAll("[data-uibg]:not([data-ui-done])").forEach(el => {

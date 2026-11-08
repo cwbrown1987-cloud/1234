@@ -225,9 +225,10 @@ function buildOffer(t){
 function openShop(tab){
   shopTab=tab||shopTab;
   const sTabs=typeof shopTabsFor==="function"?shopTabsFor():Object.keys(SHOP_TABS);
-  const actions=shopTab!=="Deals"&&!tutActive()?'<button class="btn blue" id="shopLayouts" title="Copy and share layouts">📋</button><div class="action-copy" id="shopChoice" aria-live="polite">Choose a building</div><button class="btn gold" id="shopPlace" disabled>Place building</button>':"";
+  const actions=shopTab!=="Deals"&&!tutActive()?'<button class="btn blue" id="shopLayouts" title="Copy and share layouts"><i class="uia" data-ui="ico-layouts">📋</i></button><div class="action-copy" id="shopChoice" aria-live="polite">Choose a building</div><button class="btn gold" id="shopPlace" disabled>Place building</button>':"";
   modal(`${hubCtx?"":"<h2>Shop</h2>"}${sTabs.length?tabsHTML(sTabs,shopTab):""}<div class="grid" id="shopGrid"></div>`,{actions});
   bindTabs(openShop); tut("shop"); tut("tab-"+shopTab);
+  if(typeof applyUiArt==="function") applyUiArt();
   if($("shopLayouts")) $("shopLayouts").onclick=sub(()=>openLayouts(),()=>openHub("build","Buildings"));
   const g=$("shopGrid");
   if(shopTab==="Deals") return shopDeals(g);

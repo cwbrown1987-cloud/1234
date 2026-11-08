@@ -38,10 +38,10 @@ function openLayouts(){
   S.layouts.forEach((l, i) => { h += l ? row(`Layout ${i + 1} · ${esc(l.name)}`, `${l.L.length} pieces · ${fmtTime((Date.now() - l.at) / 1000)} ago`,
       `<button class="btn blue" data-led="${i}">✏️</button><button class="btn green" data-luse="${i}">Use</button><button class="btn red" data-ldel="${i}">🗑</button>`)
     : row(`Layout ${i + 1}`, "Empty", `<button class="btn blue" data-led="${i}">✏️ New</button>`); });
-  h += `</div><h3>Share & copy</h3><div class="center"><button class="btn gold" id="lyShare">📤 Share current base</button></div><div class="center" id="lyCode"></div>
+  h += `</div><h3><i class="uia" data-ui="ico-copy">📋</i> Share & copy</h3><div class="center"><button class="btn gold" id="lyShare">📤 Share current base</button></div><div class="center" id="lyCode"></div>
     <form id="lyLoad" class="fradd"><input id="lyIn" placeholder="Layout code" maxlength="8" autocomplete="off" style="text-transform:uppercase"><button class="btn green" type="submit">📥 Load</button></form>
     <p class="tiny center">Copied layouts (friends, opponents, codes) go into an empty slot. Edit it, drag in anything left in the tray, then tap Use. Your base before each Use is kept as Previous base.</p>`;
-  modal(h);
+  modal(h); if (typeof applyUiArt === "function") applyUiArt();
   document.querySelectorAll("[data-led]").forEach(b => b.onclick = () => editLayout(b.dataset.led === "cur" ? "cur" : +b.dataset.led));
   document.querySelectorAll("[data-luse]").forEach(b => b.onclick = () => { const L = b.dataset.luse === "prev" ? S.baseAuto.L : S.layouts[+b.dataset.luse].L; useLayout(L); closeModal(); });
   document.querySelectorAll("[data-ldel]").forEach(b => b.onclick = () => { if (!b.dataset.sure) { b.dataset.sure = 1; b.textContent = "Sure?"; return; } S.layouts[+b.dataset.ldel] = null; save(); openLayouts(); });

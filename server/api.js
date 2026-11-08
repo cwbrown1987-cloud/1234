@@ -37,6 +37,7 @@ let attackNoticeSchema;
 function ensureAttackNotices(db) {
   return attackNoticeSchema ??= db.prepare("CREATE TABLE IF NOT EXISTS attack_notices (attacker_id TEXT PRIMARY KEY, defender_id TEXT NOT NULL, at INTEGER NOT NULL, active INTEGER NOT NULL)").run()
     .then(() => db.prepare("CREATE INDEX IF NOT EXISTS attack_notices_defender ON attack_notices(defender_id, at)").run())
+    .then(() => db.prepare("CREATE TABLE IF NOT EXISTS live_moves (attacker_id TEXT PRIMARY KEY, defender_id TEXT NOT NULL, meta TEXT, plan TEXT, updated INTEGER NOT NULL, done INTEGER NOT NULL DEFAULT 0)").run())
     .catch(error => { attackNoticeSchema = null; throw error; });
 }
 
@@ -146,7 +147,7 @@ export async function handleApi(req, env) {
       if (!profile?.base || profile.bot) return fail("Opponent not found.", 404);
       if (profile.shield_until > now()) {
         if (!b.friend) return fail("This ground is shielded.", 409);
-        const friend = await env.DB.prepare("SELECT 1 FROM friends WHERE user_id = ? AND friend_id = ?").bind(me.id, defender).first();
+        const friend = await env.DB.prepare("SELECT 1 FROM friends a JOIN friends b ON b.user_id = a.friend_id AND b.friend_id = a.user_id WHERE a.user_id = ? AND a.friend_id = ?").bind(me.id, defender).first();
         if (!friend) return fail("This ground is shielded.", 409);
       }
       await ensureAttackNotices(env.DB);
@@ -156,6 +157,26 @@ export async function handleApi(req, env) {
         WHERE attack_notices.at < ? OR (attack_notices.active=0 AND attack_notices.at < ?)`)
         .bind(me.id, defender, at, at - LIVE_ATTACK_MS, at - 15000).run();
       return json({ok: true});
+    }
+    // ----- live attacks: the attacker streams their moves, the defender watches (like Clash's live replay) -----
+    if (path === "/attack/live" && m === "POST") {
+      const b = await body(req), defender = String(b.defender || "");
+      await ensureAttackNotices(env.DB);
+      const notice = await env.DB.prepare("SELECT 1 FROM attack_notices WHERE attacker_id = ? AND defender_id = ? AND active = 1").bind(me.id, defender).first();
+      if (!notice) return fail("No live attack.", 404);
+      const plan = JSON.stringify(Array.isArray(b.plan) ? b.plan.slice(0, 600) : []);
+      const meta = b.meta ? JSON.stringify(b.meta) : null;
+      if (plan.length > 120000 || (meta && meta.length > 150000)) return fail("Too big.");
+      await env.DB.prepare(`INSERT INTO live_moves(attacker_id,defender_id,meta,plan,updated,done) VALUES(?,?,?,?,?,0)
+        ON CONFLICT(attacker_id) DO UPDATE SET defender_id=excluded.defender_id, meta=COALESCE(excluded.meta, CASE WHEN live_moves.defender_id=excluded.defender_id THEN live_moves.meta END),
+        plan=excluded.plan, updated=excluded.updated, done=0`).bind(me.id, defender, meta, plan, now()).run();
+      return json({ok: true});
+    }
+    if (path.startsWith("/attack/live/") && m === "GET") {
+      await ensureAttackNotices(env.DB);
+      const row = await env.DB.prepare("SELECT l.*, u.name FROM live_moves l JOIN users u ON u.id = l.attacker_id WHERE l.attacker_id = ? AND l.defender_id = ?").bind(path.slice(13), me.id).first();
+      if (!row || !row.meta || row.updated < now() - LIVE_ATTACK_MS) return fail("That attack isn't live any more. Check your battle log for the replay.", 404);
+      return json({name: row.name, meta: JSON.parse(row.meta), plan: JSON.parse(row.plan || "[]"), done: !!row.done, updated: row.updated});
     }
     // ----- record an attack; the defender sees it in Home Games -----
     if (path === "/attack" && m === "POST") {
@@ -173,6 +194,7 @@ export async function handleApi(req, env) {
       if (b.startedNotice) {
         await ensureAttackNotices(env.DB);
         stmts.push(env.DB.prepare("UPDATE attack_notices SET active=0 WHERE attacker_id=? AND defender_id=?").bind(me.id, def.user_id));
+        stmts.push(env.DB.prepare("UPDATE live_moves SET done=1, plan=?, updated=? WHERE attacker_id=? AND defender_id=?").bind(JSON.stringify(b.plan || []), now(), me.id, def.user_id));
       }
       if (!friendly) stmts.push(env.DB.prepare("UPDATE profiles SET trophies = MAX(0, trophies + ?), shield_until = MAX(shield_until, ?) WHERE user_id = ?").bind(defTro, shield, def.user_id));
       if (ranked && Number.isFinite(Number(b.myTrophies))) stmts.push(env.DB.prepare("UPDATE profiles SET trophies = ?, shield_until = 0 WHERE user_id = ?").bind(Math.max(0, Number(b.myTrophies)), me.id));
@@ -180,26 +202,52 @@ export async function handleApi(req, env) {
       return json({ok: true, defTro});
     }
     // ----- friends: add by player name, visit their ground, play a friendly -----
+    // ----- friends: requests (add + add back), suggestions, visit, attack -----
     if (path.startsWith("/friends")) {
-      await env.DB.prepare("CREATE TABLE IF NOT EXISTS friends(user_id TEXT NOT NULL, friend_id TEXT NOT NULL, created INTEGER, PRIMARY KEY(user_id, friend_id))").run();
+      await env.DB.batch([
+        env.DB.prepare("CREATE TABLE IF NOT EXISTS friends(user_id TEXT NOT NULL, friend_id TEXT NOT NULL, created INTEGER, PRIMARY KEY(user_id, friend_id))"),
+        env.DB.prepare("CREATE TABLE IF NOT EXISTS friend_suggestions(to_id TEXT NOT NULL, who_id TEXT NOT NULL, from_id TEXT NOT NULL, created INTEGER, PRIMARY KEY(to_id, who_id))"),
+      ]);
+      const mutual = "EXISTS (SELECT 1 FROM friends r WHERE r.user_id = f.friend_id AND r.friend_id = f.user_id)";
       if (path === "/friends" && m === "GET") {
-        const r = await env.DB.prepare("SELECT p.* FROM friends f JOIN profiles p ON p.user_id = f.friend_id WHERE f.user_id = ? ORDER BY p.name COLLATE NOCASE").bind(me.id).all();
-        return json({friends: r.results.map(p => ({...profileOut(p), online: p.last_seen > now() - 10 * 60e3}))});
+        const [fr, req, sent, sug] = await env.DB.batch([
+          env.DB.prepare(`SELECT p.* FROM friends f JOIN profiles p ON p.user_id = f.friend_id WHERE f.user_id = ? AND ${mutual} ORDER BY p.name COLLATE NOCASE`).bind(me.id),
+          env.DB.prepare("SELECT p.* FROM friends f JOIN profiles p ON p.user_id = f.user_id WHERE f.friend_id = ? AND NOT EXISTS (SELECT 1 FROM friends r WHERE r.user_id = f.friend_id AND r.friend_id = f.user_id) ORDER BY f.created DESC").bind(me.id),
+          env.DB.prepare(`SELECT p.* FROM friends f JOIN profiles p ON p.user_id = f.friend_id WHERE f.user_id = ? AND NOT ${mutual} ORDER BY f.created DESC`).bind(me.id),
+          env.DB.prepare("SELECT p.*, u.name AS from_name FROM friend_suggestions s JOIN profiles p ON p.user_id = s.who_id JOIN users u ON u.id = s.from_id WHERE s.to_id = ? AND NOT EXISTS (SELECT 1 FROM friends f WHERE f.user_id = s.to_id AND f.friend_id = s.who_id) ORDER BY s.created DESC LIMIT 30").bind(me.id),
+        ]);
+        const out = p => ({...profileOut(p), online: p.last_seen > now() - 10 * 60e3});
+        return json({friends: fr.results.map(out), requests: req.results.map(out), sent: sent.results.map(out), suggestions: sug.results.map(p => ({...out(p), from: p.from_name}))});
       }
       if (path === "/friends" && m === "POST") {
         const b = await body(req), name = String(b.name || "").trim();
-        const p = b.id ? await env.DB.prepare("SELECT * FROM profiles WHERE user_id = ?").bind(String(b.id)).first()
+        const p = b.id ? await env.DB.prepare("SELECT * FROM profiles WHERE user_id = ? AND bot = 0").bind(String(b.id)).first()
                        : await env.DB.prepare("SELECT * FROM profiles WHERE name = ? COLLATE NOCASE AND bot = 0").bind(name).first();
         if (!p) return fail("No player with that name.", 404);
         if (p.user_id === me.id) return fail("That's you!");
         const c = await env.DB.prepare("SELECT COUNT(*) AS n FROM friends WHERE user_id = ?").bind(me.id).first();
         if (c && c.n >= 100) return fail("You can have up to 100 friends.");
-        // friends are mutual: you both see each other in your lists
+        // a one-way add is a request; it becomes a friendship when they add you back
         await env.DB.batch([
           env.DB.prepare("INSERT OR IGNORE INTO friends(user_id,friend_id,created) VALUES(?,?,?)").bind(me.id, p.user_id, now()),
-          env.DB.prepare("INSERT OR IGNORE INTO friends(user_id,friend_id,created) VALUES(?,?,?)").bind(p.user_id, me.id, now()),
+          env.DB.prepare("DELETE FROM friend_suggestions WHERE to_id = ? AND who_id = ?").bind(me.id, p.user_id),
         ]);
-        return json({ok: true, friend: profileOut(p)});
+        const back = await env.DB.prepare("SELECT 1 FROM friends WHERE user_id = ? AND friend_id = ?").bind(p.user_id, me.id).first();
+        return json({ok: true, friend: profileOut(p), mutual: !!back});
+      }
+      if (path === "/friends/suggest" && m === "POST") {
+        const b = await body(req), to = String(b.to || ""), who = String(b.who || "");
+        if (!to || !who || to === who) return fail("Pick two different friends.");
+        const ok = await env.DB.prepare(`SELECT COUNT(*) AS n FROM friends f WHERE f.user_id = ? AND f.friend_id IN (?, ?) AND ${mutual}`).bind(me.id, to, who).first();
+        if (!ok || ok.n < 2) return fail("You can only suggest your friends to your friends.");
+        const already = await env.DB.prepare("SELECT 1 FROM friends WHERE user_id = ? AND friend_id = ?").bind(to, who).first();
+        if (already) return fail("They're already friends.");
+        await env.DB.prepare("INSERT INTO friend_suggestions(to_id,who_id,from_id,created) VALUES(?,?,?,?) ON CONFLICT(to_id,who_id) DO UPDATE SET from_id=excluded.from_id, created=excluded.created").bind(to, who, me.id, now()).run();
+        return json({ok: true});
+      }
+      if (path.startsWith("/friends/suggest/") && m === "DELETE") {
+        await env.DB.prepare("DELETE FROM friend_suggestions WHERE to_id = ? AND who_id = ?").bind(me.id, path.slice(17)).run();
+        return json({ok: true});
       }
       if (path.startsWith("/friends/") && m === "DELETE") {
         const id = path.slice(9);
@@ -216,7 +264,13 @@ export async function handleApi(req, env) {
         env.DB.prepare("SELECT a.id, a.attacker_id, a.at, a.data, p.club FROM attacks a LEFT JOIN profiles p ON p.user_id = a.attacker_id WHERE a.defender_id = ? AND a.seen = 0 ORDER BY a.id LIMIT 20").bind(me.id),
         env.DB.prepare("SELECT n.attacker_id AS attackerId, n.at, u.name FROM attack_notices n JOIN users u ON u.id = n.attacker_id WHERE n.defender_id = ? AND n.active = 1 AND n.at > ? ORDER BY n.at DESC LIMIT 20").bind(me.id, now() - LIVE_ATTACK_MS)
       ]);
-      return json({attacks: r.results.map(a => ({id: a.id, attackerId: a.attacker_id, at: a.at, club: a.club, ...JSON.parse(a.data)})), live: live.results});
+      let social = 0;
+      try {
+        const q = await env.DB.prepare(`SELECT (SELECT COUNT(*) FROM friends f WHERE f.friend_id = ?1 AND NOT EXISTS (SELECT 1 FROM friends r WHERE r.user_id = ?1 AND r.friend_id = f.user_id))
+          + (SELECT COUNT(*) FROM friend_suggestions s WHERE s.to_id = ?1 AND NOT EXISTS (SELECT 1 FROM friends f WHERE f.user_id = ?1 AND f.friend_id = s.who_id)) AS n`).bind(me.id).first();
+        social = q ? q.n : 0;
+      } catch (e) {} // tables appear the first time anyone opens Friends
+      return json({attacks: r.results.map(a => ({id: a.id, attackerId: a.attacker_id, at: a.at, club: a.club, ...JSON.parse(a.data)})), live: live.results, friendNew: social});
     }
     if (path === "/inbox/seen" && m === "POST") {
       const ids = ((await body(req)).ids || []).map(Number).filter(Number.isFinite).slice(0, 50);

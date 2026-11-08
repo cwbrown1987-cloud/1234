@@ -778,3 +778,10 @@ body:not(.ffui) .albummode .rwd{background:linear-gradient(#2a2e37,#16181e);bord
   .match-heading h2{font-size:21px}
   #placePanel{gap:6px}
 }
+.liverow{display:flex;align-items:center;gap:8px;justify-content:space-between;background:#ffe3df;border:3px solid #c8321e;border-radius:12px;padding:6px 8px;margin:6px 0;color:#5a1208;text-shadow:none}
+.liverow .btn{white-space:nowrap}
+/* friend rows: name on top, buttons wrap underneath on narrow phones */
+#frList .fx{flex-wrap:wrap}
+#frList .fx .nm{flex:1 1 140px;min-width:0}
+#frList .fx .btn{padding:6px 9px;min-width:0;font-size:15px}
+.liverow b{white-space:nowrap}

@@ -112,6 +112,11 @@ export async function handleApi(req, env) {
       if (data.length > 400000) return fail("Save is too big.");
       const p = b.profile || {}, base = JSON.stringify(p.base || null);
       if (base.length > 120000) return fail("Base is too big.");
+      // Cross-device: refuse to overwrite a save another device uploaded after this one last synced
+      if (Number.isFinite(b.baseRev)) {
+        const cur = await env.DB.prepare("SELECT json_extract(data, '$.rev') AS rev, json_extract(data, '$.dev') AS dev FROM saves WHERE user_id = ?").bind(me.id).first();
+        if (cur && Number(cur.rev) > b.baseRev && cur.dev !== (b.data && b.data.dev)) return json({error: "A newer save exists on another device.", newer: true}, 409);
+      }
       await env.DB.batch([
         env.DB.prepare("INSERT INTO saves(user_id,data,updated) VALUES(?,?,?) ON CONFLICT(user_id) DO UPDATE SET data = excluded.data, updated = excluded.updated").bind(me.id, data, now()),
         env.DB.prepare("UPDATE profiles SET club = ?, th = ?, trophies = ?, base = ?, shield_until = MAX(shield_until, ?), last_seen = ? WHERE user_id = ?")

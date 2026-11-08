@@ -19,13 +19,38 @@ function signOutLocal() { NET.token = null; NET.user = null; NET.liveAttacks = [
 function publicBase() {
   return homeBattleBase().map(b => { const o = { t: b.t, x: b.x, y: b.y, lv: b.lv, hp: b.hp, max: b.max }; if (b.loot) o.loot = b.loot; if (b.armed) o.armed = true; return o; });
 }
+// ---------- cross-device saves: whichever save is newer wins ----------
+// Each upload gets a revision number. A device remembers the last revision it synced; if the cloud has a higher one
+// from another device, that device played more recently, so we load it instead of overwriting it.
+const DEVICE = (() => { try { let d = localStorage.getItem("ffDevice"); if (!d) { d = Math.random().toString(36).slice(2, 10); localStorage.setItem("ffDevice", d); } return d; } catch (e) { return "x"; } })();
+const syncedRev = () => { try { return Number(localStorage.getItem("ffSyncedRev")) || 0; } catch (e) { return 0; } };
+const setSyncedRev = n => { try { localStorage.setItem("ffSyncedRev", String(n)); } catch (e) {} };
 function pushSave(opts = {}) {
-  if (!signedIn() || !S) return;
+  if (!signedIn() || !S || NET.pulling) return;
   NET.lastPush = Date.now();
-  return api("/save", { method: "PUT", keepalive: !!opts.keepalive, body: { data: S, profile: { club: S.club, th: th(), trophies: S.trophies, shield: S.shield || 0, base: publicBase() } } }).catch(() => {});
+  const base = syncedRev(); S.rev = base + 1; S.dev = DEVICE;
+  return api("/save", { method: "PUT", keepalive: !!opts.keepalive, body: { baseRev: base, data: S, profile: { club: S.club, th: th(), trophies: S.trophies, shield: S.shield || 0, base: publicBase() } } })
+    .then(() => setSyncedRev(S.rev), e => { if (/newer save/i.test(e.message || "")) pullNewer(); });
+}
+// Load the cloud save if another device has played since this one last synced. Returns true if it switched.
+async function pullNewer(bootLast) {
+  if (!signedIn() || !S || NET.pulling || mode !== "home" || placing) return false;
+  NET.pulling = true;
+  try {
+    const me = await api("/me"), cloud = me.save && me.save.data;
+    if (!cloud || !cloud.buildings || cloud.dev === DEVICE) return false;
+    const newer = (cloud.rev || 0) > syncedRev() && (syncedRev() > 0 || (cloud.last || 0) > (bootLast || S.last || 0));
+    if (!newer) return false;
+    S = fixup(cloud); setSyncedRev(cloud.rev || 0); ensureDaily(); try { localStorage.setItem(SAVE_KEY, JSON.stringify(S)); } catch (e) {}
+    selected = null; placing = null; if (typeof closeModal === "function" && $("modal").classList.contains("show") && !(typeof tutActive === "function" && tutActive())) closeModal();
+    produce(Math.min(24 * 3600, (Date.now() - (S.last || Date.now())) / 1000)); processTimers(); refreshUI();
+    toast("☁️ Loaded your latest save from your other device");
+    return true;
+  } catch (e) { return false; } finally { NET.pulling = false; }
 }
 function scheduleSync() { if (!signedIn()) return; clearTimeout(NET.syncT); NET.syncT = setTimeout(pushSave, 15000); }
-addEventListener("visibilitychange", () => { if (document.hidden && signedIn() && S) pushSave({ keepalive: true }); });
+addEventListener("visibilitychange", async () => { if (!signedIn() || !S) return;
+  if (document.hidden) pushSave({ keepalive: true }); else if (!(await pullNewer())) pushSave(); });
 
 // ---------- sign in / sign up ----------
 function openAccount(tab = "Create account") {
@@ -81,10 +106,10 @@ async function afterSignIn() {
     <div class="choice"><button class="btn gold big" id="keepCloud">☁️ Online save<small>${sum(cloud)}</small></button>
     <button class="btn green big" id="keepLocal">📱 This device<small>${sum(local)}</small></button></div>`, { noClose: true });
   $("keepCloud").onclick = () => useCloud(cloud);
-  $("keepLocal").onclick = async () => { closeModal(); await pushSave(); netStart(); toast("Kept this device's club"); };
+  $("keepLocal").onclick = async () => { closeModal(); setSyncedRev(cloud.rev || 0); await pushSave(); netStart(); toast("Kept this device's club"); };
 }
 function useCloud(data) {
-  S = fixup(data); ensureDaily(); save(); selected = null; placing = null; closeModal();
+  S = fixup(data); setSyncedRev(data.rev || 0); ensureDaily(); save(); selected = null; placing = null; closeModal();
   cam.x = 0; cam.y = 0; setZoom(1); netStart(); refreshUI(); toast(`Welcome back, ${NET.user.name}!`);
 }
 async function signOut() { try { await pushSave(); await api("/logout", { method: "POST" }); } catch (e) {} signOutLocal(); toast("Signed out. Your club stays on this device."); }
@@ -338,8 +363,8 @@ async function netStart() {
   if (!NET.online) return;
   try { NET.bots = (await api("/bots")).bots; } catch (e) {}
   if (!signedIn()) return;
-  try { const me = await api("/me"); if (me.profile && S) { /* server may know about trophy changes from attacks */ } } catch (e) {}
-  await checkInbox(); pushSave(); checkChat();
+  const switched = await pullNewer(NET.bootLast); // newer save on another device? load it
+  await checkInbox(); if (!switched) pushSave(); checkChat();
 }
 setInterval(checkInbox,12000);
 setInterval(() => { if(signedIn()&&mode==="home"&&!document.hidden) checkChat(); },60000);

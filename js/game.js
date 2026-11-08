@@ -405,6 +405,7 @@ function boot(){
   resize(); addEventListener("resize",resize); addEventListener("orientationchange",()=>setTimeout(resize,250));
   if(typeof ResizeObserver!=="undefined") new ResizeObserver(resize).observe(cv);
   S=load();
+  if(S&&typeof NET!=="undefined") NET.bootLast=S.last; // when this device last played, before catching up on time away
   if(S){ const away=Math.min(24*3600,(Date.now()-S.last)/1000); produce(away); ensureDaily(); processTimers(); if(away>60&&!S.raids.some(r=>!r.seen)) toast(`Welcome back! You were away ${fmtTime(away)}.`); }
   else showClubPicker();
   if(S&&typeof S.tut==="number") setTimeout(showTutStep,400);

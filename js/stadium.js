@@ -469,8 +469,16 @@ function drawOvalGoals(){
   ctx.restore();
 }
 
-// Contact shadow tucks into the sprite's visible footing.
-function groundPatch(x, y, s) {
+// A trimmed patch follows the build grid, with a short earth edge under the turf.
+function groundPatch(x, y, s, oval) {
+  if (!oval) {
+    const low=s*.11, high=s-low, cut=s*.095;
+    const rim=[[low+cut,low],[high-cut,low],[high,low+cut],[high,high-cut],
+      [high-cut,high],[low+cut,high],[low,high-cut],[low,low+cut]].map(([dx,dy])=>P(x+dx,y+dy));
+    poly(rim.map(([px,py])=>[px+TW*.035,py+TH*.12]),"#41351a58",null);
+    const turf=grad(rim[0],rim[4],"#79914c57","#36552a76");
+    poly(rim,turf,"#55703871",Math.max(.7,TW*.016));
+  }
   const [cx, cy] = P(x + s * .53, y + s * .57), rx = TW * s * .44, ry = TH * s * .44;
   const g = ctx.createRadialGradient(cx, cy, 0, cx, cy, rx);
   g.addColorStop(0, "#172a16bd"); g.addColorStop(.52, "#172a1680"); g.addColorStop(1, "#172a1600");

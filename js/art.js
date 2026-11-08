@@ -122,12 +122,12 @@ function drawBuildingArt(b, club, opts) {
     const phase = performance.now()/2200;
     for (let i=0,n=Math.min(6,b.lv||1); i<n; i++) {
       const a = phase+i*Math.PI*2/n;
-      drawPlayer(x+Math.cos(a)*TW*.72,y+Math.sin(a)*TH*.44,TW*.075,club,{moving:true,id:i,face:Math.sin(a)>0?-1:1});
+      drawPlayer(x+Math.cos(a)*TW*.72,y+Math.sin(a)*TH*.44,TW*.093,club,{moving:true,id:i,face:Math.sin(a)>0?-1:1});
     }
   }
   if (b.t==="bench") {
     const count = Math.min(6,Math.ceil((opts.fill??.5)*6));
-    for (let i=0; i<count; i++) drawPlayer(x+(i-(count-1)/2)*TW*.2,y+TH*.24,TW*.07,club,{id:i});
+    for (let i=0; i<count; i++) drawPlayer(x+(i-(count-1)/2)*TW*.235,y+TH*.2,TW*.086,club,{id:i});
   }
   if (BLD[b.t].stores && opts.fill!==undefined) {
     bar(x,y+TH*.46,opts.fill,b.t==="esky"?"#54cffa":"#f4b84a",TW*.75);

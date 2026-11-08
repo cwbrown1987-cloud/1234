@@ -99,14 +99,14 @@ async function checkInbox() {
     if (!a.friendly) { S.pies -= lost.pies; S.drink -= lost.drink; S.trophies = Math.max(0, S.trophies + (a.defTro || 0)); }
     if (!a.friendly && a.magicShield) S.shield = Math.max(S.shield || 0, a.at + MAGIC_SHIELD);
     if (!a.friendly && !a.stars) track("defend", 1);
-    S.raids.unshift({ id: "p" + a.id, at: a.at, club: a.atkClub ?? a.club ?? 0, attacker: a.attacker, attackerId: a.attackerId, real: true, friendly: !!a.friendly,
+    S.raids.unshift({ id: "p" + a.id, at: a.at, club: a.atkClub ?? a.club ?? 0, attacker: a.attacker, attackerId: a.attackerId, real: true, friendly: !!a.friendly, friend: !!a.friend,
       stars: a.stars, pct: a.pct, sc: a.sc, lost, tro: a.defTro, seen: false, revenged: false,
       base: a.base || [], plan: a.plan || [], endT: a.endT || 0, army: a.army || {}, spells: a.spells || {}, lv: a.lv || 1, heroLv: a.heroLv || 1, bonus: a.bonus || null, d: th() });
   }
   S.raids = S.raids.slice(0, 12);
   try { await api("/inbox/seen", { method: "POST", body: { ids: r.attacks.map(a => a.id) } }); } catch (e) {}
   save(); uiDirty = true; const n = r.attacks.length;
-  toast(n === 1 ? `⚠️ ${r.attacks[0].attacker} ${r.attacks[0].friendly ? "played a friendly on" : "attacked"} your ground!` : `⚠️ ${n} clubs came to your ground`);
+  toast(n === 1 ? `⚠️ ${r.attacks[0].attacker} ${r.attacks[0].friendly ? "played a friendly on" : r.attacks[0].friend ? "(your friend) attacked" : "attacked"} your ground!` : `⚠️ ${n} clubs came to your ground`);
 }
 
 // ---------- real-player matches ----------
@@ -132,7 +132,7 @@ async function attackPlayer(id, kind) {
   try {
     const p = (await api("/player/" + id)).player;
     if (!p.base) return toast(`${p.name} hasn't set up their ground yet.`);
-    if (kind !== "friendly" && p.shield > Date.now()) return toast(`${p.name} is shielded for ${fmtTime((p.shield - Date.now()) / 1000)}.`);
+    if (kind !== "friendly" && kind !== "friend" && p.shield > Date.now()) return toast(`${p.name} is shielded for ${fmtTime((p.shield - Date.now()) / 1000)}.`);
     closeModal();
     startBattle({ kind, club: p.club, d: p.th, buildings: oppBuildings(p), opp: { id: p.id, name: p.name, bot: p.bot, trophies: p.trophies } });
   } catch (e) { toast(e.message); }
@@ -140,7 +140,7 @@ async function attackPlayer(id, kind) {
 function netReportAttack(bt, r) {
   if (!signedIn() || !bt.opp) return;
   const avail = bt.lootTotal.pies + bt.lootTotal.drink, share = avail ? (bt.loot.pies + bt.loot.drink) / avail : 0;
-  const body = { defender: bt.opp.id, friendly: !!r.friendly, ranked: !!bt.ranked, magicShield: !r.friendly && share >= .3, stars: r.stars, pct: r.p, sc: r.sc, loot: { pies: Math.floor(bt.loot.pies), drink: Math.floor(bt.loot.drink) },
+  const body = { defender: bt.opp.id, friendly: !!r.friendly, friend: bt.kind === "friend", ranked: !!bt.ranked, magicShield: !r.friendly && bt.kind !== "friend" && share >= .3, stars: r.stars, pct: r.p, sc: r.sc, loot: { pies: Math.floor(bt.loot.pies * Math.min(1, bt.lootMul ?? 1)), drink: Math.floor(bt.loot.drink * Math.min(1, bt.lootMul ?? 1)) },
     plan: bt.rec || [], endT: Math.round(bt.elapsed * 1000) / 1000, army: bt.had, spells: bt.hadSpells, lv: { ...S.unitLv }, heroLv: Object.fromEntries(Object.keys(HEROES).map(h => [h, S.heroes[h].lv])),
     bonus: Object.fromEntries(["mid", "fwd", "ruck", "def"].map(p => [p, cardBonus(p)])), base: bt.opp.bot ? [] : (bt.origBase || []).map(b => ({ t: b.t, x: b.x, y: b.y, lv: b.lv, hp: b.max, max: b.max, loot: b.loot, armed: b.armed })),
     atkClub: S.club, myTrophies: S.trophies };
@@ -158,7 +158,7 @@ async function openFriends() {
     <form id="frAdd" class="fradd"><input id="frName" placeholder="Friend's player name" maxlength="16" autocomplete="off"><button class="btn green" type="submit">Add</button></form>
     <p class="tiny center">Your player name is <b>${esc(NET.user.name)}</b>. Give it to your mates so they can add you.</p>
     <div id="frList" class="fixture"><p class="center">Loading…</p></div>
-    <p class="tiny center">Visit to look around their ground. A Friendly is a practice match: no loot, no trophies, and it doesn't break shields.</p>`);
+    <p class="tiny center">Visit to look around their ground. ⚔️ Attack is a normal match (shields don't stop friends), but you only take a quarter of their loot and no trophies change hands.</p>`);
   $("frAdd").onsubmit = async e => { e.preventDefault(); const name = $("frName").value.trim(); if (!name) return;
     try { const r = await api("/friends", { method: "POST", body: { name } }); toast(`${r.friend.name} added!`); openFriends(); } catch (err) { toast(err.message); } };
   try {
@@ -167,7 +167,7 @@ async function openFriends() {
         <button class="btn blue" data-visit="${f.id}">👀 Visit</button><button class="btn gold" data-fr="${f.id}">⚔️</button><button class="btn red" data-unf="${f.id}" title="Remove">✖</button></div>`).join("")
       : `<p class="center">No friends yet. Add someone by their player name above.</p>`;
     document.querySelectorAll("[data-visit]").forEach(b => b.onclick = () => visitPlayer(b.dataset.visit));
-    document.querySelectorAll("[data-fr]").forEach(b => b.onclick = () => attackPlayer(b.dataset.fr, "friendly"));
+    document.querySelectorAll("[data-fr]").forEach(b => b.onclick = () => attackPlayer(b.dataset.fr, "friend"));
     document.querySelectorAll("[data-unf]").forEach(b => b.onclick = async () => { if (b.dataset.sure) { await api("/friends/" + b.dataset.unf, { method: "DELETE" }).catch(e => toast(e.message)); openFriends(); } else { b.dataset.sure = 1; b.textContent = "Sure?"; } });
   } catch (e) { $("frList").innerHTML = `<p class="center err">${esc(e.message)}</p>`; }
 }

@@ -52,12 +52,13 @@ function makeBattle(o){
     left:{...o.army}, had:{...o.army}, spellsLeft:{...(o.spells||{})}, hadSpells:{...(o.spells||{})},
     heroesLeft:{...(o.heroes||{})}, heroU:{}, abilityUsed:{}, loot:{pies:0,drink:0}, lootTotal, uid:0, dirty:true, mask:2, sel:null, destroyed:0};
 }
+const FRIEND_LOOT = .25; // attacking a friend: a normal match, but you only take a quarter of the loot
 function startBattle(o){
   if(!Object.values(S.army).some(n=>n>0)) return toast("Train some players first!");
   const heroes={}; for(const h of heroPicked()) if(heroReady(h)) heroes[h]=true;
   if(o.ranked&&typeof nextFixture==="function"){ ensureSeason(); const f=nextFixture(); if(f&&!o.fixture) o.fixture=f.name; }
   BT=makeBattle({mode:"attack", kind:o.kind, ranked:!!o.ranked, round:o.round, fixture:o.fixture, d:o.d, club:o.club, atkClub:S.club, buildings:o.buildings||genBase(o.d,o.seed),
-    army:S.army, spells:S.spells, heroes, lvOf:u=>S.unitLv[u], heroStat:h=>heroStats(h), bonus:cardBonus, lootMul:o.kind==="friendly"?0:(eventNow()&&eventNow().loot||1)*(o.lootMul||1), revenge:o.revenge, opp:o.opp});
+    army:S.army, spells:S.spells, heroes, lvOf:u=>S.unitLv[u], heroStat:h=>heroStats(h), bonus:cardBonus, lootMul:o.kind==="friendly"?0:o.kind==="friend"?FRIEND_LOOT:(eventNow()&&eventNow().loot||1)*(o.lootMul||1), revenge:o.revenge, opp:o.opp});
   S.lastArmy={...S.army}; S.lastSpells={...S.spells};
   BT.rec=[]; BT.origBase=o.buildings?JSON.parse(JSON.stringify(o.buildings)):null;
   BT.sel = firstSel();
@@ -301,7 +302,7 @@ function endBattle(){
   let tro = !BT.ranked ? 0 : stars ? Math.round((8+stars*6)*(BT.d>=th()?1.2:.8)) : -10;
   if(BT.revenge){ const r=S.raids.find(x=>x.id===BT.revenge); if(r&&r.lost){ // revenge always gets back at least what they took, like Clash
     for(const k of ["pies","drink"]){ const short=Math.max(0,(r.lost[k]||0)-got[k]); if(short) got[k]+=addRes(k,short); } } }
-  const starRes = ["match","pvp","revenge","season"].includes(BT.kind)&&!friendly&&stars ? addStars(stars) : null;
+  const starRes = ["match","pvp","revenge","season","friend"].includes(BT.kind)&&!friendly&&stars ? addStars(stars) : null;
   S.trophies=Math.max(0,S.trophies+tro);
   let medals=0, pack=null;
   const sc=scoreNow(); let season=null;

@@ -561,7 +561,7 @@ function drawGround(){
   const [cx,cy]=P(N/2,N/2);
   const match = typeof mode!=="undefined" && mode==="battle" && typeof BT!=="undefined" && BT;
   const club = match ? CLUBS[BT.club] : (typeof S!=="undefined" && S ? myClub() : null);
-  drawStadiumBowl(club);
+  drawStadiumBowl(club,match);
   diamond(0,0,N,N,"#91aa49");
   for(let i=0;i<N;i+=4) diamond(i,0,2,N,"#a4bb515c");
   for(const [a,b,r,dark] of patches){

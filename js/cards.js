@@ -274,7 +274,7 @@ function openAlbum(club, keepScroll=false) { menuBack = null; hubCtx=null;
       <div class="rwd"><b>⬆️ Upgrades</b><span>3 matching duplicates upgrade a card: Common → Rare → Epic → Legendary. Cards are for collecting and don't change match stats.</span></div></div>`;
   }
   const header = `<div class="album-head">
-    <div class="fccbanner">${uiArt("ico-cards","🏉")}<div><b>Footy Card Collectors</b><small>Club card album</small></div></div>
+    <div class="fccbanner menu-banner">${uiArt("ico-cards","🏉")}<div><b>Footy Card Collectors</b><small>Club card album</small></div></div>
     <div class="atabs">${tab("album", '<span class="cicon"><i></i><i></i></span>', "Album")}<button class="atab soon" data-tab="trade"><b>⇄</b>Trade<i class="soontag">Soon</i></button>${tab("sets", "🛡️", "Sets")}${tab("rewards", "🎁", "Rewards")}</div>
     <div class="woodbar"><div class="clubstrip">${CLUBS.map((c, i) => { const [o, t] = albumCount(x => x.club === i && !x.special); return `<button aria-label="${c.name}" class="${i === albumClub ? "on" : ""}${o === t ? " done" : ""}" data-club="${i}">${badgeImg(c, "xs")}${i !== albumClub && clubHasNew(x => x.club === i && !x.special) ? '<i class="ndot"></i>' : ""}</button>`; }).join("")}<button aria-label="Special cards" class="${albumClub === "sp" ? "on" : ""}" data-club="sp"><b class="spstar">⭐</b>${albumClub !== "sp" && clubHasNew(x => x.special) ? '<i class="ndot"></i>' : ""}</button></div><button class="stripnext" id="stripNext" aria-label="More clubs">›</button></div></div>`;
   const actions = `<div class="fccfoot">

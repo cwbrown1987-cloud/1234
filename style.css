@@ -631,15 +631,13 @@ body.ffui .profhead.uibg,body.ffui .passhead.uibg{background-size:100% 100%!impo
 .evcard>.uia img{width:52px;height:52px}
 .soon .uia img{width:48px;height:48px}
 /* ---------- colour pop: bright Clash-style panels and buttons around Codex's painted icons ---------- */
-body:not(.ffui) .card:not(.albummode){background:linear-gradient(#fff6dc,#f1dcae 60%,#e3c58e);border:4px solid #2b1d10;box-shadow:0 6px 0 #1a120a,inset 0 0 0 3px #fffbe9,inset 0 -6px 0 #0000001a}
+body:not(.ffui) .modal>.card{background:linear-gradient(#fff6dc,#f1dcae 60%,#e3c58e);border:4px solid #2b1d10;box-shadow:0 6px 0 #1a120a,inset 0 0 0 3px #fffbe9,inset 0 -6px 0 #0000001a}
 body:not(.ffui) .card:not(.albummode) h2{color:#fff;-webkit-text-stroke:1.5px #3a2410;text-shadow:0 3px 0 #3a2410}
 body:not(.ffui) .card .x{background:linear-gradient(#ff8b6e,#e8402b 55%,#b22a1a);border:3px solid #2b1d10;box-shadow:0 3px 0 #1a120a,inset 0 2px 0 #fff8}
-body:not(.ffui) .hubbar{background:linear-gradient(#3fa3e8,#1f6fb8);border:3px solid #13314d;box-shadow:0 4px 0 #0d2236,inset 0 2px 0 #ffffff55}
-body:not(.ffui) .hubbar.uibg{border-color:#13314d}
-body:not(.ffui) .hubtabs button{background:linear-gradient(#5aa9e6,#2f6fae);border:3px solid #13314d;box-shadow:0 3px 0 #0d2236,inset 0 2px 0 #ffffff55}
-body:not(.ffui) .hubtabs button.on{background:linear-gradient(#ffe88c,#f4b62f 55%,#d58a12);color:#3a2408;text-shadow:0 1px 0 #fff8;border-color:#5a3a08}
-body:not(.ffui) .tabs button{background:linear-gradient(#cdb48a,#a58756);border:3px solid #3a2a18;color:#fff;text-shadow:0 2px 0 #3a2a18;box-shadow:0 3px 0 #2b1d10}
-body:not(.ffui) .tabs button.on{background:linear-gradient(#ffe88c,#f4b62f 55%,#d58a12);color:#3a2408;text-shadow:0 1px 0 #fff8}
+body:not(.ffui) #modalHead .menu-banner{background:linear-gradient(#344451,#14202c);color:#fff;border:0;box-shadow:none}
+body:not(.ffui) #modalHead .menu-banner small{color:#ffd34d}
+body:not(.ffui) .card :is(.tabs,.hubtabs,.atabs) button{background:linear-gradient(#cdb48a,#a58756);border:3px solid #3a2a18;color:#fff;text-shadow:0 2px 0 #3a2a18}
+body:not(.ffui) .card :is(.tabs,.hubtabs,.atabs) button.on{background:linear-gradient(#ffe88c,#f4b62f 55%,#d58a12);color:#3a2408;text-shadow:0 1px 0 #fff8}
 body:not(.ffui) .item,body:not(.ffui) .fx,body:not(.ffui) .evcard,body:not(.ffui) .ach,body:not(.ffui) .profgrid div,body:not(.ffui) .task,body:not(.ffui) .raid,body:not(.ffui) .herocard,body:not(.ffui) .rwd{background:#fffaf0;border:3px solid #c9a46a;box-shadow:0 3px 0 #b08a50}
 body:not(.ffui) .round.attack{background:linear-gradient(#ffd67a,#ff9a2e 40%,#e8531c 75%,#b83a12)!important;border:4px solid #2b1d10;box-shadow:0 6px 0 #1a120a,inset 0 3px 0 #fff9,inset 0 -6px 0 #0003}
 body:not(.ffui) .round.shop{background:linear-gradient(#fff0a0,#ffd24a 45%,#f0a81e 80%,#c47e0c)!important;border:4px solid #2b1d10;box-shadow:0 6px 0 #1a120a,inset 0 3px 0 #fff9,inset 0 -6px 0 #0003}
@@ -652,7 +650,7 @@ body:not(.ffui) .ptier.got{opacity:.6}
 body:not(.ffui) .badge.uibg,body:not(.ffui) .profhead.uibg{background-image:none!important}
 .madefor{text-align:center;margin:14px 0 2px;font-size:15px;opacity:.9}
 
-/* Shared layout for the Build and Battle hubs. Only the content scrolls. */
+/* Keep main menu headers anchored while their content changes and scrolls. */
 .modal>.card{max-width:100%}
 .modal>.card:not(.albummode){max-height:min(88dvh,100%)}
 .card.pinned{display:flex;flex-direction:column;overflow:hidden}
@@ -660,9 +658,15 @@ body:not(.ffui) .badge.uibg,body:not(.ffui) .profhead.uibg{background-image:none
 .card.pinned #modalBody{min-height:0;overflow:auto;overscroll-behavior:contain;padding:3px 4px 8px;margin-inline:-4px}
 #modalHead,#modalActions{flex:none}
 #modalHead:empty,#modalActions:empty{display:none}
-#modalHead .hubbar{padding-top:8px;gap:6px}
+#modalHead{display:grid;gap:8px;margin-bottom:8px}
+#modalHead :is(.menu-banner,.tabs,.album-head){margin:0}
+#modalHead .menu-banner{box-sizing:border-box;min-height:68px;border-radius:12px;padding:8px 42px 8px 10px;align-items:center}
+#modalHead .menu-title{display:flex;justify-content:center;padding-left:42px;background:linear-gradient(#344451,#14202c);color:#fff;text-align:center;font-size:20px}
+#modalHead .passhead{display:grid;align-content:center;padding-left:42px}
+#modalHead .tabs button{min-height:44px;padding-inline:2px}
 #modalHead .hubbar.uibg{background-size:cover!important;background-position:center!important;background-repeat:no-repeat}
-#modalHead .hubtitle{font-size:22px;line-height:30px;margin:0 40px;text-shadow:0 2px 0 #000}
+#modalHead .hubbar{justify-content:center;padding-left:42px}
+#modalHead .hubtitle{font-size:22px;line-height:30px;margin:0;text-shadow:0 2px 0 #000}
 #modalHead .hubtabs button{min-height:59px}
 #modalHead .hubtabs .uia{width:34px;height:34px;display:grid;place-items:center}
 #modalActions{display:flex;align-items:center;gap:8px;margin:0 -4px -4px;padding:8px;border:2px solid #b68b4f;border-radius:12px;background:#fff0c9;box-shadow:0 -4px 12px #57320e26}
@@ -701,15 +705,6 @@ body.ffui .match-fixture{background:var(--sb-cell);border-color:var(--sb-line)}
 .match-fixture-foot small{font-size:11px}
 .match-day #modalActions{align-items:stretch}
 body:not(.ffui) .modal.match-day{background:#192e494f}
-body:not(.ffui) .match-day .card:not(.albummode){box-shadow:0 4px 0 #8a6436,inset 0 0 0 3px #fffbe9}
-body:not(.ffui) .match-day #modalHead .hubbar{border-color:#4579a2;box-shadow:0 3px 0 #7fa9c8}
-body:not(.ffui) .match-day .hubtabs{position:relative}
-body:not(.ffui) .match-day .hubtabs::before{
-  content:"";position:absolute;inset:-4px;border-radius:11px;background:linear-gradient(#c7e8ff,#91c6ee);pointer-events:none}
-body:not(.ffui) .match-day .hubtabs button,body:not(.ffui) .match-day .btn.blue{
-  border-color:#285b8c}
-body:not(.ffui) .match-day .hubtabs button.on,body:not(.ffui) .match-day .battle-action{
-  border-color:#9b521d}
 body:not(.ffui) .match-day #modalActions{
   background:linear-gradient(#fffaf0,#fff1d3);border-color:#d9b476;box-shadow:0 -2px 8px #9b632314}
 .round .uia{font-size:30px}
@@ -730,16 +725,15 @@ body:not(.ffui) .match-day #modalActions{
 .chat::-webkit-scrollbar, #cards::-webkit-scrollbar, .clubstrip::-webkit-scrollbar{display:none}
 .clubstrip{touch-action:pan-x}
 .chat .msg{flex-shrink:0}
-.social-head h2{min-height:36px;margin-bottom:5px}
-.social-head .tabs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));padding-bottom:3px}
-.social-head .tabs button{padding-inline:2px;min-height:43px}
+.social-head{display:grid;gap:8px}
+.social-head .tabs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr))}
 .live-attacks{background:#ffedc3;color:#6f3118;border:2px solid #b86440;border-radius:10px;padding:8px;margin:6px 0}
 .live-attacks:empty{display:none}
 .card.pinned.albummode{
-  max-height:min(92dvh,100%);background:linear-gradient(#f9edce,#e1c18b);color:#2b3549;
+  max-height:min(88dvh,100%);padding:14px;background:linear-gradient(#f9edce,#e1c18b);color:#2b3549;
   border-color:#25344a;box-shadow:inset 0 0 0 2px #fff4d7,0 4px 12px #101a3050;
 }
-.album-head{display:grid;grid-template-columns:minmax(0,1fr);gap:6px;margin-bottom:7px}
+.album-head{display:grid;grid-template-columns:minmax(0,1fr);gap:8px}
 .album-head .atabs{grid-template-columns:repeat(4,minmax(0,1fr))}
 .album-head .clubstrip{min-width:0}
 .album-head .fccbanner{

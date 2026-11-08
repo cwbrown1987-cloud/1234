@@ -337,14 +337,14 @@ function openSquad(tab){
 }
 
 // ---------- tasks / log / match ----------
-function openTasks(){
+function openTasks(header){
   ensureDaily();
   let h=`<h2>Daily Tasks</h2><p class="center tiny">New tasks every day. Finish all three for a bonus Silver Pack.</p>`;
   S.daily.tasks.forEach((t,i)=>{ const T=TASKS.find(x=>x.k===t.k), done=t.n>=t.goal;
     h+=`<div class="task"><div class="grow"><div>${T.text(t.goal)}</div><div class="bar"><div style="width:${100*t.n/t.goal}%"></div></div><div class="tiny">${fmt(t.n)} / ${fmt(t.goal)}</div></div>${t.claimed?"✅":`<button class="btn ${done?"green":""}" data-claim="${i}" ${done?"":"disabled"}>+3 🏅</button>`}</div>`; });
   h+=`<h3>This week</h3>${[1,2,3,4,5,6,0].map(d=>{ const e=EVENTS[d], nm=["Sun","Mon","Tue","Wed","Thu","Fri","Sat"][d]; return `<div class="stat ${d===new Date().getDay()?"today":""}"><span>${nm}</span><b>${e?e.name+" · "+e.desc:"–"}</b></div>`; }).join("")}`;
-  modal(h);
-  document.querySelectorAll("[data-claim]").forEach(b=>b.onclick=()=>{ const inPass=!!$("modalBody").querySelector('[data-tab="Challenges"]'); claimTask(+b.dataset.claim); inPass?openPass("Challenges"):openTasks(); });
+  modal(h,{header});
+  document.querySelectorAll("[data-claim]").forEach(b=>b.onclick=()=>{ claimTask(+b.dataset.claim); header?openPass("Challenges"):openTasks(); });
 }
 function openLog(){
   let h=`<h2>Home Games</h2><p class="center tiny">Clubs that came to your ground while you were away.</p>`;
@@ -435,24 +435,22 @@ function showResult(r){
   $("goHome").onclick=()=>{ closeModal(); leaveBattle(); tut("home"); };
   const on=$("openNow"); if(on) on.onclick=()=>{ closeModal(); leaveBattle(); openAlbum(); };
 }
-const reopenSettings=()=>$("modalBody").querySelector('[data-tab="Achievements"]')?openProfile("Settings"):openSettings();
-function openSettings(){
+function openSettings(header){
+  const reopenSettings=()=>openProfile("Settings");
   const acct = !NET.online ? `<div class="stat"><span>Online play</span><span class="tiny">on footy-fortress.pages.dev</span></div>`
     : signedIn() ? `<div class="stat"><span>Signed in as <b>${esc(NET.user.name)}</b><br><small>${esc(NET.user.email||"")}</small></span><button class="btn" id="signOut">Sign out</button></div>`
     : `<div class="stat"><span>Save online · play real people</span><button class="btn green" id="signIn">Sign in / Sign up</button></div>`;
   modal(`<h2>Settings</h2><p>Your club: <b>${myClub().name}</b></p>${acct}
     <div class="stat"><span>Sound effects</span><button class="btn ${S.sound?"green":""}" id="snd">${S.sound?"On":"Off"}</button></div>
     <div class="stat"><span>Look</span><span><button class="btn ${typeof getTheme==="function"&&getTheme()==="light"?"gold":""}" id="thLight">☀️ Light</button> <button class="btn ${typeof getTheme==="function"&&getTheme()==="dark"?"gold":""}" id="thDark">🌙 Dark</button></span></div>
-    <p class="tiny">Club logos: put PNG files named after each club (for example <code>coll.png</code> or <code>wb.png</code>) in the <code>logos</code> folder next to the game and they replace the badges.</p>
     <div class="stat"><span>Tutorials</span><span><button class="btn green" id="tutAgain">Walkthrough</button> <button class="btn gold" id="clashG">Clash guide</button></span></div>
     <div class="stat"><span>Play it like an app</span><button class="btn blue" id="instBtn">Install</button></div>
     ${document.fullscreenEnabled?`<div class="stat"><span>Screen</span><button class="btn blue" id="fullScreen">${document.fullscreenElement?"Exit full screen":"Full screen"}</button></div>`:""}
     <div class="stat"><span>Version ${VERSION}</span><button class="btn gold" id="updBtn">Check for updates</button></div>
     <p class="tiny">Progress saves on this device automatically.</p><button class="btn red" id="reset">Start over (new club)</button>
-    <p class="madefor">Made for Jaxon and Jake 💙</p>`);
+    <p class="madefor">Made for Jaxon and Jake 💙</p>`,{header});
   const so=$("signOut"); if(so) so.onclick=async()=>{ await signOut(); reopenSettings(); };
-  const back=$("modalBody").querySelector('[data-tab="Achievements"]')?()=>openProfile("Settings"):openSettings;
-  const si=$("signIn"); if(si) si.onclick=sub(()=>openAccount(),back);
+  const si=$("signIn"); if(si) si.onclick=sub(()=>openAccount(),reopenSettings);
   $("updBtn").onclick=()=>{ $("updBtn").textContent="Updating…"; forceUpdate(); };
   $("instBtn").onclick=()=>{ closeModal(); if(isStandalone()) return toast("Already installed!"); showInstall(true); };
   const full=$("fullScreen");
@@ -464,7 +462,7 @@ function openSettings(){
     } catch(e) { toast("Full screen unavailable. Try installing from Settings."); }
   };
   $("tutAgain").onclick=()=>{ closeModal(); TUT.forEach(s=>delete s._prepped); startTutorial(); };
-  $("clashG").onclick=sub(()=>showClashGuide(false),back);
+  $("clashG").onclick=sub(()=>showClashGuide(false),reopenSettings);
   $("thLight").onclick=()=>{ setTheme("light"); sfx("tap"); setTimeout(reopenSettings); };
   $("thDark").onclick=()=>{ setTheme("dark"); sfx("tap"); setTimeout(reopenSettings); };
   $("snd").onclick=()=>{ S.sound=!S.sound; save(); audioCtx(); sfx("collect"); setTimeout(reopenSettings); };
@@ -478,7 +476,7 @@ $("btnCards").onclick=()=>{ hubCtx=null; openAlbum(); };
 $("btnTasks").onclick=()=>openPass();
 $("btnEvents").onclick=()=>openEvents();
 $("btnSocial").onclick=()=>{ hubCtx=null; openSocial(); };
-$("btnSettings").onclick=()=>{ menuBack=null; hubCtx=null; openSettings(); };
+$("btnSettings").onclick=()=>openProfile("Settings");
 $("clubBadge").onclick=()=>openProfile();
 $("builders").onclick=()=>openBuilders();
 $("buyMedals").onclick=e=>{ e.stopPropagation(); openHub("build","Shop"); };

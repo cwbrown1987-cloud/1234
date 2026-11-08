@@ -212,7 +212,7 @@ async function visitPlayer(id) {
 async function openSocial(tab = "Leaderboard") { menuBack = null; hubCtx=null;
   if (!NET.online) return toast("Online play works on the website: ff.backyardlegendsgames.app");
   const tabs = ["Leaderboard", "Friends", "Cheer Squad"];
-  const header=`<div class="social-head"><h2>Footy Fortress Online</h2>${tabsHTML(tabs, tab)}</div>`;
+  const header=`<div class="social-head"><div class="menu-banner menu-title">Footy Fortress Online</div>${tabsHTML(tabs, tab)}</div>`;
   modal('<div id="soc"><p class="center">Loading…</p></div>', {header, tick: tab === "Cheer Squad" ? refreshChat : null });
   const soc=$("soc");
   bindTabs(openSocial);

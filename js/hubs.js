@@ -53,10 +53,10 @@ function hubBarHTML() {
   if (!hubCtx) return "";
   const H = HUBS[hubCtx.kind];
   const unread = unreadRaids(), dark = getTheme() === "dark";
-  return `<div class="hubbar" data-uibg="hub-${hubCtx.kind}"><b class="hubtitle">${H.title}</b><div class="hubtabs">${H.tabs.map(([k, e, , icon]) => {
+  return `<div class="hubbar menu-banner" data-uibg="hub-${hubCtx.kind}"><b class="hubtitle">${H.title}</b></div><div class="hubtabs">${H.tabs.map(([k, e, , icon]) => {
     const on = k === hubCtx.tab, count = k === "Log" ? unread : 0;
     return `<button class="${on ? "on" : ""}" aria-pressed="${on}" ${count ? `aria-label="Log, ${count} unread"` : ""} data-hub="${k}">${uiArt(dark ? "tab-" + k.toLowerCase() : icon, e)}<span>${k}</span>${count ? `<i class="dot" aria-hidden="true">${count}</i>` : ""}</button>`;
-  }).join("")}</div></div>`;
+  }).join("")}</div>`;
 }
 // the inner tabs each screen shows inside a hub (so the same tab isn't offered twice)
 const squadTabsFor = () => !hubCtx ? ["Train", "Spells", "Heroes", "Coaching"] : hubCtx.kind === "battle" ? ["Train", "Spells", "Heroes"] : [];
@@ -118,7 +118,8 @@ function claimAch(a) {
 function openProfile(tab = "Profile") { menuBack = null;
   hubCtx = null;
   const c = myClub(), st = S.stats || {}, online = typeof signedIn === "function" && signedIn();
-  let h = `<div class="profhead" data-uibg="profile-banner">${badgeImg(c)}<div><b>${online ? esc(NET.user.name) : c.name}</b><small>${c.name} · Level ${S.lvl}</small></div></div>${tabsHTML(["Profile", "Achievements", "Settings"], tab)}`;
+  const header = `<div class="profhead menu-banner" data-uibg="profile-banner">${badgeImg(c)}<div><b>${online ? esc(NET.user.name) : c.name}</b><small>${c.name} · Level ${S.lvl}</small></div></div>${tabsHTML(["Profile", "Achievements", "Settings"], tab)}`;
+  let h = "";
   if (tab === "Profile") {
     ensureRanked();
     h += `<div class="xpbar"><span>⭐ Level ${S.lvl}</span><i><b style="width:${100 * (S.xp || 0) / xpNeed(S.lvl)}%"></b></i><span>${S.xp || 0}/${xpNeed(S.lvl)} XP</span></div>
@@ -134,8 +135,8 @@ function openProfile(tab = "Profile") { menuBack = null;
       return `<div class="ach"><div class="achstars">${[0, 1, 2].map(s => `<i class="${s < cl ? "on" : s < done ? "ready" : ""}">★</i>`).join("")}</div><div class="grow"><b>${a.name}</b><small>${a.desc(next)}</small>
         <div class="bar"><div style="width:${Math.min(100, 100 * v / next)}%"></div></div><small>${fmt(Math.min(v, next))} / ${fmt(next)}</small></div>
         ${cl >= 3 ? "✅" : done > cl ? `<button class="btn green" data-ach="${i}">+${ACH_VOTES[cl]} 🏅</button>` : `<span class="tiny">${ACH_VOTES[cl]} 🏅</span>`}</div>`; }).join("")}</div>`;
-  } else { openSettings(); $("modalBody").insertAdjacentHTML("afterbegin", `<div class="profhead">${badgeImg(c)}<div><b>${online ? esc(NET.user.name) : c.name}</b><small>Settings</small></div></div>` + tabsHTML(["Profile", "Achievements", "Settings"], "Settings")); bindTabs(t => openProfile(t)); return; }
-  modal(h);
+  } else { openSettings(header); bindTabs(openProfile); return; }
+  modal(h, {header});
   bindTabs(t => openProfile(t));
   document.querySelectorAll("[data-ach]").forEach(b => b.onclick = () => { claimAch(ACH[+b.dataset.ach]); openProfile("Achievements"); });
   const pl = $("pLog"); if (pl) pl.onclick = () => openHub("battle", "Log");
@@ -240,13 +241,13 @@ function giveReward(r) { if (r.pies) addRes("pies", r.pies); if (r.drink) addRes
 const passReady = () => { const p = ensurePass(), t = Math.min(PASS_TIERS, Math.floor(p.pts / PASS_PER)); let n = 0; for (let i = 0; i < t; i++) if (!p.got.includes(i)) n++; return n; };
 function openPass(tab = "Rewards") { menuBack = null;
   hubCtx = null; const p = ensurePass(), tier = Math.min(PASS_TIERS, Math.floor(p.pts / PASS_PER));
-  if (tab === "Challenges") { openTasks(); const b = $("modalBody"); b.insertAdjacentHTML("afterbegin", tabsHTML(["Rewards", "Challenges"], "Challenges")); bindTabs(t => openPass(t)); return; }
-  let h = `<div class="passhead" data-uibg="pass-banner"><b>Footy Pass</b><small>Ends in ${fmtTime((passEnds() - Date.now()) / 1000)}</small></div>${tabsHTML(["Rewards", "Challenges"], "Rewards")}
-    <div class="xpbar"><span>Tier ${tier}</span><i><b style="width:${tier >= PASS_TIERS ? 100 : 100 * (p.pts % PASS_PER) / PASS_PER}%"></b></i><span>${p.pts} pts</span></div>
+  const header = `<div class="passhead menu-banner" data-uibg="pass-banner"><b>Footy Pass</b><small>Ends in ${fmtTime((passEnds() - Date.now()) / 1000)}</small></div>${tabsHTML(["Rewards", "Challenges"], tab)}`;
+  if (tab === "Challenges") { openTasks(header); bindTabs(openPass); return; }
+  const h = `<div class="xpbar"><span>Tier ${tier}</span><i><b style="width:${tier >= PASS_TIERS ? 100 : 100 * (p.pts % PASS_PER) / PASS_PER}%"></b></i><span>${p.pts} pts</span></div>
     <p class="tiny center">Earn points from wins (+10), knock-downs (+1), upgrades (+5), packs (+5), defences (+5) and daily challenges (+20).</p>
     <div class="passtrack">${Array.from({ length: PASS_TIERS }, (_, i) => { const r = passReward(i), open = i < tier, got = p.got.includes(i);
       return `<div class="ptier ${open ? "open" : ""} ${got ? "got" : ""}"><small>${i + 1}</small><b>${rewardText(r)}</b>${got ? "✅" : open ? `<button class="btn green" data-pt="${i}">Claim</button>` : `<span class="tiny">${(i + 1) * PASS_PER} pts</span>`}</div>`; }).join("")}</div>`;
-  modal(h); bindTabs(t => openPass(t));
+  modal(h, {header}); bindTabs(openPass);
   document.querySelectorAll("[data-pt]").forEach(b => b.onclick = () => { const i = +b.dataset.pt; if (p.got.includes(i)) return; p.got.push(i); giveReward(passReward(i)); sfx("collect"); save(); openPass(); });
 }
 function passPoints(k, n) { const v = PASS_PTS[k]; if (!v || !S) return; ensurePass().pts += v * n; }
@@ -256,14 +257,13 @@ function openEvents() { menuBack = null;
   hubCtx = null; const e = eventNow(), sb = S.starBonus || { stars: 0, until: 0 }, rk = ensureRanked(), p = ensurePass();
   updateEventBadge(true);
   const card = (icon, title, body, btn) => `<div class="evcard">${uiArt(icon, { "ev-today": "🎉", "ev-star": "⭐", "ev-ranked": "🏆", "ev-pass": "🎫", "ev-afl": "🏉" }[icon] || "📅")}<div class="grow"><b>${title}</b><small>${body}</small></div>${btn || ""}</div>`;
-  let h = `<h2>Events</h2>`;
-  h += card("ev-today", e ? "Today: " + e.name : "No event today", e ? e.desc : "Check back tomorrow");
+  let h = card("ev-today", e ? "Today: " + e.name : "No event today", e ? e.desc : "Check back tomorrow");
   h += card("ev-star", "Star Bonus", sb.until > Date.now() ? `Ready again in ${fmtTime((sb.until - Date.now()) / 1000)}` : `${Math.min(sb.stars, STAR_GOAL)}/${STAR_GOAL} stars`, `<button class="btn gold" data-go="play">Play</button>`);
   h += card("ev-ranked", rkBadge(rk.tier) + " " + rkName(rk.tier), `${rkAttacks(rk.tier) - rk.attacks} attacks left · week ends in ${fmtTime((weekEnds() - Date.now()) / 1000)}`, `<button class="btn blue" data-go="rk">Table</button>`);
   h += card("ev-pass", "Footy Pass", `Tier ${Math.min(PASS_TIERS, Math.floor(p.pts / PASS_PER))} · ${passReady()} to claim`, `<button class="btn green" data-go="pass">Open</button>`);
   h += card("ev-afl", "AFL season", seasonCountdown().replace("🏉 ", "Starts in "));
   h += `<h3>This week</h3>${[1, 2, 3, 4, 5, 6, 0].map(d => { const ev = EVENTS[d], nm = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][d]; return `<div class="stat ${d === new Date().getDay() ? "today" : ""}"><span>${nm}</span><b>${ev ? ev.name + " · " + ev.desc : "–"}</b></div>`; }).join("")}`;
-  modal(h);
+  modal(h, {header:'<div class="menu-banner menu-title">Events</div>'});
   document.querySelectorAll("[data-go]").forEach(b => b.onclick = () => ({ play: () => openHub("battle", "Play"), rk: sub(() => { hubCtx = null; openRankedTable(); }, openEvents), pass: () => openPass() })[b.dataset.go]());
 }
 

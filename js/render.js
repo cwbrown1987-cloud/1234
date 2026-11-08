@@ -374,11 +374,13 @@ function paintFenceWall(dir,lv,club,stone,coping){
 }
 function paintFencePier(sprite,lv,club){
   const {h,pw}=fenceStyle(lv,club);
-  const [x,y]=P(.5,.5), width=TW*(pw+.16);
+  const [x,y]=P(.5,.5), width=TW*(pw+.16), s=pw+.16;
   const scale=Math.min(width/sprite.w,TH*(h+.73)/sprite.h);
+  // contact shadow so the pillar sits on the grass instead of hovering
+  poly([P(.5-s/2-.04,.5-s/2+.10),P(.5+s/2+.16,.5-s/2+.10),P(.5+s/2+.16,.5+s/2+.14),P(.5-s/2-.04,.5+s/2+.14)],"#14200a55",null);
   ctx.save();
   if(lv<3) ctx.filter="saturate(.35)";
-  paintArt(sprite,x,y+TH*(pw+.16)/2,scale,1);
+  paintArt(sprite,x,y+TH*s/2+TH*.06,scale,1);
   ctx.restore();
 }
 function fenceWall(dir,lv,club){

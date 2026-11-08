@@ -416,7 +416,8 @@ function renderBattle(){
     if(z.k==="rain") rainDrops(z); }
   const ents=[];
   // Knocked-down buildings are flat rubble on the ground: draw them first so players never hide behind them.
-  for(const b of BT.buildings) ents.push({k:b.hp<=0?-1e3+b.x+b.y:b.x+b.y+BLD[b.t].size,f:()=>drawBuilding(b,club,BT.buildings,{hideTraps:BT.mode==="attack",fill:.6,heroes:BT.homeHeroes||{captain:club}})});
+  for(const b of BT.buildings) ents.push({k:b.hp<=0?-1e3+b.x+b.y:b.x+b.y+BLD[b.t].size,f:()=>drawBuilding(b,club,BT.buildings,{hideTraps:BT.mode==="attack",hideAmbient:!BT.visit,fill:.6,heroes:BT.homeHeroes||{captain:club}})});
+  addGroundCrew(ents,BT.buildings,club,BT.started?BT.elapsed:null);
   for(const {u,x,y} of battlePlayerPositions()) ents.push({k:x+y+(u.air?40:0),f:()=>drawUnitB(u,x,y)});
   // knocked-out players play their KO animation, lie there a moment, then fade
   if(BT.kos){ const now=performance.now(); BT.kos=BT.kos.filter(o=>now-o.at<1600);

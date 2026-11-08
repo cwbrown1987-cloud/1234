@@ -118,14 +118,14 @@ function drawBuildingArt(b, club, opts) {
     if (homeClub) drawHeroStatue(b.x+s*.75,b.y+s*.76,.08,homeClub,hero);
     else txt(opts.heroes?.busy?.[hero]?"🔧":"💤",x+TW*.54,y-TH*.35,TH*.7);
   }
-  if (b.t==="oval") {
+  if (b.t==="oval" && !opts.hideAmbient) {
     const phase = performance.now()/2200;
     for (let i=0,n=Math.min(6,b.lv||1); i<n; i++) {
       const a = phase+i*Math.PI*2/n;
       drawPlayer(x+Math.cos(a)*TW*.72,y+Math.sin(a)*TH*.44,TW*.093,club,{moving:true,id:i,face:Math.sin(a)>0?-1:1});
     }
   }
-  if (b.t==="bench") {
+  if (b.t==="bench" && !opts.hideAmbient) {
     const count = Math.min(6,Math.ceil((opts.fill??.5)*6));
     for (let i=0; i<count; i++) drawPlayer(x+(i-(count-1)/2)*TW*.235,y+TH*.2,TW*.086,club,{id:i});
   }

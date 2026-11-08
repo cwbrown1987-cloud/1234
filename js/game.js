@@ -357,6 +357,7 @@ function renderHome(){
   for(const b of list){ if(b===movingB) continue; const d=BLD[b.t];
     const f=()=>drawBuilding(b,club,list,{selected:!row&&selected===b, deferLevel:true, fill:fillOf(b), heroes, collect:d.makes&&!b.busy&&b.store>=Math.max(1,d.cap[b.lv-1]*.1)?b.store:0});
     ents.push({k:b.x+b.y+d.size,f:fenceMode&&b.t!=="fence"?ghost(f):f}); }
+  if(!placing) addGroundCrew(ents,list,club);
   ents.sort((a,b)=>a.k-b.k).forEach(e=>e.f());
   if(placing&&!row){ const d=BLD[placing.t], ok=footprintFree(placing.x,placing.y,d.size,placing.moving);
     diamond(placing.x,placing.y,d.size,d.size,ok?"#5fd16b88":"#e8503a99","#fff",2);

@@ -490,6 +490,66 @@ function selectGlow(x,y,s){
 function bubble(x,y,ic){ ctx.lineWidth=2; ctx.strokeStyle=OUT; ctx.beginPath(); ctx.arc(x,y,TW*.32,0,7); ctx.fillStyle="#fff"; ctx.fill(); ctx.stroke(); txt(ic,x,y+1,TW*.32); }
 function fmtTime(s){ s=Math.ceil(s); if(s<60) return s+"s"; if(s<3600) return Math.floor(s/60)+"m "+(s%60?s%60+"s":""); return Math.floor(s/3600)+"h "+Math.floor(s%3600/60)+"m"; }
 
+// ---------- ground crew (scenery, never part of the battle simulation) ----------
+const crewLayouts=new WeakMap();
+function groundCrewLayout(buildings,now){
+  const previous=crewLayouts.get(buildings);
+  if(previous&&now-previous.checked<.5) return previous.crew;
+  const standing=buildings.filter(b=>!(b.hp<=0)&&!BLD[b.t].trap);
+  const key=standing.map(b=>`${b.t}:${b.x},${b.y}:${b.busy?.kind==="build"}`).join("|");
+  if(previous?.key===key){ previous.checked=now; return previous.crew; }
+  const occupied=new Set();
+  for(const b of standing){
+    const size=BLD[b.t].size;
+    for(let y=b.y;y<b.y+size;y++) for(let x=b.x;x<b.x+size;x++) occupied.add(y*N+x);
+  }
+  const shelters=standing.filter(b=>b.t!=="fence"&&b.busy?.kind!=="build");
+  const clubhouse=shelters.find(b=>b.t==="clubhouse");
+  const crew=[];
+  const priority=b=>b.t==="clubhouse"?0:b.t==="shed"?1:2;
+  shelters.sort((a,b)=>priority(a)-priority(b));
+  if(clubhouse) shelters.splice(1,0,clubhouse);
+  for(const b of shelters){
+    if(crew.length===5) break;
+    const size=BLD[b.t].size, offset=crew.some(member=>member.shelter===b)?.72:.48;
+    for(const [dx,dy] of [[0,1],[1,0]]){
+      const x=b.x+size*(dx?1:offset), y=b.y+size*(dy?1:offset);
+      const route=[.24,.70,1.15,1.60].every(distance=>{
+        const col=Math.floor(x+dx*distance), row=Math.floor(y+dy*distance);
+        return col>=0&&col<N&&row>=0&&row<N&&!occupied.has(row*N+col);
+      });
+      if(!route) continue;
+      crew.push({x,y,dx,dy,shelter:b,id:crew.length});
+      break;
+    }
+  }
+  crewLayouts.set(buildings,{key,checked:now,crew});
+  return crew;
+}
+function addGroundCrew(entities,buildings,club,retreatTime=null){
+  if(retreatTime!==null&&retreatTime>=2.3) return;
+  const now=performance.now()/1000, retreating=retreatTime!==null;
+  for(const {x,y,dx,dy,shelter,id} of groundCrewLayout(buildings,now)){
+    if(shelter.hp<=0) continue;
+    const phase=((retreating?now-retreatTime:now)+id*1.13)*1.4;
+    const patrol=Math.max(0,Math.min(1,.5+Math.sin(phase)*.63));
+    const distance=.48+patrol*1.1;
+    const run=Math.max(0,(retreatTime-id*.11)*2.6);
+    const offset=retreating?distance-run:distance;
+    if(offset<-.30) continue;
+    const px=x+dx*offset, py=y+dy*offset;
+    const face=(dx-dy)*(retreating?-1:(Math.cos(phase)>0?1:-1));
+    entities.push({k:px+py,f:()=>{
+      const [sx,sy]=P(px,py);
+      ctx.save();
+      if(offset<0) ctx.globalAlpha=Math.max(0,1+offset/.30);
+      drawPlayer(sx,sy,TW*.105,club,{kind:id===1?"trainer":"rover",id:400+id,face,moving:retreating||patrol>0&&patrol<1});
+      if(id===0&&offset>=0) footy(sx+face*TW*.072,sy-TW*.11,TW*.034,.35);
+      ctx.restore();
+    }});
+  }
+}
+
 // ---------- players ----------
 // kinds: rover, forward, ruck, tagger, shepherd, trainer, hero
 function drawPlayer(px,py,k,c,o={}){

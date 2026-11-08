@@ -33,8 +33,10 @@ function genBase(d, seed){
   place("shed",["edge"]); place("shed",["edge"]);
   let budget=cnt("fence");
   for(const R of rings){ if(budget<=0) break;
-    const take=Math.min(R.length,budget), skip=R.length-take; budget-=take;
-    R.forEach(([i,j],n)=>{ const gapHere = skip>0 && (Math.floor(n*skip/R.length)!==Math.floor((n+1)*skip/R.length));
+    const take=Math.min(R.length,budget); if(take<R.length*.5) break; budget-=take;
+    // a part ring is built as one unbroken stretch, like a Clash wall still being finished (never scattered posts)
+    const start=Math.floor(r()*R.length);
+    R.forEach(([i,j],n)=>{ const gapHere = take<R.length && ((n-start+R.length)%R.length)>=take;
       if(!gapHere && !occ.has("b"+key(i,j))){ const lv=Math.max(1,Math.min(maxLevel("fence",d),d-(r()<.3?1:0))), hp=BLD.fence.hp[lv-1]; list.push({id:list.length+1,t:"fence",x:i,y:j,lv,hp,max:hp}); occ.add("b"+key(i,j)); } }); }
   for(let n=0;n<cnt("sprinkler");n++) for(let k=0;k<200;k++){ const i=C0-9+(r()*19|0), j=C0-9+(r()*19|0); if(zone(i,j)==="mid"&&!occ.has(key(i,j))&&!occ.has("b"+key(i,j))){ occ.add("b"+key(i,j)); list.push({id:list.length+1,t:"sprinkler",x:i,y:j,lv:Math.max(1,Math.min(5,d-2)),hp:1,max:1,armed:true}); break; } }
   const total={pies:Math.round((600+1100*d*d)*(.7+r()*.6)), drink:Math.round((600+1100*d*d)*(.7+r()*.6))};
@@ -330,7 +332,7 @@ function renderBattle(){
   ctx.save(); ctx.translate(sx,sy);
   drawGround();
   const club=CLUBS[BT.club];
-  if(BT.mode==="attack"&&(BT.mask>0||!BT.started)){ if(BT.dirty) rebuildGrid(); ctx.save(); ctx.globalAlpha=Math.min(.35,BT.started?BT.mask*.3:.22);
+  if(BT.mode==="attack"&&!BT.visit&&BT.mask>0){ if(BT.dirty) rebuildGrid(); ctx.save(); ctx.globalAlpha=Math.min(.35,BT.mask*.3); // like Clash: the red zone flashes when you tap where you can't deploy
     for(let j=0;j<N;j++) for(let i=0;i<N;i++) if(BT.noDeploy[j*N+i]) diamond(i,j,1,1,"#e8503a"); ctx.restore(); }
   for(const z of BT.zones){ if(z.k==="strike") continue; const [x,y]=P(z.x,z.y), col=z.k==="oranges"?"#ffa53a":z.k==="rain"?"#4fa3ff":"#ff3b9a";
     ctx.save(); ctx.globalAlpha=.25+.1*Math.sin(performance.now()/120); ctx.beginPath(); ctx.ellipse(x,y,z.r*TW*.72,z.r*TH*.72,0,0,7); ctx.fillStyle=col; ctx.fill(); ctx.globalAlpha=.8; ctx.strokeStyle=col; ctx.lineWidth=3; ctx.stroke(); ctx.restore();

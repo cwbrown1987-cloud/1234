@@ -247,14 +247,21 @@ async function renderFriends(soc) {
     if(soc!==$("soc")) return;
     const row = (f, extra, btns) => `<div class="fx">${badgeImg(CLUBS[f.club] || CLUBS[0], "sm")}<span class="nm">${f.online ? "🟢 " : ""}<b>${esc(f.name)}</b><br><small>${extra || `Clubhouse ${f.th} · 🏆 ${f.trophies}`}</small></span>${btns}</div>`;
     let h = "";
-    if (r.requests.length) h += `<h3>Friend requests</h3>` + r.requests.map(f => row(f, "added you", `<button class="btn green" data-addback="${f.id}">➕ Add back</button><button class="btn red" data-unf="${f.id}" title="Ignore">✖</button>`)).join("");
+    if (r.requests.length) h += `<h3>Friend requests</h3>` + r.requests.map(f => row(f, "added you", `<button class="btn green" data-addback="${f.id}">➕ Add</button><button class="btn red" data-unf="${f.id}" title="Ignore">✖</button>`)).join("");
     if (r.suggestions.length) h += `<h3>Suggested by your mates</h3>` + r.suggestions.map(f => row(f, `${esc(f.from)} suggests them`, `<button class="btn green" data-addback="${f.id}">➕ Add</button><button class="btn red" data-unsug="${f.id}" title="Dismiss">✖</button>`)).join("");
-    h += `<h3>Friends${r.friends.length ? ` (${r.friends.length})` : ""}</h3>` + (r.friends.length ? r.friends.map(f => row(f, "", `<button class="btn blue" data-visit="${f.id}">👀</button><button class="btn gold" data-fr="${f.id}">⚔️</button>${r.friends.length > 1 ? `<button class="btn" data-sug="${f.id}" title="Suggest a friend to ${esc(f.name)}">💡</button>` : ""}<button class="btn red" data-unf="${f.id}" title="Remove">✖</button>`)).join("")
+    const revOf = id => (S.raids || []).find(x => x.attackerId === id && canRevenge(x));
+    h += `<h3>Friends${r.friends.length ? ` (${r.friends.length})` : ""}</h3>` + (r.friends.length ? r.friends.map(f => { const rv = revOf(f.id); return row(f, rv ? `⚔️ attacked you ${fmtTime((Date.now() - rv.at) / 1000)} ago` : "", `<button class="btn blue" data-visit="${f.id}">👀</button>${rv ? `<button class="btn red" data-rev="${rv.id}">⚔️ Revenge</button>` : `<button class="btn gold" data-fr="${f.id}">⚔️</button>`}${r.friends.length > 1 ? `<button class="btn" data-sug="${f.id}" title="Suggest a friend to ${esc(f.name)}">💡</button>` : ""}<button class="btn red" data-unf="${f.id}" title="Remove">✖</button>`); }).join("")
       : `<p class="center">No friends yet. Add someone by their player name above.</p>`);
     if (r.sent.length) h += `<h3>Waiting for them to add you back</h3>` + r.sent.map(f => row(f, "request sent", `<button class="btn red" data-unf="${f.id}" title="Cancel">✖</button>`)).join("");
     $("frList").innerHTML = h;
     document.querySelectorAll("[data-visit]").forEach(b => b.onclick = () => visitPlayer(b.dataset.visit));
     document.querySelectorAll("[data-fr]").forEach(b => b.onclick = () => attackPlayer(b.dataset.fr, "friend"));
+    document.querySelectorAll("#frList [data-rev]").forEach(b => b.onclick = () => revenge(S.raids.find(x => x.id == b.dataset.rev)));
+    // players (not friends) who attacked you: revenge them from here too
+    const others = revengeList().filter(x => x.real && x.attackerId && !r.friends.some(f => f.id === x.attackerId));
+    if (others.length) { $("frList").insertAdjacentHTML("beforeend", `<h3>Players who attacked you</h3>` + others.map(x => `<div class="fx">${badgeImg(CLUBS[x.club] || CLUBS[0], "sm")}<span class="nm"><b>${esc(x.attacker)}</b><br><small>${fmtTime((Date.now() - x.at) / 1000)} ago · ${x.stars ? "★".repeat(x.stars) : "no stars"}</small></span><button class="btn red" data-rev2="${x.id}">⚔️ Revenge</button><button class="btn green" data-addp="${x.attackerId}" title="Add friend">➕</button></div>`).join(""));
+      document.querySelectorAll("[data-rev2]").forEach(b => b.onclick = () => revenge(S.raids.find(x => x.id == b.dataset.rev2)));
+      document.querySelectorAll("[data-addp]").forEach(b => b.onclick = async () => { try { const x = await api("/friends", { method: "POST", body: { id: b.dataset.addp } }); toast(x.mutual ? `You and ${x.friend.name} are now friends!` : `Friend request sent to ${x.friend.name}`); } catch (e) { toast(e.message); } openFriends(); }); }
     document.querySelectorAll("[data-addback]").forEach(b => b.onclick = async () => { b.disabled = true;
       try { const x = await api("/friends", { method: "POST", body: { id: b.dataset.addback } }); toast(x.mutual ? `You and ${x.friend.name} are now friends!` : `Friend request sent to ${x.friend.name}`); } catch (e) { toast(e.message); } openFriends(); });
     document.querySelectorAll("[data-unsug]").forEach(b => b.onclick = async () => { await api("/friends/suggest/" + b.dataset.unsug, { method: "DELETE" }).catch(e => toast(e.message)); openFriends(); });

@@ -78,8 +78,11 @@ function watchReplay(raid){
   BT=raidBattle(raid,"replay"); BT.speed=1; BT.raid=raid;
   mode="battle"; selected=null; placing=null; cam.x=0; cam.y=0; setZoom(.8); refreshUI();
 }
+// Like Clash: anyone who attacked you (not practice friendlies or Ranked) can be attacked back once.
+const canRevenge = r => !!r && !r.revenged && !r.friendly && !r.ranked;
+const revengeList = () => (S.raids||[]).filter(canRevenge).slice(0,5);
 function revenge(raid){
   if(raid.revenged) return toast("You already got them back!");
-  if(raid.real&&raid.attackerId&&typeof attackPlayer==="function"){ raid.revenged=true; save(); closeModal(); return attackPlayer(raid.attackerId,"pvp"); }
+  if(raid.real&&raid.attackerId&&typeof attackPlayer==="function"){ raid.revenged=true; save(); closeModal(); return attackPlayer(raid.attackerId,raid.friend?"friend":"pvp"); }
   closeModal(); startBattle({kind:"revenge", club:raid.club, d:raid.d, seed:raid.id%1e9, lootMul:1.5, revenge:raid.id, opp:raid.botId?{id:raid.botId,name:raid.attacker,bot:true}:null});
 }

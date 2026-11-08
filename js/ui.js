@@ -50,7 +50,7 @@ function refreshUI(){
   if(S){ const c=myClub(); $("clubName").textContent=c.name; $("g").src=badgeURL(c,96); if(refreshUI.hudClub!==S.club&&typeof refreshArtHUD==="function"&&artSprites.size){ refreshUI.hudClub=S.club; refreshArtHUD(); } }
   // weekly events live under Tasks; the banner spot only nags when you have no way to earn pies or drink
   const miss=S&&home&&!placing&&!(typeof tutActive==="function"&&tutActive())?missingIncome():[];
-  $("eventBanner").classList.toggle("hide",!miss.length);
+  $("eventBanner").classList.toggle("hide",!miss.length||!!selected); // hide behind a selected building's panel
   if(miss.length){ $("eventBanner").innerHTML=`⚠️ Build your first <b>${miss.map(t=>BLD[t].name).join(" and ")}</b>, it's free! Tap here`; $("eventBanner").onclick=()=>openShop("Resources"); }
   $("placePanel").style.display=home&&placing&&!placing.moving?"flex":"none";
   $("placePanel").classList.toggle("moving-row",!!placing?.row);
@@ -356,7 +356,7 @@ function openLog(){
     h+=`<div class="raid ${r.stars?"lost":"won"}">${badgeImg(c)}<div class="grow"><div><b>${who}</b> ${r.friendly?'<span class="tag fr">FRIENDLY</span>':r.friend?'<span class="tag fr">FRIEND</span>':""} ${r.seen?"":'<span class="tag">NEW</span>'}</div>
       <div class="tiny">${ago} ago · ${r.sc?`${c.short} ${fmtScore(r.sc.a)} v ${myClub().short} ${fmtScore(r.sc.h)}`:r.pct+"% destroyed"} · <span class="stars">${"★".repeat(r.stars)}<span class="dim">${"★".repeat(3-r.stars)}</span></span></div>
       <div class="tiny">${r.stars?`Lost 🥧 ${fmt(r.lost.pies)} 💧 ${fmt(r.lost.drink)}`:"Defence win!"} · ${r.tro>0?"+":""}${r.tro} 🏆</div></div>
-      <div class="col"><button class="btn blue" data-replay="${r.id}">▶ Replay</button>${r.stars&&!r.revenged&&!r.friendly&&!r.friend&&!r.ranked?`<button class="btn red" data-rev="${r.id}">Revenge</button>`:""}</div></div>`; }
+      <div class="col"><button class="btn blue" data-replay="${r.id}">▶ Replay</button>${canRevenge(r)?`<button class="btn red" data-rev="${r.id}">⚔️ Revenge</button>`:""}</div></div>`; }
   modal(h);
   S.raids.forEach(r=>r.seen=true); save(); updateLogBadge();
   document.querySelectorAll("[data-live]").forEach(b=>b.onclick=()=>watchLive(b.dataset.live));
@@ -379,6 +379,9 @@ function openMatch(){
     ${rk.last?`<div class="banner">Last week: ${ordinal(rk.last.pos)} of ${rk.last.n}. ${rk.last.to>rk.last.from?"⬆ Promoted to ":rk.last.to<rk.last.from?"⬇ Moved down to ":"Staying in "}<b>${rkName(rk.last.to)}</b></div>`:""}
     <div class="center tiny">🏆 ${S.trophies} · ${left}/${rkAttacks(rk.tier)} ranked attacks left${S.shield>Date.now()?" · Attacking ends your shield":""}</div>
     <button class="btn blue match-log-link hide" id="unreadLog"></button>`;
+  const revs=revengeList();
+  if(revs.length) h+=`<section class="revenge-box"><h3>⚔️ Revenge</h3>${revs.slice(0,3).map(r=>{ const c=CLUBS[r.club]||CLUBS[0];
+    return `<div class="fx">${badgeImg(c,"sm")}<span class="nm"><b>${esc(r.attacker||c.name)}</b>${r.friend?' <span class="tag fr">FRIEND</span>':""}<br><small>${fmtTime((Date.now()-r.at)/1000)} ago · ${r.stars?"took "+"★".repeat(r.stars):"no stars"}${r.lost&&(r.lost.pies||r.lost.drink)?` · 🥧 ${fmt(r.lost.pies)} 💧 ${fmt(r.lost.drink)}`:""}</small></span><button class="btn red" data-rev="${r.id}">⚔️ Revenge</button></div>`; }).join("")}</section>`;
   const online=typeof signedIn==="function"&&signedIn(), tutorial=tutActive();
   const cost=online?50*th():tutorial?0:10*th()*th();
   const matchLock=!Object.values(S.army).some(n=>n>0)?"Train players first":!canPay("pies",cost)?`Need ${fmt(cost)} pies`:"";
@@ -406,6 +409,7 @@ function openMatch(){
     if(!Object.values(S.army).some(n=>n>0)) return toast("Train some players first!"); if(!tutActive()&&!pay("pies",cost)) return toast("Not enough 🥧");
     let c; do{ c=Math.random()*18|0; }while(c===S.club); const d=Math.max(1,Math.min(MAX_TH,th()+(tutActive()?-1:ranked?(Math.random()*3|0)-1:0)));
     closeModal(); startBattle({kind:"match",ranked,club:c,d,seed:Math.random()*1e9|0}); };
+  document.querySelectorAll("[data-rev]").forEach(b=>b.onclick=()=>{ if(!Object.values(S.army).some(n=>n>0)) return toast("Train some players first!"); revenge(S.raids.find(r=>r.id==b.dataset.rev)); });
   $("findMatch").onclick=()=>find(false); $("findRanked").onclick=sub(()=>rankedConfirm(()=>find(true)),()=>openHub("battle","Play"));
   $("rkTable").onclick=sub(openRankedTable,openMatch); if(rk.last){ delete rk.last; save(); }
   const pr=$("playRound"); if(pr) pr.onclick=()=>tutActive()?find(true):sub(()=>rankedConfirm(()=>find(true)),()=>openHub("battle","Play"))();

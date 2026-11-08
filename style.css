@@ -785,3 +785,16 @@ body:not(.ffui) .albummode .rwd{background:linear-gradient(#2a2e37,#16181e);bord
 #frList .fx .nm{flex:1 1 140px;min-width:0}
 #frList .fx .btn{padding:6px 9px;min-width:0;font-size:15px}
 .liverow b{white-space:nowrap}
+.revenge-box{margin:8px 0;padding:6px 8px;border-radius:14px;border:3px solid #c8321e;background:#ffe9e4}
+.revenge-box h3{margin:2px 0 6px;color:#a3261a}
+.revenge-box .fx{flex-wrap:wrap}.revenge-box .fx .nm{flex:1 1 130px;min-width:0}
+/* button & label fixes: names sit below portraits, rows keep their buttons on one line */
+.grid .item img:not(.packimg){position:relative;z-index:0;margin-bottom:-6px}
+.grid .item .nm{position:relative;z-index:1;margin-top:4px;line-height:1.1}
+#frList .fx,.revenge-box .fx{flex-wrap:nowrap}
+#frList .fx .nm,.revenge-box .fx .nm{flex:1 1 0;min-width:0;overflow:hidden;text-overflow:ellipsis}
+#frList .fx .btn,.revenge-box .fx .btn{flex:none;white-space:nowrap;padding:6px 8px}
+#frList .fx .badgeimg,.revenge-box .fx .badgeimg{flex:none}
+#frList .fx:has(.btn:nth-of-type(3)){flex-wrap:wrap;row-gap:6px}
+#frList .fx:has(.btn:nth-of-type(3)) .nm{flex:1 1 calc(100% - 64px)}
+#frList .fx:has(.btn:nth-of-type(3)) .btn:first-of-type{margin-left:auto}

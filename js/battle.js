@@ -327,8 +327,8 @@ function leaveBattle(){ const wasAttack=BT&&BT.mode==="attack"&&!BT.visit; BT=nu
 function renderBattle(){
   const sx=shake>0?(Math.random()-.5)*shake*30:0, sy=shake>0?(Math.random()-.5)*shake*30:0;
   ctx.save(); ctx.translate(sx,sy);
-  drawGround();
   const club=CLUBS[BT.club];
+  drawGround(club);
   if(BT.mode==="attack"&&(BT.mask>0||!BT.started)){ if(BT.dirty) rebuildGrid(); ctx.save(); ctx.globalAlpha=Math.min(.35,BT.started?BT.mask*.3:.22);
     for(let j=0;j<N;j++) for(let i=0;i<N;i++) if(BT.noDeploy[j*N+i]) diamond(i,j,1,1,"#e8503a"); ctx.restore(); }
   for(const z of BT.zones){ if(z.k==="strike") continue; const [x,y]=P(z.x,z.y), col=z.k==="oranges"?"#ffa53a":z.k==="rain"?"#4fa3ff":"#ff3b9a";
@@ -356,6 +356,7 @@ function renderBattle(){
     if(f.k==="poof"){ ctx.fillStyle="#ddd"; for(let i=0;i<4;i++){ ctx.beginPath(); ctx.arc(x+(i-1.5)*TW*.15,y-TH*(.5+f.t*2),TW*.15*(1-f.t),0,7); ctx.fill(); } }
     if(f.k==="bolt"){ ctx.strokeStyle="#fff59d"; ctx.lineWidth=TW*.12; ctx.beginPath(); let yy=y-H, xx=x; ctx.moveTo(xx,yy); while(yy<y){ yy+=TH*1.5; xx=x+(Math.random()-.5)*TW*.8; ctx.lineTo(xx,Math.min(y,yy)); } ctx.stroke(); ctx.strokeStyle="#fff"; ctx.lineWidth=TW*.05; ctx.stroke(); ctx.fillStyle="#fff59d"; ctx.beginPath(); ctx.ellipse(x,y,TW*.8,TH*.8,0,0,7); ctx.fill(); }
     ctx.restore(); }
+  drawAmbientBirds();
   drawFloaters();
   ctx.restore();
 }

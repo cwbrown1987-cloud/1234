@@ -267,7 +267,7 @@ function openAlbum(club) {
       ${S.prizePacks ? `<button class="btn red" id="openPrize"><img class="packmini" src="${packImg("prize")}" alt=""> Open Prize Pack ×${S.prizePacks}<small>includes a 24K Gold card</small></button>` : `<div class="rwd"><b>🏆 Prize Pack</b><span>Every 5 Experience Levels. Includes a 24K Gold card. Next at level ${Math.ceil((S.lvl + 1) / 5) * 5}.</span></div>`}
       <div class="rwd"><b>⬆️ Upgrades</b><span>3 matching duplicates upgrade a card: Common → Rare → Epic → Legendary. Cards are for collecting and don't change match stats.</span></div></div>`;
   }
-  const h = `<div class="fcc">
+  const h = `<div class="fcc${albumTab === "album" ? " album-spread" : ""}">
     <div class="fccbanner"><span class="emblem">🏉</span><div><b>Footy Card Collectors</b><small>Collect · Upgrade · Complete the set</small></div></div>
     <div class="atabs">${tab("album", '<span class="cicon"><i></i><i></i></span>', "Album")}<button class="atab soon" data-tab="trade"><b>⇄</b>Trade<i class="soontag">Soon</i></button>${tab("sets", "🛡️", "Sets")}${tab("rewards", "🎁", "Rewards")}</div>
     ${body}

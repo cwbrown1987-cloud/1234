@@ -1,6 +1,12 @@
 {
   "version": 1,
   "files": [
+    "art/album/binder-leather.webp",
+    "art/buildings/fence-coping.webp",
+    "art/buildings/fence-pennant-afl.webp",
+    "art/buildings/fence-pennant-club.webp",
+    "art/buildings/fence-pier.webp",
+    "art/buildings/fence-stone.webp",
     "art/buildings/herohall-1.webp",
     "art/buildings/herohall-2.webp",
     "art/buildings/herohall-3.webp",
@@ -9,6 +15,8 @@
     "art/buildings/kitroom-3.webp",
     "art/buildings/kitroom-4.webp",
     "art/buildings/kitroom-5.webp",
+    "art/buildings/sprinkler-closed.webp",
+    "art/buildings/sprinkler-open.webp",
     "art/cards/back.webp",
     "art/cards/frame-24k-gold.webp",
     "art/cards/frame-best-fairest.webp",
@@ -34,6 +42,12 @@
     "art/players/188.webp",
     "art/portraits/captain-melb.webp",
     "art/portraits/coach.webp",
+    "art/scenery/floodlight.webp",
+    "art/scenery/grandstand.webp",
+    "art/scenery/magpie.webp",
+    "art/scenery/silver-gull.webp",
+    "art/scenery/stump.webp",
+    "art/scenery/wattle.webp",
     "art/units/blimp.webp",
     "art/units/forward-a.webp",
     "art/units/forward-b.webp",
@@ -90,6 +104,26 @@
         6,
         4,
         4
+      ]
+    },
+    "art/scenery/magpie.webp": {
+      "cell": 128,
+      "cols": 6,
+      "rows": [
+        "flight"
+      ],
+      "frames": [
+        6
+      ]
+    },
+    "art/scenery/silver-gull.webp": {
+      "cell": 128,
+      "cols": 6,
+      "rows": [
+        "flight"
+      ],
+      "frames": [
+        6
       ]
     },
     "art/units/blimp.webp": {

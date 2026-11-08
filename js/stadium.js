@@ -32,14 +32,20 @@ function annulus(r1, z1, r2, z2, fill, stroke) {
   if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = Math.max(1, TW * .02); ctx.stroke(); }
 }
 
-function drawStadiumBowl() {
+function drawStadiumBowl(club) {
   const { R0, tiers, step, rise } = BOWL;
   // night sky behind the stands, lit from the floodlights
   const sky = ctx.createLinearGradient(0, 0, 0, H);
-  sky.addColorStop(0, "#0d1730"); sky.addColorStop(.5, "#1c2c4f"); sky.addColorStop(1, "#141d33");
+  sky.addColorStop(0, "#132440"); sky.addColorStop(.45, "#536782"); sky.addColorStop(1, "#232e42");
   ctx.fillStyle = sky; ctx.fillRect(0, 0, W, H);
 
-  // concrete concourse ring, then the seating tiers with the crowd
+  // The painted rear stand replaces the far seating. The near seating wraps around the field.
+  const stand = artSprites.get("scenery-grandstand");
+  if (stand) {
+    annulus(R0+1.1,0,R0+3.2,1.15,"#485160","#252b34");
+    ctx.save();
+    ctx.beginPath(); ctx.rect(-TW,fieldCentreY()-TH,W+TW*2,H); ctx.clip();
+  }
   const base = R0 + 1.7;
   annulus(R0 + 1.2, .35, base, .45, "#8b8f97", "#00000055");
   for (let i = 0; i < tiers; i++) {
@@ -53,9 +59,27 @@ function drawStadiumBowl() {
   annulus(rTop - .2, zTop, rTop + 2.6, zTop + 1.4, "#3a4352", "#0008");
   annulus(rTop + 2.4, zTop + 1.35, rTop + 2.7, zTop + 1.5, "#f6c343");
 
-  // four light towers
-  for (const a of [Math.PI * .25, Math.PI * .75, Math.PI * 1.25, Math.PI * 1.75]) {
-    const [bx, by] = ringPt(rTop + 1.4, zTop + 1.4, a), [tx, ty] = ringPt(rTop + 1.4, zTop + 8.5, a);
+  if (stand) ctx.restore();
+  const rear = Math.PI*1.25;
+  const [cx, rail] = ringPt(R0+1.2,0,rear);
+  if (stand) {
+    const w = TW*R0*1.48, h = w*stand.h/stand.w*.55;
+    ctx.drawImage(stand.image,stand.x,stand.y,stand.w,stand.h,cx-w/2,rail-h*.69,w,h);
+  }
+
+  // Tall perimeter masts, entirely behind the playing surface.
+  const mast = artSprites.get("scenery-floodlight");
+  for (const offset of [-.88,-.20,.20,.88]) {
+    const [bx, by] = ringPt(R0+2.4,0,rear+offset);
+    if (mast) {
+      const height = TH*(Math.abs(offset)>.5?10.2:8.4), foot = by+TH*2.6, lamp = foot-height*.92;
+      const glow = ctx.createRadialGradient(bx,lamp,0,bx,lamp,TW*1.2);
+      glow.addColorStop(0,"#fff0bb6b"); glow.addColorStop(1,"#fff0bb00");
+      ctx.fillStyle=glow; ctx.fillRect(bx-TW*1.2,lamp-TW*1.2,TW*2.4,TW*2.4);
+      paintArt(mast,bx,foot,height/mast.h,1,offset>0?-1:1);
+      continue;
+    }
+    const tx = bx, ty = by - TH*7.2;
     ctx.lineCap = "round";
     ctx.strokeStyle = OUT; ctx.lineWidth = TW * .18; ctx.beginPath(); ctx.moveTo(bx, by); ctx.lineTo(tx, ty); ctx.stroke();
     ctx.strokeStyle = "#9aa3ad"; ctx.lineWidth = TW * .1; ctx.stroke();
@@ -73,13 +97,48 @@ function drawStadiumBowl() {
   for (let k = -N; k < N * 2; k += 3) { ctx.fillStyle = "#8eaa45"; ctx.beginPath(); const a = P(k, -N), b = P(k + 1.5, -N), c2 = P(k + 1.5, N * 2), d = P(k, N * 2); ctx.moveTo(...a); ctx.lineTo(...b); ctx.lineTo(...c2); ctx.lineTo(...d); ctx.fill(); }
   ctx.restore();
   ctx.beginPath(); ringPath(R0, 0, false); ctx.closePath(); ctx.strokeStyle = "#f4f1e6"; ctx.lineWidth = Math.max(2, TW * .07); ctx.stroke();
-  const boards = 32;
+  const boards = 36;
   for (let i = 0; i < boards; i++) {
     const a1 = i / boards * Math.PI * 2, a2 = (i + .92) / boards * Math.PI * 2, r = R0 + 1.25;
     const p = [ringPt(r, 0, a1), ringPt(r, 0, a2), ringPt(r, .42, a2), ringPt(r, .42, a1)];
-    const club = CLUBS[i % CLUBS.length];
-    poly(p, i % 2 ? club.a : "#ffffff", "#0006", 1);
-    ctx.save(); ctx.globalAlpha = .9; poly([p[0], p[1], ringPt(r, .14, a2), ringPt(r, .14, a1)], i % 2 ? club.b : club.a, null); ctx.restore();
+    const home = i % 3 !== 1;
+    poly(p, home ? club.a : "#263444", "#141a23", Math.max(1,TW*.018));
+    poly([p[0], p[1], ringPt(r,.09,a2), ringPt(r,.09,a1)],home?club.b:"#e1b658",null);
+    const [mx,my] = ringPt(r,.25,(a1+a2)/2);
+    const width = Math.abs(p[1][0]-p[0][0]);
+    if (width > TW*.6) {
+      ctx.save(); ctx.font = `bold ${Math.max(5,TH*.24)}px sans-serif`;
+      ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.fillStyle = "#fff7e2";
+      ctx.shadowColor = "#0a1018"; ctx.shadowBlur = 2;
+      ctx.fillText(home?club.short:"FOOTY FORTRESS",mx,my,width*.86);
+      ctx.restore();
+    }
+  }
+  drawStadiumBanners(club,rear);
+  drawOvalGoals(rear);
+}
+
+function drawStadiumBanners(club,rear) {
+  for (const offset of [-.57,-.39,-.2,.2,.39,.57]) {
+    const [x,y] = ringPt(BOWL.R0+2.4,1.85,rear+offset);
+    const w = TW*.7, h = TH*.83;
+    ctx.fillStyle = "#121922"; ctx.fillRect(x-w*.57,y-TH*.14,w*1.14,Math.max(2,TH*.12));
+    poly([[x-w/2,y],[x+w/2,y],[x+w/2,y+h],[x,y+h*.83],[x-w/2,y+h]],club.a,"#121922",Math.max(1,TW*.035));
+    ctx.fillStyle = club.b; ctx.fillRect(x-w*.46,y+h*.18,w*.92,h*.18);
+    drawBadge(ctx,x,y+h*.55,w*.27,club);
+  }
+}
+
+function drawOvalGoals(rear) {
+  for (const end of [rear,rear+Math.PI]) {
+    for (const offset of [-.13,-.05,.05,.13]) {
+      const [x,y] = ringPt(BOWL.R0-.8,0,end+offset);
+      const h = TH*(Math.abs(offset)<.1?3.2:2.15);
+      ctx.lineCap = "round";
+      ctx.strokeStyle = "#3e5143"; ctx.lineWidth = Math.max(2,TW*.072);
+      ctx.beginPath(); ctx.moveTo(x,y); ctx.lineTo(x,y-h); ctx.stroke();
+      ctx.strokeStyle = "#faf3df"; ctx.lineWidth = Math.max(1.5,TW*.045); ctx.stroke();
+    }
   }
 }
 

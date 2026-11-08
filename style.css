@@ -356,7 +356,7 @@ p.clash{color:#8a6d45;font-size:13px;margin:-4px 0 6px}
 .tag.epic{background:#8e44ad}
 
 /* ---------- Footy Card Collectors album (matches docs/card-style-reference.png) ---------- */
-.card.albummode{background:radial-gradient(ellipse at 50% 0%,#4a3420 0%,#2a1c10 55%,#170f08 100%);border-color:#0b0704;color:#e9e3cf;padding:10px 8px 12px;box-shadow:0 6px 0 #000,inset 0 0 0 2px #ffffff10}
+.card.albummode{background:radial-gradient(ellipse at 50% 0%,#4a36242e,#080b10b8),url("art/album/binder-leather.webp") #222329 center/320px auto;border-color:#090b10;color:#e9e3cf;padding:12px;box-shadow:0 7px 0 #000,inset 0 0 0 2px #e2c28d36}
 .fcc{display:flex;flex-direction:column;gap:9px;text-shadow:0 2px 0 #000}
 /* wooden banner with metal corner brackets */
 .fccbanner{position:relative;display:flex;align-items:center;gap:8px;padding:8px 12px 9px;margin:0 46px 0 0;border:3px solid #120b05;border-radius:10px;
@@ -381,20 +381,23 @@ p.clash{color:#8a6d45;font-size:13px;margin:-4px 0 6px}
 .pagehead span{display:flex;flex-direction:column;font-size:19px;line-height:1.05}.pagehead small{font-size:12px;color:#cbbf9f}
 .spstar{font-size:22px}
 /* leather binder: stitched edge, two dark pages, chrome rings */
-.binder{position:relative;display:grid;grid-template-columns:1fr 22px 1fr;gap:0;padding:10px 8px;border-radius:14px;border:4px solid #0a0705;
-  background:radial-gradient(ellipse at 30% 20%,#3b2c22,#21170f 70%);box-shadow:inset 0 0 0 2px #ffffff12,0 6px 0 #000,0 10px 18px #0009}
-.binder::before{content:"";position:absolute;inset:5px;border:2px dashed #8a6a4866;border-radius:10px;pointer-events:none}
-.bpage{display:grid;grid-template-columns:1fr 1fr;gap:7px;padding:8px;border-radius:8px;align-content:start;
-  background:linear-gradient(160deg,#2c303a,#191b21);box-shadow:inset 0 0 12px #000c,inset 0 0 0 1px #ffffff10}
-.rings{display:flex;flex-direction:column;justify-content:space-around;align-items:center;z-index:2;margin:0 -9px}
-.rings i{width:34px;height:15px;border-radius:9px;border:4px solid #d9dee4;border-left-color:#9aa3ad;border-bottom-color:#7e8792;background:transparent;box-shadow:0 2px 3px #000,inset 0 1px 1px #000a}
-.aslot{aspect-ratio:240/336;border-radius:8px}
+.binder{position:relative;display:grid;grid-template-columns:minmax(0,1fr) clamp(17px,4vw,28px) minmax(0,1fr);gap:0;padding:10px 8px;border-radius:14px;border:4px solid #0a0908;
+  background:linear-gradient(90deg,#18191b15 43%,#080809b5 50%,#18191b15 57%),url("art/album/binder-leather.webp") #272526 center/300px auto;box-shadow:inset 0 0 0 2px #c4a27b5e,inset 0 0 15px #000,0 6px 0 #000,0 10px 18px #0009}
+.binder::before{content:"";position:absolute;inset:5px;border:1px dashed #d7b78b80;border-radius:10px;pointer-events:none}
+.bpage{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:clamp(4px,1vw,9px);padding:clamp(4px,1.1vw,10px);border-radius:8px;align-content:start;
+  background:linear-gradient(160deg,#71809a39,#12141b57 34%,#111318b0),url("art/album/binder-leather.webp") #272b35 center/280px auto;box-shadow:inset 0 0 12px #000c,inset 0 0 0 1px #bec4d03b}
+.rings{display:flex;flex-direction:column;justify-content:space-around;align-items:center;z-index:2;margin:0 -9px;background:linear-gradient(90deg,#100d0c00 24%,#0e0d0bd9 43%,#57483b7a 48%,#09090a 54%,#100d0c00 76%)}
+.rings i{width:clamp(25px,5vw,41px);height:clamp(13px,2.4vw,19px);border-radius:12px;border:4px solid transparent;
+  background:linear-gradient(#322a24,#100e0e) padding-box,linear-gradient(160deg,#322c28 3%,#8f7f6a 18%,#ffedc7 33%,#b9b1a4 46%,#4f4a45 59%,#262223 74%,#a99575 96%) border-box;
+  box-shadow:0 3px 4px #000,inset 0 1px 2px #000a}
+.aslot{aspect-ratio:240/336;border-radius:7px;min-width:0}
 .aslot.blank{background:#ffffff06;border:2px dashed #ffffff10}
-.aslot.empty{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:4px;cursor:pointer;color:#a99f86;border:2px dashed #ffffff26;
-  background:radial-gradient(circle at 50% 42%,#ffffff12 0 18%,#0000 19%),#1b1d24;text-shadow:none}
+.aslot.empty{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:4px;cursor:pointer;color:#b9ad98;border:1px dashed #9496a36b;
+  background:radial-gradient(ellipse at 50% 43%,#b3a78920 0 17%,#0000 18%),linear-gradient(135deg,#52596a6b,#181b25c9 65%);text-shadow:none;box-shadow:inset 0 2px 0 #eef2ff19,inset 0 -3px 7px #0008}
 .aslot.empty span{font-size:14px;color:#d6caa8}.aslot.empty small{font-size:10px;opacity:.8}
-.aslot img{width:100%;height:100%;display:block;border-radius:8px}
+.aslot img{width:100%;height:100%;display:block;border-radius:7px}
 .acard{position:relative;cursor:pointer}
+.acard:not(.empty)::after{content:"";position:absolute;inset:0;pointer-events:none;border-radius:inherit;box-shadow:inset 0 2px 0 #e6eeff4d,inset 1px 0 0 #e6eeff22;background:linear-gradient(155deg,#e6efff1a 0%,#e6efff00 24%)}
 .acard.sel img{outline:3px solid #fff;outline-offset:1px}
 .acard.t-c img{box-shadow:0 3px 0 #0008}.acard.t-s img{box-shadow:0 0 10px #5fb2ff,0 3px 0 #0008}.acard.t-g img{box-shadow:0 0 11px #ff5a5a,0 3px 0 #0008}.acard.t-p img{box-shadow:0 0 14px #ffd34d,0 3px 0 #0008}
 .acard .dup{position:absolute;top:4px;right:4px;background:#e8503a;color:#fff;border:2px solid #000;border-radius:8px;font-size:11px;padding:0 4px}
@@ -465,6 +468,24 @@ p.clash{color:#8a6d45;font-size:13px;margin:-4px 0 6px}
 .sets .setsicon .cicon{transform:scale(.9)}
 .openpack .packicon .cicon{transform:scale(1.1)}
 
+/* Wide screens show the full binder spread with its controls beside it. */
+@media (min-width:950px) and (min-height:601px){
+  .card.albummode:has(.album-spread){width:min(96vw,1080px);max-height:94vh}
+  .album-spread{display:grid;grid-template-columns:96px minmax(0,1fr) minmax(245px,.47fr);grid-template-areas:
+    "banner banner banner" "tabs head stats" "tabs binder stats" "tabs pager stats" "clubs clubs footer";
+    gap:10px;align-items:start}
+  .album-spread>*{min-width:0}
+  .album-spread>.fccbanner{grid-area:banner}
+  .album-spread>.atabs{grid-area:tabs;grid-template-columns:1fr}
+  .album-spread>.pagehead{grid-area:head}
+  .album-spread>.binder{grid-area:binder}
+  .album-spread>.pager{grid-area:pager}
+  .album-spread>.statpanel{grid-area:stats;grid-template-columns:1fr}
+  .album-spread .spcard img{max-width:128px;margin:auto}
+  .album-spread>.woodbar{grid-area:clubs}
+  .album-spread>.fccfoot{grid-area:footer}
+}
+
 /* ---------- landscape phones: side buttons go along the bottom, album goes side by side ---------- */
 @media (orientation:landscape) and (max-height:600px){
   #side{top:auto;bottom:max(10px,env(safe-area-inset-bottom));right:calc(max(8px,env(safe-area-inset-right)) + 128px);flex-direction:row}
@@ -478,6 +499,7 @@ p.clash{color:#8a6d45;font-size:13px;margin:-4px 0 6px}
   .atab{padding:3px 2px;font-size:11px}.atab b{font-size:17px}
   .fcc>.statpanel,.fcc>.setlist,.fcc>.rewards{grid-column:2;grid-row:2 / span 3}
   .fcc>.woodbar{grid-column:1}
+  .album-spread>.binder{width:min(100%,calc((100dvh - 192px)*1.38 + 38px));margin-inline:auto}
   .fcc .statpanel{grid-template-columns:96px 1fr;gap:8px;padding:8px}
   .fcc .sbar{grid-template-columns:auto minmax(46px,1fr) 22px;font-size:11px;gap:4px}
   .fcc>.fccfoot{grid-column:2}

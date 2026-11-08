@@ -75,10 +75,13 @@ function buildingArtScale(type,sprite) {
   return Math.min(BLD[type].size*width/sprite.w,maxHeight/sprite.h);
 }
 
+function buildingLevelArtKey(type,level=1) {
+  return type==="kitroom" ? "kitroom-"+Math.min(5,level) : type==="herohall" ? "herohall-"+Math.min(3,level) : type;
+}
+
 function drawBuildingArt(b, club, opts) {
-  const isNewBuilding = b.t==="kitroom" || b.t==="herohall";
-  const level = b.t==="kitroom" ? 5 : 3;
-  const refreshed = isNewBuilding && clubKit(b.t+"-"+Math.min(level,b.lv||1),club,"building");
+  const key = buildingLevelArtKey(b.t,b.lv);
+  const refreshed = key!==b.t && clubKit(key,club,"building");
   const sprite = refreshed || artSprites.get(b.t==="kitroom"?"office":b.t==="herohall"?"locker":b.t);
   if (!sprite) return 0;
   const s = BLD[b.t].size;
@@ -102,7 +105,7 @@ function drawBuildingArt(b, club, opts) {
       if (refreshed) {
         const [px,py] = heroPlinths[Math.min(3,b.lv||1)-1][i];
         const [ox,oy] = unIso(x+(px-256)*scale,y+(py-364)*scale);
-        drawHeroStatue(ox,oy,0,hc,hk,true);
+        drawHeroStatue(ox,oy,0,hc,hk,true,.68);
       } else {
         drawHeroStatue(b.x+s*(.35+i*.25),b.y+s*(.85-i*.08),.08,hc,hk,true);
       }
@@ -350,15 +353,17 @@ async function loadArtManifest() {
     const {files,sheets={}} = await response.json();
     if (!Array.isArray(files)) return;
     for (const path of files) {
-      const match = typeof path === "string" && path.match(/^art\/(units|heroes|portraits|buildings)\/([a-z0-9-]+)\.webp$/);
+      const match = typeof path === "string" && path.match(/^art\/(units|heroes|portraits|buildings|scenery|album)\/([a-z0-9-]+)\.webp$/);
       if (!match) continue;
       const [,group,key] = match;
-      if (group==="portraits" || group==="buildings") {
-        loadArtSheet(path,1,1,[group==="portraits"?"refresh-portrait-"+key:key],2);
+      const sheet = sheets[path];
+      if (group==="album") continue; // The binder texture is loaded by CSS.
+      if (group==="portraits" || group==="buildings" || (group==="scenery" && !sheet)) {
+        const name = group==="portraits" ? "refresh-portrait-"+key : group==="scenery" ? "scenery-"+key : key;
+        loadArtSheet(path,1,1,[name],2);
         continue;
       }
-      const sheet = sheets[path];
-      if (sheet?.cell!==128 || sheet.cols!==8 || !Array.isArray(sheet.rows) ||
+      if (sheet?.cell!==128 || sheet.cols!==(group==="scenery" ? 6 : 8) || !Array.isArray(sheet.rows) ||
           !Array.isArray(sheet.frames) || sheet.rows.length!==sheet.frames.length ||
           !sheet.rows.length || sheet.rows.length>6 ||
           sheet.frames.some(n=>!Number.isInteger(n) || n<1 || n>sheet.cols)) continue;

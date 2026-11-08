@@ -458,7 +458,7 @@ function openSettings(header){
     ${document.fullscreenEnabled?`<div class="stat"><span>Screen</span><button class="btn blue" id="fullScreen">${document.fullscreenElement?"Exit full screen":"Full screen"}</button></div>`:""}
     <div class="stat"><span>Version ${VERSION}</span><button class="btn gold" id="updBtn">Check for updates</button></div>
     <p class="tiny">Progress saves on this device automatically.</p><button class="btn red" id="reset">Start over (new club)</button>
-    <p class="madefor">Made for Jaxon and Jake 💙</p>`,{header});
+    <p class="madefor">Made for Jaxon, Jake and Chloe 💙💜</p>`,{header});
   const so=$("signOut"); if(so) so.onclick=async()=>{ await signOut(); reopenSettings(); };
   const si=$("signIn"); if(si) si.onclick=sub(()=>openAccount(),reopenSettings);
   $("updBtn").onclick=()=>{ $("updBtn").textContent="Updating…"; forceUpdate(); };

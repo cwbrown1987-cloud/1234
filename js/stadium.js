@@ -3,6 +3,20 @@
 // Stands rake gently outward, so the front stands never rise over the playing area.
 const BOWL = { R0: N * 0.74, tiers: 10, step: 1.2, rise: 0.75, seg: 96 };
 let crowdPat = null, crowdSrc = null;
+const stadiumPatterns = new WeakMap();
+
+function stadiumPattern(sprite, width, height) {
+  const saved = stadiumPatterns.get(sprite);
+  if (saved?.ctx === ctx && saved.width === width && saved.height === height) return saved.pattern;
+  const tile = document.createElement("canvas");
+  tile.width = Math.max(1, Math.round(width)); tile.height = Math.max(1, Math.round(height));
+  const g = tile.getContext("2d");
+  g.fillStyle = "#343d50"; g.fillRect(0, 0, tile.width, tile.height);
+  g.drawImage(sprite.image, sprite.x, sprite.y, sprite.w, sprite.h, 0, 0, tile.width, tile.height);
+  const pattern = ctx.createPattern(tile, "repeat");
+  stadiumPatterns.set(sprite, {ctx, width, height, pattern});
+  return pattern;
+}
 
 function crowdPattern() {
   if (crowdPat && crowdSrc === ctx) return crowdPat;
@@ -32,29 +46,56 @@ function annulus(r1, z1, r2, z2, fill, stroke) {
   if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = Math.max(1, TW * .02); ctx.stroke(); }
 }
 
-function drawStadiumBowl() {
+function drawStadiumBowl(club) {
   const { R0, tiers, step, rise } = BOWL;
   // night sky behind the stands, lit from the floodlights
   const sky = ctx.createLinearGradient(0, 0, 0, H);
-  sky.addColorStop(0, "#0d1730"); sky.addColorStop(.5, "#1c2c4f"); sky.addColorStop(1, "#141d33");
+  const stand = artSprites.get("stadium-grandstand");
+  sky.addColorStop(0, "#0d1730"); sky.addColorStop(.5, stand ? "#465b7c" : "#1c2c4f"); sky.addColorStop(1, "#141d33");
   ctx.fillStyle = sky; ctx.fillRect(0, 0, W, H);
 
   // concrete concourse ring, then the seating tiers with the crowd
   const base = R0 + 1.7;
+  const crowd = artSprites.get("stadium-crowd"), roof = artSprites.get("stadium-roof");
+  const seating = crowd ? stadiumPattern(crowd, TW*3.8, TH*1.45) : crowdPattern();
+  if (stand) {
+    annulus(R0+1.1, 0, R0+3.2, 1.15, "#485160", "#252b34");
+    ctx.save();
+    const [, centreY] = P(N/2,N/2);
+    ctx.beginPath(); ctx.rect(0, centreY-TH, W, H+TH); ctx.clip();
+  }
   annulus(R0 + 1.2, .35, base, .45, "#8b8f97", "#00000055");
   for (let i = 0; i < tiers; i++) {
     const rIn = base + i * step, rOut = rIn + step, zIn = .45 + i * rise, zOut = zIn + rise;
-    annulus(rIn, zIn, rOut, zOut, crowdPattern());
+    annulus(rIn, zIn, rOut, zOut, seating);
     annulus(rIn, zIn, rOut, zOut, i % 2 ? "#00000026" : "#ffffff10", "#00000040");
     if (i === 3 || i === 7) annulus(rOut - .18, zOut - .1, rOut, zOut, "#c9ccd2"); // aisle walkways
   }
   // roof canopy over the top tier
   const rTop = base + tiers * step, zTop = .45 + tiers * rise;
-  annulus(rTop - .2, zTop, rTop + 2.6, zTop + 1.4, "#3a4352", "#0008");
+  annulus(rTop - .2, zTop, rTop + 2.6, zTop + 1.4, roof ? stadiumPattern(roof,TW*4.5,TH*1.8) : "#3a4352", "#0008");
   annulus(rTop + 2.4, zTop + 1.35, rTop + 2.7, zTop + 1.5, "#f6c343");
+  const rear = Math.PI*1.25;
+  if (stand) {
+    ctx.restore();
+    const [cx,rail] = ringPt(R0+1.2,0,rear);
+    const w = TW*R0*1.48, h = w*stand.h/stand.w*.55;
+    ctx.drawImage(stand.image,stand.x,stand.y,stand.w,stand.h,cx-w/2,rail-h*.69,w,h);
+  }
 
   // four light towers
-  for (const a of [Math.PI * .25, Math.PI * .75, Math.PI * 1.25, Math.PI * 1.75]) {
+  const mast = artSprites.get("stadium-light-tower");
+  const towers = mast ? [-.88,-.20,.20,.88].map(offset=>rear+offset) : [.25,.75,1.25,1.75].map(a=>Math.PI*a);
+  for (const a of towers) {
+    if (mast) {
+      const [x,y] = ringPt(R0+2.4,0,a), height = TH*(Math.abs(a-rear)>.5?10.2:8.4);
+      const foot = y+TH*2.6, lamp = foot-height*.92;
+      const glow = ctx.createRadialGradient(x,lamp,0,x,lamp,TW*1.2);
+      glow.addColorStop(0,"#fff0bb6b"); glow.addColorStop(1,"#fff0bb00");
+      ctx.fillStyle=glow; ctx.fillRect(x-TW*1.2,lamp-TW*1.2,TW*2.4,TW*2.4);
+      paintArt(mast,x,foot,height/mast.h,1,a>rear?-1:1);
+      continue;
+    }
     const [bx, by] = ringPt(rTop + 1.4, zTop + 1.4, a), [tx, ty] = ringPt(rTop + 1.4, zTop + 8.5, a);
     ctx.lineCap = "round";
     ctx.strokeStyle = OUT; ctx.lineWidth = TW * .18; ctx.beginPath(); ctx.moveTo(bx, by); ctx.lineTo(tx, ty); ctx.stroke();
@@ -74,12 +115,52 @@ function drawStadiumBowl() {
   ctx.restore();
   ctx.beginPath(); ringPath(R0, 0, false); ctx.closePath(); ctx.strokeStyle = "#f4f1e6"; ctx.lineWidth = Math.max(2, TW * .07); ctx.stroke();
   const boards = 32;
+  const board = artSprites.get("stadium-board");
   for (let i = 0; i < boards; i++) {
     const a1 = i / boards * Math.PI * 2, a2 = (i + .92) / boards * Math.PI * 2, r = R0 + 1.25;
     const p = [ringPt(r, 0, a1), ringPt(r, 0, a2), ringPt(r, .42, a2), ringPt(r, .42, a1)];
-    const club = CLUBS[i % CLUBS.length];
-    poly(p, i % 2 ? club.a : "#ffffff", "#0006", 1);
-    ctx.save(); ctx.globalAlpha = .9; poly([p[0], p[1], ringPt(r, .14, a2), ringPt(r, .14, a1)], i % 2 ? club.b : club.a, null); ctx.restore();
+    const team = club || CLUBS[i % CLUBS.length];
+    if (board) {
+      const [left,right] = p[3][0] < p[2][0] ? [p[3],p[2]] : [p[2],p[3]];
+      const width = right[0]-left[0];
+      if (width < 1) continue;
+      ctx.save();
+      ctx.transform(width,right[1]-left[1],0,TH*.42,left[0],left[1]);
+      ctx.drawImage(board.image,board.x,board.y,board.w,board.h,0,0,1,1);
+      ctx.restore();
+      if(width>TW*.65){
+        ctx.save();
+        ctx.font=`bold ${Math.max(5,TH*.23)}px sans-serif`;
+        ctx.textAlign="center"; ctx.textBaseline="middle"; ctx.fillStyle="#fff3dc";
+        ctx.fillText(i%3===1?"FOOTY FORTRESS":team.short,(left[0]+right[0])/2,(left[1]+right[1])/2+TH*.21,width*.82);
+        ctx.restore();
+      }
+    } else {
+      poly(p, i % 2 ? team.a : "#ffffff", "#0006", 1);
+      ctx.save(); ctx.globalAlpha = .9; poly([p[0], p[1], ringPt(r, .14, a2), ringPt(r, .14, a1)], i % 2 ? team.b : team.a, null); ctx.restore();
+    }
+  }
+  if(stand && club){
+    for (const offset of [-.57,-.39,-.2,.2,.39,.57]) {
+      const [x,y] = ringPt(R0+2.4,1.85,rear+offset);
+      const w = TW*.7, h = TH*.83;
+      ctx.fillStyle = "#121922"; ctx.fillRect(x-w*.57,y-TH*.14,w*1.14,Math.max(2,TH*.12));
+      poly([[x-w/2,y],[x+w/2,y],[x+w/2,y+h],[x,y+h*.83],[x-w/2,y+h]],club.a,"#121922",Math.max(1,TW*.035));
+      ctx.fillStyle = club.b; ctx.fillRect(x-w*.46,y+h*.18,w*.92,h*.18);
+      drawBadge(ctx,x,y+h*.55,w*.27,club);
+    }
+  }
+  if(stand){
+    for (const end of [rear,rear+Math.PI]) {
+      for (const offset of [-.13,-.05,.05,.13]) {
+        const [x,y] = ringPt(R0-.8,0,end+offset);
+        const h = TH*(Math.abs(offset)<.1?3.2:2.15);
+        ctx.lineCap = "round";
+        ctx.strokeStyle = "#3e5143"; ctx.lineWidth = Math.max(2,TW*.072);
+        ctx.beginPath(); ctx.moveTo(x,y); ctx.lineTo(x,y-h); ctx.stroke();
+        ctx.strokeStyle = "#faf3df"; ctx.lineWidth = Math.max(1.5,TW*.045); ctx.stroke();
+      }
+    }
   }
 }
 

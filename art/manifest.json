@@ -34,6 +34,19 @@
     "art/players/188.webp",
     "art/portraits/captain-melb.webp",
     "art/portraits/coach.webp",
+    "art/scenery/bigrock.webp",
+    "art/scenery/bigtree.webp",
+    "art/scenery/bush.webp",
+    "art/scenery/rock.webp",
+    "art/scenery/stump.webp",
+    "art/scenery/tree.webp",
+    "art/stadium/board.webp",
+    "art/stadium/crowd.webp",
+    "art/stadium/grandstand.webp",
+    "art/stadium/light-tower.webp",
+    "art/stadium/roof.webp",
+    "art/units/ambient-magpie.webp",
+    "art/units/ambient-seagull.webp",
     "art/units/blimp.webp",
     "art/units/forward-a.webp",
     "art/units/forward-b.webp",
@@ -90,6 +103,28 @@
         6,
         4,
         4
+      ]
+    },
+    "art/units/ambient-magpie.webp": {
+      "cell": 128,
+      "cols": 8,
+      "rows": [
+        "flight",
+        "swoop"
+      ],
+      "frames": [
+        8,
+        4
+      ]
+    },
+    "art/units/ambient-seagull.webp": {
+      "cell": 128,
+      "cols": 8,
+      "rows": [
+        "flight"
+      ],
+      "frames": [
+        8
       ]
     },
     "art/units/blimp.webp": {

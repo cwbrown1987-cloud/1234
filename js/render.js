@@ -510,8 +510,12 @@ function drawObstacle(o){
   g.addColorStop(0,"#1c3a0c55"); g.addColorStop(.75,"#1c3a0c22"); g.addColorStop(1,"#1c3a0c00");
   ctx.save(); ctx.translate(cx,cy); ctx.scale(1,ry/rx); ctx.translate(-cx,-cy); ctx.fillStyle=g; ctx.beginPath(); ctx.arc(cx,cy,rx,0,7); ctx.fill(); ctx.restore();
   if(o.busy){ ctx.save(); ctx.globalAlpha=.75; } // being cleared: faded, with a progress bar on top
+  const sprite = artSprites.get("scenery-"+o.k);
   const items = o.s ? OBS_LAYOUT[o.k] : [[o.k,.5,.55,o.k==="tree"?.85:o.k==="bush"?.8:.9]];
-  for(const [k,dx,dy,sc] of items){
+  if(sprite){
+    const tall = o.k==="tree" || o.k==="bigtree";
+    paintArt(sprite,cx,cy+TH*s*.25,Math.min(TW*s*.90/sprite.w,TH*s*(tall?2.3:1.1)/sprite.h),1);
+  } else for(const [k,dx,dy,sc] of items || []){
     const [x,y]=P(o.x+dx,o.y+dy), z=sc*(.94+v*.12), kk=TW*.5*z;
     if(k==="bush") drawBush(x,y,kk,v+dx);
     else if(k==="stump") drawStump(x,y,kk);
@@ -555,7 +559,9 @@ function drawPebble(x,y,k){
 function drawGround(){
   if(!deco) makeDeco();
   const [cx,cy]=P(N/2,N/2);
-  drawStadiumBowl();
+  const match = typeof mode!=="undefined" && mode==="battle" && typeof BT!=="undefined" && BT;
+  const club = match ? CLUBS[BT.club] : (typeof S!=="undefined" && S ? myClub() : null);
+  drawStadiumBowl(club);
   diamond(0,0,N,N,"#91aa49");
   for(let i=0;i<N;i+=4) diamond(i,0,2,N,"#a4bb515c");
   for(const [a,b,r,dark] of patches){
@@ -567,7 +573,10 @@ function drawGround(){
     ctx.fillStyle=patch;
     ctx.fillRect(x-rad,y-rad,rad*2,rad*2);
   }
+  ctx.save();
+  ctx.beginPath(); ringPath(BOWL.R0+1.2,0,false); ctx.closePath(); ctx.clip();
   drawTurfGrain(cx,cy);
+  ctx.restore();
   drawPitchMarkings();
   ctx.strokeStyle="#4c71214d";
   ctx.lineWidth=Math.max(1,TW*.018);
@@ -578,6 +587,7 @@ function drawGround(){
     ctx.moveTo(x-s,y-s); ctx.lineTo(x,y); ctx.lineTo(x+s*.3,y-s*1.3);
   }
   ctx.stroke();
+  if(match) drawAmbientBirds(performance.now()/1000);
 }
 
 // Draw a single building centred into a small canvas (shop thumbnails)
@@ -627,7 +637,25 @@ function drawSky(){
   ctx.save(); ctx.fillStyle="#103a0a"; ctx.globalAlpha=.07;
   for(const [ox,oy,s] of CLOUDS){ const x=((ox*(W+600)+t*18*(1+s*.2))%(W+600))-300, y=oy*H; for(const [dx,dy,r] of [[0,0,1],[.6,.1,.7],[-.6,.12,.75],[.25,-.25,.6]]){ ctx.beginPath(); ctx.ellipse(x+dx*160*s,y+dy*80*s,r*140*s,r*60*s,0,0,7); ctx.fill(); } }
   ctx.restore();
-  for(let i=0;i<3;i++){ const x=((i*.37*(W+400)+t*(60+i*12))%(W+400))-200, y=H*(.2+i*.22)+Math.sin(t+i)*20; gull(x,y,Math.max(8,TW*.22),t*9+i,1); }
+  drawAmbientBirds(t);
+}
+function drawAmbientBirds(t){
+  for(let i=0;i<4;i++){
+    const magpie=i>=2, dir=i===3?-1:1;
+    const x=dir*(((i*.24*(W+180)+t*(42+i*9))%(W+180))-W/2-90)+W/2;
+    const pass=(t+i*2)%11, swoop=magpie && pass>8 && pass<8.65;
+    const y=H*(.19+i*.13)+Math.sin(t+i)*13+(swoop?Math.sin((pass-8)/.65*Math.PI)*18:0);
+    const key=magpie?"ambient-magpie":"ambient-seagull", row=swoop?"swoop":"flight";
+    const frame=swoop?Math.min(3,Math.floor((pass-8)/.65*4)):Math.floor(t*10+i*3)%8;
+    const sprite=artSprites.get(key+"-"+row+"-"+frame);
+    const width=Math.max(24,Math.min(TW*.74,62));
+    if(sprite){
+      const scale=width/128;
+      ctx.save(); ctx.translate(x,y); ctx.scale(dir*scale,scale);
+      ctx.drawImage(sprite.image,sprite.x,sprite.y,sprite.w,sprite.h,sprite.left-68,sprite.top-69,sprite.w,sprite.h);
+      ctx.restore();
+    } else gull(x,y,width*.34,t*9+i,dir);
+  }
 }
 function gull(x,y,k,ph,dir){
   const f=Math.sin(ph)*.6;

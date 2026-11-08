@@ -1,5 +1,45 @@
 # Footy Fortress: menu and button art (for Codex)
 
+## Status (11 November 2026): read this first
+
+**The look is "colour pop", like Clash of Clans.** Your dark-teal "Scoreboard" style was tried and switched off, because it drained the colour out of the game. Go back to bright, saturated, chunky Clash-style art.
+
+**Live in the game now** (your art, from the 36-file pack):
+- the 8 hub tab icons
+- the Battle and Build hub headers
+- the 5 event icons
+- the 10 league badges, shown on the Ranked table, Events, Profile and the Ranked confirm screen
+- the Footy Pass banner
+- the 3 Cheer Squad icons
+
+They look great; keep painting icons this way.
+
+**In the repo but switched off** (not listed in `art/manifest.json`), because they're dark tiles that kill the colour pop:
+- `btn-battle`, `btn-build`
+- `side-pass`, `side-events`, `side-online`
+- `profile-badge`, `profile-banner`
+- `ff-panel-tile`, `ff-primary`, `ff-secondary`, `ff-close`. These remain in the manifest, but the dark theme they feed only switches on if `window.FF_DARK_UI = true`.
+
+**What we need next (bright, Clash colours):**
+
+| File | What | Size |
+|---|---|---|
+| `btn-battle.webp` | Big Battle button: **orange-red**, thick bevel and bright highlight, footy and crossed boots (like Clash's Attack button). No dark frame. | 192×192 |
+| `btn-build.webp` | Big Build button: **bright gold**, thick bevel, hammer and spanner | 192×192 |
+| `side-cards.webp`, `side-pass.webp`, `side-events.webp`, `side-online.webp` | Side buttons: **bright Clash blue** rounded squares with a thick dark edge. One simple, bold icon each, readable at 56 px (Cards = two cards fanned, Pass = a gold ticket, Events = a calendar, Online = a stadium). | 112×112 |
+| `ff-close.webp` | **Red** ✖ button with a bevel | 96×96 |
+| `profile-badge.webp` | Top-left name panel: a dark slate panel is fine, but give it a gold rim and some shine | 512×128 |
+
+**Colour guide (match the live game):**
+- **Panels:** cream to gold, `#fff6dc` → `#e3c58e`, with a thick dark-brown edge `#2b1d10`.
+- **Tabs:** blue `#5aa9e6` → `#2f6fae` with a navy edge `#13314d`; the selected tab is gold `#ffe88c` → `#d58a12`.
+- **Battle button:** orange `#ffd67a` → `#e8531c` → `#b83a12`.
+- **Build button:** gold `#fff0a0` → `#f0a81e`.
+
+Same rules as before: transparent WebP, no text inside the icons, and list each file in `art/manifest.json`. Before you open a PR, check screenshots on a phone (390×844) against the live game. The new art should be **at least as bright** as what's there now.
+
+---
+
 Read `CODEX_HANDOFF.md` first. It covers the game, the art style, the manifest, and what you must not touch. This file is only about **menu, button and icon art** for the new Clash-style menus.
 
 Repo: `github.com/cwbrown1987-cloud/Footy-Fortress`. Branch from the latest `master` as `art/ui`. Open a PR with screenshots. **Don't merge or deploy.**

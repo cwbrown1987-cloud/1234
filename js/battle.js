@@ -8,9 +8,9 @@ const C0 = Math.floor(N/2); // map centre
 // AI base layout for clubhouse level d. Fence rings around a core, defences in the middle band, collectors outside.
 // tier: "easy" (online bots: lower levels, fewer defences and fences), "hard" (boss bots: next Clubhouse's defences, maxed, double loot),
 // "boss" (boss battles at your level: this Clubhouse's defences, all maxed, 1.75x loot), or "scale" (a normal ground at your level).
-const BOSS_HP={1:1.5,2:1.6,3:1,4:.95,5:1.2,6:1.5,7:1.1}, BOSS_EXTRA={2:1,3:1,5:1,6:1}; // boss battles: extra defence health, and an extra of each defence where the level tables are thin // extra defence health on boss battles, tuned by simulated attacks
+const BOSS_HP={}, BOSS_EXTRA={}; // boss battles: extra defence health, and an extra of each defence where the level tables are thin // extra defence health on boss battles, tuned by simulated attacks
 function genBase(d, seed, tier){
-  const dd = tier==="hard"||(tier==="boss"&&d>=3&&d<=5) ? Math.min(MAX_TH,d+1) : d;
+  const dd = tier==="hard" ? Math.min(MAX_TH,d+1) : d;
   const lvd = tier==="boss" ? Math.min(MAX_TH,d+1) : dd; // boss battles: next Clubhouse's levels (and its number of buildings up to Clubhouse 5)
   const r=rng(seed), list=[], occ=new Set(), key=(i,j)=>i+","+j;
   const ring=(lo,hi)=>{ const c=[]; for(let i=lo;i<=hi;i++) c.push([i,lo]); for(let j=lo+1;j<=hi;j++) c.push([hi,j]); for(let i=hi-1;i>=lo;i--) c.push([i,hi]); for(let j=hi-1;j>lo;j--) c.push([lo,j]); return c; };

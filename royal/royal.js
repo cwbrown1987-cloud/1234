@@ -50,7 +50,7 @@ const leagueOf = t => { let k = 0; R_LEAGUES.forEach((l, i) => { if (t >= l[1]) 
 
 // ----- optional art (placeholders are drawn when a file is missing) -----
 const RART = {};
-for (const k of ["field", "tower-flank", "tower-main", "unit-mid", "unit-fwd", "unit-ruck", "unit-def"]) { const im = new Image(); im.onload = () => RART[k] = im; im.src = `art/${k}.webp`; }
+for (const k of ["field", "crowd", "tower-flank", "tower-main", "unit-mid", "unit-fwd", "unit-ruck", "unit-def"]) { const im = new Image(); im.onload = () => RART[k] = im; im.src = `art/${k}.webp`; }
 
 // ----- the match -----
 let M = null, last = 0;
@@ -106,7 +106,7 @@ function step(dt){
     if (!tgt) { tgt = nearestTower(u); td = tgt ? Math.hypot(tgt.x - u.x, tgt.y - u.y) - (tgt.kind === "main" ? 1.3 : .9) : 1e9; }
     if (!tgt) continue;
     if (td > u.role.range) { const dx = tgt.x - u.x, dy = tgt.y - u.y, d = Math.hypot(dx, dy) || 1; u.x += dx / d * u.role.spd * dt; u.y += dy / d * u.role.spd * dt; u.face = dx >= 0 ? 1 : -1; u.moving = true; }
-    else { u.moving = false; if (u.cd <= 0) { u.cd = u.role.rate; const t = tgt;
+    else { u.moving = false; u.atkT = Math.max(0, (u.atkT || 0) - dt); if (u.cd <= 0) { u.cd = u.role.rate; u.atkT = .5; const t = tgt;
       if (u.role.range > 2) M.fx.push({k:"kick", x:u.x, y:u.y, tx:t.x, ty:t.y, t:0});
       if (t.max && t.kind) hurtTower(t, u.dmg); else t.hp -= u.dmg; } } }
   // players spread out a little so they don't stack
@@ -149,6 +149,7 @@ addEventListener("resize", resize);
 const X = x => OX + x * SC, Y = y => OY + y * SC;
 function drawField(){
   ctx.fillStyle = "#0d1a24"; ctx.fillRect(0, 0, innerWidth, innerHeight);
+  if (RART.crowd) { ctx.save(); ctx.globalAlpha = .55; const cw = 160, ch = 128; for (let y = 0; y < innerHeight; y += ch) for (let x = 0; x < innerWidth; x += cw) ctx.drawImage(RART.crowd, x, y, cw, ch); ctx.restore(); }
   if (RART.field) { ctx.drawImage(RART.field, X(0), Y(0), RW * SC, RH * SC); return; }
   ctx.save(); ctx.beginPath(); ctx.ellipse(X(RW / 2), Y(RH / 2), RW * SC * .62, RH * SC * .52, 0, 0, 7); ctx.fillStyle = "#3f8f3a"; ctx.fill(); ctx.clip();
   for (let i = 0; i < RH; i += 2) { ctx.fillStyle = "#4a9a43"; ctx.fillRect(X(0) - SC * 4, Y(i), RW * SC + SC * 8, SC); }
@@ -164,7 +165,7 @@ function drawTower(t){
   const c = clubOf(M.side[t.side].club), big = t.kind === "main", w = (big ? 2.4 : 1.7) * SC, h = (big ? 3.1 : 2.4) * SC, x = X(t.x), y = Y(t.y);
   if (t.hp <= 0) { ctx.fillStyle = "#5b5148"; ctx.beginPath(); ctx.ellipse(x, y, w * .45, h * .18, 0, 0, 7); ctx.fill(); return; }
   const im = RART[big ? "tower-main" : "tower-flank"];
-  if (im) ctx.drawImage(im, x - w / 2, y - h * .8, w, h);
+  if (im) { const ih = h * (big ? 1.25 : 1.45), iw = ih * im.width / im.height; ctx.fillStyle = c.a; ctx.beginPath(); ctx.ellipse(x, y + h * .12, w * .62, w * .26, 0, 0, 7); ctx.fill(); ctx.drawImage(im, x - iw / 2, y + h * .2 - ih, iw, ih); }
   else { ctx.fillStyle = c.a; ctx.fillRect(x - w / 2, y - h * .55, w, h * .7); ctx.fillStyle = c.b; ctx.fillRect(x - w / 2, y - h * .55, w, h * .16);
     ctx.strokeStyle = "#fff"; ctx.lineWidth = 2; for (const k of big ? [-.32, -.11, .11, .32] : [-.22, .22]) { ctx.beginPath(); ctx.moveTo(x + w * k, y - h * .55); ctx.lineTo(x + w * k, y - h * (big ? 1.05 : .9)); ctx.stroke(); }
     ctx.strokeStyle = "#111"; ctx.lineWidth = 1.5; ctx.strokeRect(x - w / 2, y - h * .55, w, h * .7); }
@@ -174,7 +175,11 @@ function drawUnit(u){
   const c = clubOf(M.side[u.side].club), x = X(u.x), y = Y(u.y), r = SC * (u.role.towersOnly ? .5 : .38);
   ctx.globalAlpha = u.hp > 0 ? 1 : Math.max(0, 1 - u.dead / .4);
   const im = RART["unit-" + u.card.pos];
-  if (im) ctx.drawImage(im, x - r * 1.4, y - r * 2.4, r * 2.8, r * 2.8);
+  if (im) { const dead = u.hp <= 0, row = dead ? 5 : u.moving ? (u.side === 0 ? 1 : 0) : (u.atkT > 0 ? (u.side === 0 ? 3 : 2) : 4),
+      n = [8, 8, 6, 6, 4, 4][row], col = dead ? Math.min(3, Math.floor(u.dead / .1)) : Math.floor(performance.now() / 90 + u.x * 7) % n, s = r * 3.4;
+    ctx.fillStyle = "#0005"; ctx.beginPath(); ctx.ellipse(x, y + r * .2, r * .9, r * .32, 0, 0, 7); ctx.fill();
+    ctx.fillStyle = c.a; ctx.beginPath(); ctx.ellipse(x, y + r * .2, r * .75, r * .26, 0, 0, 7); ctx.fill(); ctx.strokeStyle = u.side === 0 ? "#7fe0ff" : "#ff8a7a"; ctx.lineWidth = 2; ctx.stroke();
+    ctx.save(); ctx.translate(x, y + r * .25); if (u.face < 0) ctx.scale(-1, 1); ctx.drawImage(im, col * 128, row * 128, 128, 128, -s / 2, -s, s, s); ctx.restore(); }
   else { ctx.fillStyle = "#0004"; ctx.beginPath(); ctx.ellipse(x, y + r * .8, r, r * .35, 0, 0, 7); ctx.fill();
     ctx.fillStyle = c.a; ctx.beginPath(); ctx.arc(x, y, r, 0, 7); ctx.fill(); ctx.fillStyle = c.b; ctx.fillRect(x - r * .7, y - r * .25, r * 1.4, r * .5);
     ctx.lineWidth = 2; ctx.strokeStyle = u.side === 0 ? "#7fe0ff" : "#ff8a7a"; ctx.stroke();

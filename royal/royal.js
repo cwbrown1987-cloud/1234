@@ -28,6 +28,8 @@ const upCost = L => 20 * 2 ** (L - 1);                       // gold to go from 
 const R_SPELLS = [
   {id:"sp-bump", name:"Hip & Shoulder", cost:3, icon:"💥", desc:"Smashes players in an area and dents towers", spell:"bump"},
   {id:"sp-huddle", name:"Huddle", cost:2, icon:"🤝", desc:"Heals your players in an area", spell:"huddle"},
+  {id:"bd-bench", name:"Interchange Bench", cost:3, icon:"🪑", desc:"A decoy. Opposition players and Rucks go for it when it's closer than your tower. Drop it in the middle to drag them into range of both Goal Towers. Wears down over 30s.", spell:"bench", build:true},
+  {id:"bd-cannon", name:"Siren Cannon", cost:4, icon:"📣", desc:"A defence that blasts ground players in range. Also pulls attackers towards it. Wears down over 30s.", spell:"cannon", build:true},
   {id:"sp-hail", name:"Hail Storm", cost:6, icon:"🌩️", desc:"Three strikes on the three toughest targets in a wide area (towers take 30%). A big body can soak a strike for its mates.", spell:"hail"},
 ];
 
@@ -61,7 +63,7 @@ const leagueOf = t => { let k = 0; R_LEAGUES.forEach((l, i) => { if (t >= l[1]) 
 
 // ----- optional art (placeholders are drawn when a file is missing) -----
 const RART = {};
-for (const k of ["field", "crowd", "tower-flank", "tower-main", "unit-mid", "unit-fwd", "unit-ruck", "unit-def"]) { const im = new Image(); im.onload = () => RART[k] = im; im.src = `art/${k}.webp`; }
+for (const k of ["bld-bench", "bld-cannon", "field", "crowd", "tower-flank", "tower-main", "unit-mid", "unit-fwd", "unit-ruck", "unit-def"]) { const im = new Image(); im.onload = () => RART[k] = im; im.src = `art/${k}.webp`; }
 
 // ----- the match -----
 let M = null, last = 0;
@@ -75,7 +77,7 @@ function towers(side, L){ const y = side === 0 ? RH - 5 : 5, gy = side === 0 ? R
 function startMatch(){
   const deck = myDeck(), streak = (RS.lossStreak || 0) >= 3, lg = Math.max(0, leagueOf(RS.trophies) - (streak ? 2 : 0)), oppClub = (Math.random() * 18) | 0;
   const pool = R_CARDS.filter(c => c.club === oppClub).sort((a, b) => streak ? a.rating - b.rating : b.rating - a.rating);
-  const oppDeck = pool.slice(0, 6).map(c => c.id).concat(R_SPELLS.map(s => s.id));
+  const oppDeck = pool.slice(0, 5).map(c => c.id).concat(["sp-bump", "bd-cannon", "sp-huddle"]);
   const shuffle = a => a.map(v => [Math.random(), v]).sort((p, q) => p[0] - q[0]).map(p => p[1]);
   // your tower level = average level of your deck; the opponent's matches your league
   const myL = Math.max(1, Math.floor(deck.reduce((s, id) => s + cardLv(id), 0) / deck.length)), oppL = Math.max(1, Math.min(MAX_LV, 1 + lg + (Math.random() < .3 ? 1 : 0)));
@@ -90,11 +92,13 @@ const rateNow = () => M.siren ? 3 : M.t >= MATCH - LAST_Q ? 2 : 1;
 function cycle(s, id){ const i = s.hand.indexOf(id); s.hand[i] = s.next; s.queue.push(id); s.next = s.queue.shift(); }
 function play(sideIx, id, x, y){
   const s = M.side[sideIx], c = R_BY_ID[id]; if (!c || s.drink < c.cost) return false;
-  if (!c.spell && (sideIx === 0 ? y < RH / 2 + .5 : y > RH / 2 - .5)) return false; // players start on your half
+  if ((!c.spell || c.build) && (sideIx === 0 ? y < RH / 2 + .5 : y > RH / 2 - .5)) return false; // players and buildings start on your half
   s.drink -= c.cost; cycle(s, id);
   if (c.spell === "bump") { M.fx.push({k:"boom", x, y, t:0});
     for (const u of M.units) if (u.side !== sideIx && Math.hypot(u.x - x, u.y - y) <= 1.8) u.hp -= lvStat(BUMP_DMG, s.lv(id));
     for (const t of M.towers) if (t.side !== sideIx && t.hp > 0 && Math.hypot(t.x - x, t.y - y) <= 2.2) hurtTower(t, Math.floor(lvStat(BUMP_DMG, s.lv(id)) * BUMP_TOWER)); return true; }
+  if (c.build) { const L = s.lv(id), hp = lvStat(c.spell === "bench" ? 900 : 700, L);
+    M.towers.push({side:sideIx, kind:"bld", bld:c.spell, x, y, hp, max:hp, life:30, dmg:c.spell === "cannon" ? lvStat(60, L) : 0, range:c.spell === "cannon" ? 5.5 : 0, rate:.8, cd:1, chunks:0, groundOnly:true}); return true; }
   if (c.spell === "hail") { // sort everything in range by current health (toughest first) and strike the top three
     const hits = [...M.units.filter(u => u.side !== sideIx && u.hp > 0 && u.dep <= 0 || u.side !== sideIx && u.hp > 0), ...M.towers.filter(t => t.side !== sideIx && t.hp > 0)]
       .filter(o => Math.hypot(o.x - x, o.y - y) <= HAIL_R).sort((a, b) => b.hp - a.hp).slice(0, 3);
@@ -107,12 +111,16 @@ function play(sideIx, id, x, y){
   for (let k = 0; k < n; k++) M.units.push({side:sideIx, card:c, role:r, x:x + (k ? .6 : 0), y, hp, max:hp, dmg:lvStat(r.dmg * m, L), cd:0, dep:r.deploy, form, lane:q(x) < RW / 2 ? 0 : 1, face:1});
   return true;
 }
-function hurtTower(t, d){ if (t.hp <= 0) return; const before = t.hp; t.hp = Math.max(0, t.hp - d);
+function hurtTower(t, d){ if (t.hp <= 0) return; if (t.kind === "bld") { t.hp = Math.max(0, t.hp - d); if (t.hp <= 0) M.fx.push({k:"boom", x:t.x, y:t.y, t:0}); return; } const before = t.hp; t.hp = Math.max(0, t.hp - d);
   const s = M.side[1 - t.side], q = t.max / 4; while (t.chunks < 3 && t.max - t.hp >= q * (t.chunks + 1)) { t.chunks++; s.behinds++; }
   if (before > 0 && t.hp <= 0) { s.goals++; M.fx.push({k:"goal", x:t.x, y:t.y, t:0}); if (t.kind === "main") return endMatch(1 - t.side); if (M.siren) endMatch(1 - t.side); } }
+const SIGHT = 7;
 function nearestTower(u){
   const alive = M.towers.filter(t => t.side !== u.side && t.hp > 0), lane = alive.find(t => t.kind === "flank" && Math.abs(t.x - LANES[u.lane]) < 1);
-  return lane || alive.find(t => t.kind === "main") || alive[0]; }
+  const main = lane || alive.find(t => t.kind === "main") || alive.find(t => t.kind !== "bld");
+  const dist = t => t ? Math.hypot(t.x - u.x, t.y - u.y) : 1e9;
+  const bld = alive.filter(t => t.kind === "bld" && dist(t) <= SIGHT).sort((a, b) => dist(a) - dist(b))[0];
+  return bld && dist(bld) < dist(main) ? bld : main; }
 function step(dt){
   if (!M || M.over) return; M.t += dt;
   for (const s of M.side) s.drink = Math.min(10, s.drink + dt / 2.8 * rateNow());
@@ -135,9 +143,10 @@ function step(dt){
       const dy = (a.y - b.y) * fwd, dx = Math.abs(a.x - b.x); if (dy > 0 && dy < .7 && dx < .5) a.y += fwd * (b.role.spd - a.role.spd) * .5 * dt; } }
   // players spread out a little so they don't stack
   for (const a of M.units) for (const b of M.units) { if (a === b || a.hp <= 0 || b.hp <= 0) continue; const dx = a.x - b.x, dy = a.y - b.y, d = Math.hypot(dx, dy); if (d > 0 && d < .55) a.x += (dx || (a.side ? .1 : -.1)) / (d || 1) * .02; }
-  for (const t of M.towers) { if (t.hp <= 0) continue; t.cd -= dt; if (t.cd > 0) continue;
+  for (const t of M.towers) { if (t.hp <= 0) continue; if (t.kind === "bld") { t.hp -= t.max / t.life * dt; if (t.hp <= 0) { t.hp = 0; continue; } if (!t.dmg) continue; }
+    t.cd -= dt; if (t.cd > 0) continue;
     let tgt = null, td = t.range; for (const u of M.units) { if (u.side === t.side || u.hp <= 0) continue; const d = Math.hypot(u.x - t.x, u.y - t.y); if (d <= td) { td = d; tgt = u; } }
-    if (tgt) { t.cd = .9; tgt.hp -= t.dmg; M.fx.push({k:"kick", x:t.x, y:t.y, tx:tgt.x, ty:tgt.y, t:0}); } }
+    if (tgt) { t.cd = t.rate || .9; tgt.hp -= t.dmg; M.fx.push({k:"kick", x:t.x, y:t.y, tx:tgt.x, ty:tgt.y, t:0}); } }
   M.units = M.units.filter(u => u.hp > 0 || (u.dead = (u.dead || 0) + dt) < .4);
   for (const f of M.fx) f.t += dt; M.fx = M.fx.filter(f => f.t < (f.k === "goal" ? 1.6 : .45));
 }
@@ -148,6 +157,7 @@ function ai(dt){
   if (threat) { const huddle = affordable.find(id => id === "sp-huddle"), bump = affordable.find(id => id === "sp-bump");
     const pack = M.units.filter(u => u.side === 0 && Math.hypot(u.x - threat.x, u.y - threat.y) < 1.8).length;
     if (bump && pack >= 2) return play(1, bump, threat.x, threat.y);
+    const bld = affordable.find(i => R_BY_ID[i].build); if (bld && Math.random() < .5) return play(1, bld, RW / 2, 9);
     const id = affordable.find(i => !R_BY_ID[i].spell); if (id) return play(1, id, Math.max(1, Math.min(RW - 1, threat.x)), Math.max(2, threat.y - 2.5));
     return; }
   if (s.drink < 7 && Math.random() < .7) return; // save up for a push, like a real player
@@ -186,6 +196,11 @@ function drawField(){
   if (M && M.sel) { ctx.fillStyle = "#ff40401c"; ctx.fillRect(X(0), Y(0), RW * SC, RH / 2 * SC); }
 }
 function drawTower(t){
+  if (t.kind === "bld") { if (t.hp <= 0) return; const c = clubOf(M.side[t.side].club), x = X(t.x), y = Y(t.y), s = SC * 1.6, im = RART["bld-" + t.bld];
+    ctx.fillStyle = c.a; ctx.beginPath(); ctx.ellipse(x, y, s * .55, s * .22, 0, 0, 7); ctx.fill();
+    if (im) { const ih = s * (t.bld === "cannon" ? 1.5 : 1.1), iw = ih * im.width / im.height; ctx.drawImage(im, x - iw / 2, y + s * .15 - ih, iw, ih); }
+    else { ctx.font = `${s * .8}px sans-serif`; ctx.textAlign = "center"; ctx.fillText(t.bld === "cannon" ? "📣" : "🪑", x, y); }
+    ctx.fillStyle = "#000a"; ctx.fillRect(x - s * .5, y + s * .3, s, 5); ctx.fillStyle = t.side === 0 ? "#3ccf55" : "#ff5a4a"; ctx.fillRect(x - s * .5, y + s * .3, s * t.hp / t.max, 5); return; }
   const c = clubOf(M.side[t.side].club), big = t.kind === "main", w = (big ? 2.4 : 1.7) * SC, h = (big ? 3.1 : 2.4) * SC, x = X(t.x), y = Y(t.y);
   if (t.hp <= 0) { ctx.fillStyle = "#5b5148"; ctx.beginPath(); ctx.ellipse(x, y, w * .45, h * .18, 0, 0, 7); ctx.fill(); return; }
   const im = RART[big ? "tower-main" : "tower-flank"];
@@ -230,7 +245,7 @@ const tierOf = c => c.spell ? "star-wildcard" : c.rating >= 93 ? "legendary" : c
 function cardTile(id, i){ const c = R_BY_ID[id]; if (!c) return ""; const cl = c.spell ? null : clubOf(c.club);
   const pic = c.spell ? `<span class="ricon">${c.icon}</span>` : `<span class="rpic" style="background-image:url(art/unit-${c.pos}.webp)"></span>`;
   return `<button class="rcard${c.spell ? " spell" : ""}${(M && M.sel) === id ? " on" : ""}" data-rc="${id}" style="--a:${cl ? cl.a : "#5b2d8a"};--b:${cl ? cl.b : "#c9a0ff"};${c.spell ? "" : `;--frame:url(art/cards/frame-${tierOf(c)}.webp)`}"><i class="cost">${c.cost}</i>
-    <span class="rinner">${pic}${c.spell ? "" : `<i class="rrate">${c.rating}</i>`}<i class="rlv">Lv${cardLv(id)}</i></span><b>${esc(c.spell ? c.name : c.name.split(" ").slice(-1)[0])}</b><small>${c.spell ? "Spell" : ROLES[c.pos].name}</small></button>`; }
+    <span class="rinner">${pic}${c.spell ? "" : `<i class="rrate">${c.rating}</i>`}<i class="rlv">Lv${cardLv(id)}</i></span><b>${esc(c.spell ? c.name : c.name.split(" ").slice(-1)[0])}</b><small>${c.build ? "Building" : c.spell ? "Spell" : ROLES[c.pos].name}</small></button>`; }
 function drawBattleUI(){
   ui.innerHTML = `<div class="rtop"><span id="rScore"></span><span id="rClock"></span></div>
     <div class="rbar"><div class="rnext"><small>Next</small><div id="rNext"></div></div><div class="rhand" id="rHand"></div>
@@ -264,6 +279,7 @@ function home(){ M = null; resize(); const lg = leagueOf(RS.trophies), next = R_
 const ROLE_TEXT = {mid:"Fast runner who attacks whatever is nearest. Cheaper Rovers (3 💧) run on in pairs.", fwd:"Kicks goals from range. Fragile up close, so protect them.",
   ruck:"A big body that ignores players and marches straight at towers.", def:"Hunts down attacking players from further away, and each hit sweeps through a pack."};
 function cardStats(c, L = cardLv(c.id)){
+  if (c.build) return [["Cost", c.cost + " 💧"], ["Hitpoints", lvStat(c.spell === "bench" ? 900 : 700, L)], ["Lasts", "30s"], c.spell === "cannon" ? ["Damage", lvStat(60, L) + " every 0.8s"] : ["Damage", "None (decoy)"], ["Range", c.spell === "cannon" ? "5.5 tiles, ground" : "–"], ["Pulls from", SIGHT + " tiles"], ["Level", L]];
   if (c.spell === "hail") return [["Cost", c.cost + " 💧"], ["Area", "Radius " + HAIL_R], ["Strikes", "3 (toughest first)"], ["Damage", lvStat(HAIL_DMG, L) + " each"], ["To towers (30%)", Math.floor(lvStat(HAIL_DMG, L) * BUMP_TOWER)], ["Level", L]];
   if (c.spell) return [["Cost", c.cost + " 💧"], ["Area", c.spell === "bump" ? "Radius 1.8" : "Radius 2.2"], c.spell === "bump" ? ["Damage", lvStat(BUMP_DMG, L)] : ["Heals", HUDDLE_HEAL + " each"], c.spell === "bump" ? ["To towers (30%)", Math.floor(lvStat(BUMP_DMG, L) * BUMP_TOWER)] : ["Targets", "Your players"], ["Level", L]];
   const r = ROLES[c.pos], m = statMul(c.rating), n = c.pos === "mid" && c.cost <= 3 ? 2 : 1, hp = lvStat(r.hp * m, L), dmg = lvStat(r.dmg * m, L), bump = lvStat(BUMP_DMG, L);
@@ -272,7 +288,7 @@ function cardStats(c, L = cardLv(c.id)){
 }
 function cardInfo(id, onToggle, inDeck){
   const c = R_BY_ID[id], el = document.createElement("div"); el.className = "rinfo";
-  el.innerHTML = `<div class="rinfo-box"><div class="rinfo-top">${cardTile(id)}<div><h3>${esc(c.name)}</h3><small>${c.spell ? "Spell" : `${ROLES[c.pos].name} · ${esc(clubOf(c.club).name)} · #${c.no}`}</small>
+  el.innerHTML = `<div class="rinfo-box"><div class="rinfo-top">${cardTile(id)}<div><h3>${esc(c.name)}</h3><small>${c.build ? "Building" : c.spell ? "Spell" : `${ROLES[c.pos].name} · ${esc(clubOf(c.club).name)} · #${c.no}`}</small>
     <p>${c.spell ? c.desc : ROLE_TEXT[c.pos]}</p></div></div><div class="rstats">${cardStats(c).map(([k, v]) => `<div><small>${k}</small><b>${v}</b></div>`).join("")}</div>
     <div class="rinfo-btns">${cardLv(id) < MAX_LV ? `<button class="rbtn battle" id="rInfoUp">⬆ Level ${cardLv(id) + 1}<small> ${upCost(cardLv(id))} 🪙</small></button>` : ""}<button class="rbtn ${inDeck ? "" : "gold"}" id="rInfoGo">${inDeck ? "Remove from deck" : "Add to deck"}</button><button class="rbtn blue" id="rInfoX">Close</button></div></div>`;
   document.body.appendChild(el); el.onclick = e => { if (e.target === el) el.remove(); };
@@ -292,6 +308,7 @@ function deckScreen(){ M = null; let deck = myDeck(); const own = ownedCards().i
 function howTo(){ ui.innerHTML = `<div class="rpanel"><h2>How to play</h2><ul class="rhow">
     <li>🪙 Win matches for gold, then tap a card in My deck to level it up. Each level adds about 10% health and damage. Your Goal Towers level up with your deck's average level.</li>
     <li>⭐ Play a player card twice and its next play comes on <b>in form</b>: 25% stronger, with a gold glow.</li>
+    <li>🪑 Buildings go on your half. Opposition players and Rucks walk to a building when it's closer than your tower. Drop one in the middle to pull them into range of both Goal Towers.</li>
     <li>💧 Sports Drink refills over time (up to 10). Tap a card, then tap your half of the ground to send a player.</li>
     <li>Players run up the nearest flank and go for the other team's Goal Towers, then their Goalposts.</li>
     <li>🏃 Rovers come in pairs. 🎯 Forwards kick from range. 🗼 Rucks only go for towers. 🛡️ Defenders hunt down attackers.</li>

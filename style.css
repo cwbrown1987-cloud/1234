@@ -913,5 +913,3 @@ body.editing #top,body.editing #homeBtns,body.editing #side,body.editing #eventB
 #shopGrid .item.special{border-color:#d24fa0;box-shadow:0 0 0 3px #d24fa055}
 #selPanel .btn.short{filter:grayscale(.75);opacity:.85}
 #selPanel .btn.short small{color:#ffd0c8}
-.royal-link{display:flex;flex-direction:column;align-items:center;text-decoration:none;margin:10px 0}
-.royal-link small{font-size:12px;opacity:.9}

@@ -2,7 +2,7 @@
 // One oval, two flank corridors. Each side defends two Goal Towers and its Goalposts. Spend Sports Drink 💧 to send
 // players from your Footy Fortress album up the flanks. A tower down is a goal; every quarter of a tower's health
 // knocked off is a behind. Knock over the Goalposts and you win on the spot.
-// Placeholder art throughout: drop files in art/royal/ (see CODEX_UI_HANDOFF.md) and they replace the drawn shapes.
+// Placeholder art throughout: drop files in royal/art/ and they replace the drawn shapes.
 
 const RW = 18, RH = 30;                 // field in tiles (portrait)
 const LANES = [4.5, 13.5];
@@ -38,26 +38,19 @@ const R_CARDS = [], R_BY_ID = {};
 const RS = (() => { try { return JSON.parse(localStorage.getItem(R_SAVE)) || {}; } catch (e) { return {}; } })();
 RS.trophies = RS.trophies || 0; RS.wins = RS.wins || 0; RS.played = RS.played || 0;
 const rsave = () => { try { localStorage.setItem(R_SAVE, JSON.stringify(RS)); } catch (e) {} };
-const ffSave = () => { try { return JSON.parse(localStorage.getItem("footyFortress2")); } catch (e) { return null; } };
-function ownedCards(){
-  const ff = ffSave(), ids = new Set(Object.keys((ff && ff.album) || {}).map(k => k.split("|")[0]).filter(id => R_BY_ID[id]));
-  const club = ff ? ff.club : 0;
-  // everyone starts with their club's best 8 so a new player can play straight away
-  R_CARDS.filter(c => c.club === club).sort((a, b) => b.rating - a.rating).slice(0, 8).forEach(c => ids.add(c.id));
-  return {ids:[...ids], club};
-}
+// Its own collection: every player is available; pick your favourite club on first launch (no link to Footy Fortress)
+function ownedCards(){ const club = RS.club ?? 0; return {ids:R_CARDS.map(c => c.id), club}; }
 function myDeck(){
-  const own = ownedCards(); let d = (RS.deck || []).filter(id => own.ids.includes(id) || R_BY_ID[id] && R_BY_ID[id].spell);
-  for (const id of own.ids) { if (d.length >= 6) break; if (!d.includes(id)) d.push(id); }
+  const own = ownedCards(); let d = (RS.deck || []).filter(id => R_BY_ID[id]);
+  for (const c of R_CARDS.filter(c => c.club === own.club).sort((a, b) => b.rating - a.rating)) { if (d.length >= 6) break; if (!d.includes(c.id)) d.push(c.id); }
   for (const s of R_SPELLS) if (d.length < 8 && !d.includes(s.id)) d.push(s.id);
   return d.slice(0, 8);
 }
 const leagueOf = t => { let k = 0; R_LEAGUES.forEach((l, i) => { if (t >= l[1]) k = i; }); return k; };
-const giveFFToken = () => { const ff = ffSave(); if (!ff) return; ff.tokens = (ff.tokens || 0) + 1; try { localStorage.setItem("footyFortress2", JSON.stringify(ff)); } catch (e) {} };
 
 // ----- optional art (placeholders are drawn when a file is missing) -----
 const RART = {};
-for (const k of ["field", "tower-flank", "tower-main", "unit-mid", "unit-fwd", "unit-ruck", "unit-def"]) { const im = new Image(); im.onload = () => RART[k] = im; im.src = `art/royal/${k}.webp`; }
+for (const k of ["field", "tower-flank", "tower-main", "unit-mid", "unit-fwd", "unit-ruck", "unit-def"]) { const im = new Image(); im.onload = () => RART[k] = im; im.src = `art/${k}.webp`; }
 
 // ----- the match -----
 let M = null, last = 0;
@@ -139,11 +132,11 @@ function ai(dt){
 }
 function endMatch(win){
   if (M.over) return; M.over = true; RS.played++;
-  const delta = win === 0 ? 30 : win === 1 ? -15 : 0; RS.trophies = Math.max(0, RS.trophies + delta); if (win === 0) { RS.wins++; giveFFToken(); } rsave();
+  const delta = win === 0 ? 30 : win === 1 ? -15 : 0; RS.trophies = Math.max(0, RS.trophies + delta); if (win === 0) RS.wins++; rsave();
   const [a, b] = M.side, A = clubOf(a.club), B = clubOf(b.club);
   setTimeout(() => { ui.innerHTML = `<div class="rpanel result"><h2>${win === 0 ? "You win! 🏆" : win === 1 ? "Siren. You lost" : "It's a draw"}</h2>
     <div class="score"><b>${A.short} ${a.goals}.${a.behinds} (${a.goals * 6 + a.behinds})</b><span>v</span><b>${B.short} ${b.goals}.${b.behinds} (${b.goals * 6 + b.behinds})</b></div>
-    <p>${delta >= 0 ? "+" : ""}${delta} 🏆 · ${R_LEAGUES[leagueOf(RS.trophies)][0]} (${RS.trophies} 🏆)</p>${win === 0 ? `<p class="tiny">+1 🎟️ Footy Token in Footy Fortress</p>` : ""}
+    <p>${delta >= 0 ? "+" : ""}${delta} 🏆 · ${R_LEAGUES[leagueOf(RS.trophies)][0]} (${RS.trophies} 🏆)</p>
     <button class="rbtn gold big" id="rAgain">Play again</button><button class="rbtn" id="rHome">Home</button></div>`;
     $r("rAgain").onclick = startMatch; $r("rHome").onclick = home; }, 900);
 }
@@ -231,12 +224,13 @@ function home(){ M = null; resize(); const lg = leagueOf(RS.trophies), next = R_
   ui.innerHTML = `<div class="rpanel home"><div class="rlogo">FF: <span>Royal</span><i class="beta">BETA</i></div>
     <div class="rleague"><b>${R_LEAGUES[lg][0]}</b><span>🏆 ${RS.trophies}${next ? ` · ${next[1] - RS.trophies} to ${next[0]}` : ""}</span></div>
     <button class="rbtn gold big" id="rPlay">⚔️ Battle</button><button class="rbtn blue" id="rDeck">🃏 My deck</button><button class="rbtn" id="rHow">❓ How to play</button>
-    <a class="rbtn ghost" href="index.html">← Back to Footy Fortress</a><p class="tiny">Wins ${RS.wins} / ${RS.played} · each win gives +1 🎟️ in Footy Fortress</p></div>`;
-  $r("rPlay").onclick = startMatch; $r("rDeck").onclick = deckScreen; $r("rHow").onclick = howTo; }
+    <button class="rbtn ghost" id="rClub">Club: ${clubOf(RS.club ?? 0).name}</button><p class="tiny">Wins ${RS.wins} / ${RS.played}</p></div>`;
+  $r("rPlay").onclick = startMatch; $r("rDeck").onclick = deckScreen; $r("rHow").onclick = howTo;
+  $r("rClub").onclick = () => { RS.club = ((RS.club ?? 0) + 1) % CLUBS.length; RS.deck = null; rsave(); home(); }; }
 function deckScreen(){ M = null; let deck = myDeck(); const own = ownedCards().ids.map(id => R_BY_ID[id]).concat(R_SPELLS);
   const draw = () => { const shown = own.slice().sort((a, b) => (b.rating || 0) - (a.rating || 0));
     ui.innerHTML = `<div class="rpanel deck"><h2>My deck <small>${deck.length}/8</small></h2><div class="rgrid">${deck.map(id => cardTile(id)).join("")}</div>
-      <h3>Your cards <small>from your Footy Fortress album</small></h3><div class="rgrid all">${shown.map(c => cardTile(c.id).replace("rcard", "rcard" + (deck.includes(c.id) ? " in" : ""))).join("")}</div>
+      <h3>All players <small>2026 season</small></h3><div class="rgrid all">${shown.map(c => cardTile(c.id).replace("rcard", "rcard" + (deck.includes(c.id) ? " in" : ""))).join("")}</div>
       <button class="rbtn gold" id="rSave">Save deck</button></div>`;
     ui.querySelectorAll(".rgrid [data-rc]").forEach(b => b.onclick = () => { const id = b.dataset.rc; if (deck.includes(id)) deck = deck.filter(x => x !== id); else if (deck.length < 8) deck.push(id); else toast("A deck holds 8 cards"); draw(); });
     $r("rSave").onclick = () => { if (deck.length !== 8) return toast("Pick 8 cards"); RS.deck = deck; rsave(); home(); }; };
@@ -247,7 +241,7 @@ function howTo(){ ui.innerHTML = `<div class="rpanel"><h2>How to play</h2><ul cl
     <li>🏃 Rovers come in pairs. 🎯 Forwards kick from range. 🗼 Rucks only go for towers. 🛡️ Defenders hunt down attackers.</li>
     <li>A tower down is a <b>goal</b>. Every quarter of a tower's health knocked off is a <b>behind</b>. Knock over the Goalposts to win straight away.</li>
     <li>The last minute is the last quarter: drink flows twice as fast. Level on goals after 3 minutes? <b>Siren time</b>: next goal wins.</li>
-    <li>Your deck comes from your Footy Fortress card album. Open packs there to get better players here.</li></ul><button class="rbtn gold" id="rBack">Got it</button></div>`;
+    <li>Build your deck of 8 from any 2026 player. Tap Club on the home screen to change your team.</li></ul><button class="rbtn gold" id="rBack">Got it</button></div>`;
   $r("rBack").onclick = home; }
 
 requestAnimationFrame(frame); home();

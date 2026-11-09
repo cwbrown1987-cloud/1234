@@ -141,14 +141,3 @@ Same rules as above: transparent WebP in `art/ui/`, listed in `art/manifest.json
 | `ev-preseason.webp`, `ev-pieweek.webp`, `ev-drinkweek.webp`, `ev-everyweek.webp`, `ev-featured.webp`, `ev-onevote.webp`, `ev-medal.webp` | Icons for the special event cards in Events (they currently show 📅) | 128×128 |
 | The Trade screen (Cards → Trade) | Uses the album's look. The "You give", "You get" and chat panels are plain cream boxes (`.tside`, `.toffer`, `.tchat` in `style.css`) and are open to restyling | — |
 
-## FF: Royal (beta), at `royal.html`
-A separate real-time card battler page that uses the player's Footy Fortress album. It's all placeholder: shapes drawn in code and styles in `royal.css`. Drop these files in `art/royal/` and the game uses them automatically (no manifest entry needed):
-
-| File | What | Size |
-|---|---|---|
-| `field.webp` | The whole oval, top-down portrait (18×30 tiles: flanks at x 4.5 and 13.5, halfway line at y 15) | 720×1200 |
-| `tower-flank.webp` | Goal Tower (two each side, on the flanks) | 160×220 |
-| `tower-main.webp` | Goalposts / main tower (one each side) | 220×280 |
-| `unit-mid.webp`, `unit-fwd.webp`, `unit-ruck.webp`, `unit-def.webp` | Players by position, seen from above at an angle | 128×128 |
-
-You can also restyle the menus, cards, card bar and drink meter in `royal.css`.

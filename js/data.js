@@ -1,5 +1,5 @@
 // ---------- Game data ----------
-const VERSION = "2026.11.11.37";
+const VERSION = "2026.11.11.38";
 // Club names + colours. Logos: drop PNGs named <abbr>.png (e.g. coll.png) into the logos/ folder and they're used everywhere.
 // Player names checked against the 2026 trade period and retirements (lists for the 2027 season); edit freely.
 const CLUBS = [
@@ -139,7 +139,11 @@ const CLASH_NAME = {clubhouse:"Town Hall", pieshop:"Gold Mine", drinktap:"Elixir
   oval:"Barracks", bench:"Army Camp", physio:"Spell Factory", coachbox:"Laboratory", locker:"Hero Hall", office:"Hero Hall",
   shed:"Builder's Hut", kitroom:"Blacksmith", herohall:"Hero Hall", goalpost:"Archer Tower", siren:"Cannon", catapult:"Mortar", floodlight:"Air Defense", sprinkler:"Bomb", sendoff:"Spring Trap", flooder:"Giant Bomb", swoop:"Air Bomb", kite:"Seeking Air Mine", streaker:"Skeleton Trap", gust:"Tornado Trap", spark:"Hidden Tesla", fence:"Wall"};
 const levels = t => BLD[t].hp.length;
-const maxLevel = (t, th) => t==="clubhouse" ? MAX_TH : t==="herohall" ? Math.max(0,Math.min(levels(t),th-5)) : t==="fence" ? Math.min(levels(t),th) : Math.min(levels(t), th+(th>=5?2:1));
+// Town Hall level each building level needs in Clash (from the Clash wiki; Cannon, Archer Tower and Mortar from memory)
+const CLASH_REQ_TH = {"kitroom":[4,4,4,5,6],"pieshop": [1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 7, 8, 10, 11, 12, 14, 16], "drinktap": [1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 7, 8, 10, 11, 12, 14, 16], "piewarmer": [1, 2, 2, 3, 3, 3, 4, 4, 5, 6, 7, 11, 12, 13, 14, 15, 16, 17, 18], "esky": [1, 2, 2, 3, 3, 3, 4, 4, 5, 6, 7, 11, 12, 13, 14, 15, 16, 17, 18], "oval": [1, 1, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17], "bench": [1, 2, 3, 4, 5, 6, 9, 10, 11, 12, 13, 15, 17, 18], "physio": [5, 6, 7, 9, 10, 11, 13, 15, 16], "coachbox": [3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18], "floodlight": [4, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18], "sprinkler": [3, 3, 5, 7, 8, 9, 10, 11, 13, 14, 15, 16, 17, 18], "sendoff": [4, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18], "flooder": [6, 6, 8, 10, 11, 13, 13, 14, 15, 16, 17, 18], "swoop": [5, 5, 7, 9, 11, 12, 13, 13, 14, 15, 16, 17, 18], "kite": [7, 9, 10, 13, 15, 16, 17, 18], "streaker": [8, 8, 9, 10, 18], "gust": [11, 11, 12], "spark": [7, 7, 7, 8, 8, 8, 9, 10, 11, 12, 13, 13, 14, 15, 16, 17, 18], "fence": [2, 2, 3, 4, 5, 6, 7, 8, 9, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18], "siren": [1, 1, 2, 3, 4, 5, 6, 7, 8, 8], "goalpost": [2, 2, 3, 4, 5, 5, 6, 7, 8, 8], "catapult": [3, 4, 5, 6, 7, 8]};
+const maxLevelOld = (t, th) => t==="clubhouse" ? MAX_TH : t==="herohall" ? Math.max(0,Math.min(levels(t),th-5)) : t==="fence" ? Math.min(levels(t),th) : Math.min(levels(t), th+(th>=5?2:1));
+const maxLevel = (t, th) => { const r=CLASH_REQ_TH[t]; if(!r) return maxLevelOld(t,th);
+  let n=0; for(let i=0;i<Math.min(r.length,levels(t));i++) if((r[i]||99)<=th) n=i+1; return MAXC[t]&&MAXC[t][th-1]?Math.max(1,n):n; };
 const SHED_COST = [0,250,500,1000,2000,2000]; // by sheds already owned: the 2nd costs 250 Brownlow votes, like Clash
 const SHOP_TABS = {
   "Resources":["pieshop","drinktap","piewarmer","esky","shed"],
@@ -214,18 +218,3 @@ function timedEventAt(t){ const d=new Date(t), y=d.getFullYear();
 const timedEventNow = () => TIMED_LIVE ? timedEventAt(Date.now()) : null;
 const tev = (k, res) => { const e=timedEventNow(); return e&&e[k]&&(!e.res||!res||e.res===res) ? e[k] : 1; }; // multiplier, 1 when no event
 
-// Storage fix: at every Clubhouse level, a full set of storages plus the Clubhouse must hold the most expensive thing you can buy
-// at that level (otherwise some upgrades can never be afforded). The Clubhouse's own storage tops up whatever is missing.
-(function fitStorage(){
-  for (let th = 1; th <= MAX_TH; th++) {
-    let need = 0;
-    for (const res of ["pies", "drink"]) {
-      let worst = th < MAX_TH && res === BLD.clubhouse.res ? BLD.clubhouse.cost[th] : 0;
-      for (const [t, d] of Object.entries(BLD)) { if (d.res !== res || !d.cost || t === "clubhouse" || !(MAXC[t] && MAXC[t][th-1])) continue;
-        const lv = maxLevel(t, th); for (let l = 0; l < lv; l++) worst = Math.max(worst, d.cost[l] || 0); }
-      let stores = 0; for (const [t, d] of Object.entries(BLD)) if (d.stores === res && MAXC[t] && MAXC[t][th-1]) { const lv = maxLevel(t, th); if (lv) stores += MAXC[t][th-1] * d.cap[lv-1]; }
-      need = Math.max(need, worst - stores);
-    }
-    BLD.clubhouse.store[th-1] = Math.max(BLD.clubhouse.store[th-1], Math.ceil(need / 1000) * 1000, th > 1 ? BLD.clubhouse.store[th-2] : 0); // never drops when you level up
-  }
-})();

@@ -352,16 +352,30 @@ p.clash{color:#8a6d45;font-size:13px;margin:-4px 0 6px}
 .flipcard:focus-visible{outline:3px solid #239bea;outline-offset:4px;border-radius:10px}
 .flipcard .ff,.flipcard .fb{position:absolute;inset:0;backface-visibility:hidden;-webkit-backface-visibility:hidden;transition:transform .5s}
 .flipcard .ff img{width:100%;height:100%;border-radius:10px}
-.flipcard.foil .ff::after{content:"";position:absolute;inset:4%;border-radius:8px;pointer-events:none;mix-blend-mode:screen;
-  background:radial-gradient(ellipse at var(--foil-x,50%) var(--foil-y,50%),#fff9dbd9 0%,#ffb8788c 14%,#7676ed4d 29%,transparent 58%),
-    repeating-linear-gradient(125deg,transparent 0 12%,#83eaff55 14%,#e592d65e 16%,transparent 19% 35%);
-  opacity:var(--foil-opacity,0);transition:opacity .23s}
-.flipcard.foil.tilting .ff::after{transition:none}
-.flipcard.fritsch-tribute .ff::after{background:
-  radial-gradient(ellipse at var(--foil-x,50%) var(--foil-y,50%),#fff4cde8 0%,#ffbf65ad 15%,#ec405b82 29%,#587aff59 44%,transparent 63%),
-  repeating-linear-gradient(126deg,transparent 0 14%,#ff91537a 16%,#7658e275 19%,transparent 21% 37%)}
+/* One finish for the binder, pack reveal and full card. Tilt moves the light on the print. */
+.card-print{display:block;position:relative;border-radius:8px;isolation:isolate}
+.card-print img{display:block}
+.flipcard .card-print{height:100%;border-radius:10px}
+.card-finish{position:absolute;inset:1%;border-radius:inherit;pointer-events:none;overflow:hidden;mix-blend-mode:screen;
+  --foil-x:var(--light-x,36%);--foil-y:var(--light-y,16%);
+  box-shadow:inset 0 1px 0 #ffffff65,inset 0 -1px 0 #ffffff20;
+  background:linear-gradient(159deg,#fff4 0%,#fff1 15%,transparent 32%)}
+.card-finish::before,.card-finish.foil::after{content:"";position:absolute;inset:0;transition:opacity .24s ease-out}
+.card-finish::before{opacity:var(--foil-opacity,.22);
+  background:radial-gradient(ellipse 50% 15% at var(--foil-x) var(--foil-y),#fff 0%,#fffd 8%,#fff6 22%,#fff1 54%,transparent 80%)}
+.card-finish.foil{--foil-spectrum:#ea9cff,#a3b5ff,#8df7ff,#c2ffae,#ffe899,#ff9aa8,#ea9cff}
+.card-finish.tribute-melb{--foil-spectrum:#ff6d90,#ffd590,#fff2b8,#a9bbff,#748bff,#ff6d90}
+.card-finish.tribute-coll{--foil-spectrum:#6f86a9,#f6fbff,#9ae6ff,#b5a9ef,#eff3ff,#6f86a9}
+.card-finish.foil::after{
+  opacity:var(--foil-opacity,.28);
+  background:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 90 126'%3E%3Cg fill='white'%3E%3Cpath d='M14 14q.8 5.4 6 6-5.2.6-6 6-.8-5.4-6-6 5.2-.6 6-6zm59 42q.5 3.5 4 4-3.5.5-4 4-.5-3.5-4-4 3.5-.5 4-4zM35 93q.6 4.4 5 5-4.4.6-5 5-.6-4.4-5-5 4.4-.6 5-5z'/%3E%3Ccircle cx='26' cy='29' r='.9'/%3E%3Ccircle cx='59' cy='24' r='.8'/%3E%3Ccircle cx='45' cy='46' r='.7'/%3E%3Ccircle cx='82' cy='73' r='1'/%3E%3Ccircle cx='14' cy='83' r='.7'/%3E%3Ccircle cx='54' cy='91' r='.9'/%3E%3Ccircle cx='68' cy='111' r='.8'/%3E%3C/g%3E%3C/svg%3E") center/100% 100%,
+    repeating-linear-gradient(var(--foil-angle,116deg),#fff0 0 2px,#fff3 3px,#fff0 4px 7px),
+    conic-gradient(from var(--foil-angle,116deg) at var(--foil-x) var(--foil-y),var(--foil-spectrum));
+  mask-image:radial-gradient(ellipse 56% 50% at var(--foil-x) var(--foil-y),#000e,#0009 32%,transparent 76%)}
+.flipcard.tilting .card-finish::before,.flipcard.tilting .card-finish::after{transition:none}
 .cardview-front .card-tribute-label{color:#ffd978;background:#172448;border:1px solid #9e783a;border-radius:8px;padding:2px 7px;font-size:11px}
-@media(prefers-reduced-motion:reduce){.flipcard{transform:none;transition:none}.flipcard .ff,.flipcard .fb,.flipcard.foil .ff::after{transition:none}}
+@media(prefers-reduced-motion:reduce){.flipcard{transform:none;transition:none}.flipcard .ff,.flipcard .fb,.card-finish::before,.card-finish::after{transition:none}}
 .flipcard .fb{transform:rotateY(180deg)}
 .flipcard.flipped .ff{transform:rotateY(180deg)}.flipcard.flipped .fb{transform:rotateY(360deg)}
 .cardback{height:100%;box-sizing:border-box;border-radius:10px;border:6px solid var(--ca);background:#fffdf6;color:#222;text-shadow:none;padding:6px;font-size:11px;display:flex;flex-direction:column;gap:3px}

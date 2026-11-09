@@ -146,7 +146,7 @@ function buildSelPanel(sp){
   addBtn(sp,"btn blue","ℹ️<small>Info</small>",()=>openInfo(o));
   if(o.busy) addBtn(sp,"btn green speed",`Finish<small>${speedCost(o.busy.end)} 🏅</small>`,()=>speedUp(o));
   else if(o.t!=="shed"){ const u=upgradeInfo(o);
-    if(u.ok) addBtn(sp,"btn gold",`⬆ Upgrade<small>${fmt(u.cost)} ${resIcon(u.res)}</small>`,()=>startUpgrade(o),!canPay(u.res,u.cost));
+    if(u.ok){ const big=u.cost>capOf(u.res); addBtn(sp,"btn gold"+(canPay(u.res,u.cost)?"":" short"),`⬆ Upgrade<small>${fmt(u.cost)} ${resIcon(u.res)}${big?" · needs more storage":""}</small>`,()=>startUpgrade(o),false); }
     else addBtn(sp,"btn",`⬆<small>${u.why}</small>`,()=>toast(u.why),true); }
   if(d.makes&&!o.busy) addBtn(sp,"btn green",`Collect<small>${Math.floor(o.store)} ${resIcon(d.makes)}</small>`,()=>collect(o),o.store<1);
   if(o.t==="oval"||o.t==="bench") addBtn(sp,"btn","🏉<small>Train</small>",()=>openSquad("Train"));

@@ -911,3 +911,5 @@ body.editing #top,body.editing #homeBtns,body.editing #side,body.editing #eventB
 .havebar b img{height:1.1em;vertical-align:-2px}
 .res[data-r="pies"] .cap,.res[data-r="drink"] .cap{left:16px}
 #shopGrid .item.special{border-color:#d24fa0;box-shadow:0 0 0 3px #d24fa055}
+#selPanel .btn.short{filter:grayscale(.75);opacity:.85}
+#selPanel .btn.short small{color:#ffd0c8}

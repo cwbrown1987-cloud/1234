@@ -486,7 +486,12 @@ function openSettings(header){
     ${document.fullscreenEnabled?`<div class="stat"><span>Screen</span><button class="btn blue" id="fullScreen">${document.fullscreenElement?"Exit full screen":"Full screen"}</button></div>`:""}
     <div class="stat"><span>Version ${VERSION}</span><button class="btn gold" id="updBtn">Check for updates</button></div>
     <p class="tiny">Progress saves on this device automatically.</p><button class="btn red" id="reset">Start over (new club)</button>
+    <h3>Report a bug</h3><form id="bugForm" class="bugform"><textarea id="bugText" maxlength="1000" rows="3" placeholder="What went wrong? What were you doing?"></textarea><button class="btn gold" type="submit">Send report</button></form>
     <p class="madefor">Made for Jaxon, Jake and Chloe 💙💜</p>`,{header});
+  $("bugForm").onsubmit=async e=>{ e.preventDefault(); const text=$("bugText").value.trim(); if(!text) return toast("Type what went wrong first");
+    const report={text, at:new Date().toISOString(), v:VERSION, club:CLUBS[S.club]?.name, th:th(), ua:navigator.userAgent.slice(0,140), user:NET&&NET.user?NET.user.name:"guest"};
+    try{ const r=await fetch("/api/bug",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify(report)}); if(!r.ok) throw 0; $("bugText").value=""; toast("Thanks! Bug report sent"); }
+    catch(err){ try{ const q=JSON.parse(localStorage.getItem("ffBugQueue")||"[]"); q.push(report); localStorage.setItem("ffBugQueue",JSON.stringify(q)); }catch(e2){} toast("Saved. It'll send when you're online"); } };
   const so=$("signOut"); if(so) so.onclick=async()=>{ await signOut(); reopenSettings(); };
   const si=$("signIn"); if(si) si.onclick=sub(()=>openAccount(),reopenSettings);
   $("updBtn").onclick=()=>{ $("updBtn").textContent="Updating…"; forceUpdate(); };

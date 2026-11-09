@@ -140,3 +140,4 @@ Same rules as above: transparent WebP in `art/ui/`, listed in `art/manifest.json
 |---|---|---|
 | `ev-preseason.webp`, `ev-pieweek.webp`, `ev-drinkweek.webp`, `ev-everyweek.webp`, `ev-featured.webp`, `ev-onevote.webp`, `ev-medal.webp` | Icons for the special event cards in Events (they currently show 📅) | 128×128 |
 | The Trade screen (Cards → Trade) | Uses the album's look. The "You give", "You get" and chat panels are plain cream boxes (`.tside`, `.toffer`, `.tchat` in `style.css`) and are open to restyling | — |
+

@@ -113,6 +113,13 @@ export async function handleApi(req, env) {
       return json({players: r.results.map(p => ({...profileOut(p), squadName: p.squad_name}))});
     }
 
+    // ----- bug reports (from Settings); anyone can send, only stored here -----
+    if (path === "/bug" && m === "POST") {
+      const b = await body(req), text = String(b.text || "").slice(0, 1000).trim(); if (!text) return fail("Empty report.");
+      await env.DB.prepare("CREATE TABLE IF NOT EXISTS bug_reports (id INTEGER PRIMARY KEY AUTOINCREMENT, at INTEGER, user TEXT, version TEXT, info TEXT, text TEXT)").run();
+      await env.DB.prepare("INSERT INTO bug_reports(at,user,version,info,text) VALUES(?,?,?,?,?)").bind(now(), String(b.user || "guest").slice(0, 40), String(b.v || "").slice(0, 30), JSON.stringify({club:b.club, th:b.th, ua:b.ua}).slice(0, 400), text).run();
+      return json({ok: true});
+    }
     const me = await auth(req, env);
     if (!me) return fail("Please sign in again.", 401);
 

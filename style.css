@@ -913,3 +913,5 @@ body.editing #top,body.editing #homeBtns,body.editing #side,body.editing #eventB
 #shopGrid .item.special{border-color:#d24fa0;box-shadow:0 0 0 3px #d24fa055}
 #selPanel .btn.short{filter:grayscale(.75);opacity:.85}
 #selPanel .btn.short small{color:#ffd0c8}
+.bugform{display:flex;flex-direction:column;gap:8px;margin:4px 0 10px}
+.bugform textarea{width:100%;box-sizing:border-box;border:3px solid #2b1d10;border-radius:12px;padding:8px;font:inherit;font-size:15px;resize:vertical;background:#fffaf0;color:#2b1d10}

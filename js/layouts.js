@@ -125,7 +125,9 @@ function invDrag(b, e0){
 // Erase mode / Photo Mode taps (called from homeTap)
 function editTap(h){
   if (EDIT.photo) { EDIT.photo = false; editUI(); return true; }
-  if (EDIT.erase) { if (h && h.x >= 0) { h.x = -99; h.y = -99; selected = null; editUI(); } return true; }
+  // like Clash, Erase only picks up buildings, never rocks, trees or other obstacles
+  if (EDIT.erase) { if (h && h.x >= 0 && S.buildings.includes(h)) { h.x = -99; h.y = -99; selected = null; editUI(); } return true; }
+  if (h && !S.buildings.includes(h)) return true; // obstacles can't be cleared or touched in edit mode
   return false;
 }
 function endEdit(keep){

@@ -263,12 +263,14 @@ function passPoints(k, n) { const v = PASS_PTS[k]; if (!v || !S) return; ensureP
 function openEvents() { menuBack = null;
   hubCtx = null; const e = eventNow(), sb = S.starBonus || { stars: 0, until: 0 }, rk = ensureRanked(), p = ensurePass();
   updateEventBadge(true);
-  const card = (icon, title, body, btn) => `<div class="evcard">${uiArt(icon, { "ev-today": "🎉", "ev-star": "⭐", "ev-ranked": "🏆", "ev-pass": "🎫", "ev-afl": "🏉" }[icon] || "📅")}<div class="grow"><b>${title}</b><small>${body}</small></div>${btn || ""}</div>`;
+  const card = (icon, title, body, btn) => `<div class="evcard">${uiArt(icon, { "ev-today": "🎉", "ev-star": "⭐", "ev-ranked": "🏆", "ev-pass": "🎫", "ev-afl": "🏉" }[icon] || "⏳")}<div class="grow"><b>${title}</b><small>${body}</small></div>${btn || ""}</div>`;
   let h = card("ev-today", e ? "Today: " + e.name : "No event today", e ? e.desc : "Check back tomorrow");
   h += card("ev-star", "Star Bonus", sb.until > Date.now() ? `Ready again in ${fmtTime((sb.until - Date.now()) / 1000)}` : `${Math.min(sb.stars, STAR_GOAL)}/${STAR_GOAL} stars`, `<button class="btn gold" data-go="play">Play</button>`);
   h += card("ev-ranked", rkBadge(rk.tier) + " " + rkName(rk.tier), `${rkAttacks(rk.tier) - rk.attacks} attacks left · week ends in ${fmtTime((weekEnds() - Date.now()) / 1000)}`, `<button class="btn blue" data-go="rk">Table</button>`);
   h += card("ev-pass", "Footy Pass", `Tier ${Math.min(PASS_TIERS, Math.floor(p.pts / PASS_PER))} · ${passReady()} to claim`, `<button class="btn green" data-go="pass">Open</button>`);
   h += card("ev-afl", "AFL season", seasonCountdown().replace("🏉 ", "Starts in "));
+  // Timed events: built, switched off for now
+  h += `<h3>Special events <span class="soonpill">COMING SOON</span></h3>` + TIMED_EVENTS.map(ev => card("ev-" + ev.id, ev.name, `${ev.desc} · ${ev.days} days`)).join("");
   h += `<h3>This week</h3>${[1, 2, 3, 4, 5, 6, 0].map(d => { const ev = EVENTS[d], nm = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][d]; return `<div class="stat ${d === new Date().getDay() ? "today" : ""}"><span>${nm}</span><b>${ev ? ev.name + " · " + ev.desc : "–"}</b></div>`; }).join("")}`;
   modal(h, {header:'<div class="menu-banner menu-title">Events</div>'});
   document.querySelectorAll("[data-go]").forEach(b => b.onclick = () => ({ play: () => openHub("battle", "Play"), rk: sub(() => { hubCtx = null; openRankedTable(); }, openEvents), pass: () => openPass() })[b.dataset.go]());

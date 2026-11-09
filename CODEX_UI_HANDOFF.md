@@ -132,3 +132,11 @@ Open it with Build → Buildings → 📋 → ✏️. The layout and sizes alrea
 | Inventory cards | bottom strip, 19u tall | 17.3u square | `vem-card.webp` (bg; Clash's blue card) | 208×208 |
 
 The text the game prints (keep it out of the art): the button labels, "Drag buildings from the inventory to place them", "x30" at the top of each card and "Level 5" at the bottom. The building picture on each card is drawn by the game.
+
+## Card trading (beta) and timed events (coming soon)
+Same rules as above: transparent WebP in `art/ui/`, listed in `art/manifest.json`, no words in the art.
+
+| File | Where | Size |
+|---|---|---|
+| `ev-preseason.webp`, `ev-pieweek.webp`, `ev-drinkweek.webp`, `ev-everyweek.webp`, `ev-featured.webp`, `ev-onevote.webp`, `ev-medal.webp` | Icons for the special event cards in Events (they currently show 📅) | 128×128 |
+| The Trade screen (Cards → Trade) | Uses the album's look. The "You give", "You get" and chat panels are plain cream boxes (`.tside`, `.toffer`, `.tchat` in `style.css`) and are open to restyling | — |

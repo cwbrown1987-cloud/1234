@@ -248,6 +248,64 @@ export async function handleApi(req, env) {
       if (!r) return fail("No layout with that code.", 404);
       return json({name: r.name, layout: JSON.parse(r.data)});
     }
+    // ----- card trading (beta): friends only, both sides must give something, spare cards only -----
+    if (path.startsWith("/trades") || path.startsWith("/tradechat")) {
+      await env.DB.batch([
+        env.DB.prepare("CREATE TABLE IF NOT EXISTS trades (id INTEGER PRIMARY KEY AUTOINCREMENT, from_id TEXT NOT NULL, to_id TEXT NOT NULL, give TEXT NOT NULL, get TEXT NOT NULL, status TEXT NOT NULL, created INTEGER NOT NULL, expires INTEGER NOT NULL, applied_from INTEGER DEFAULT 0, applied_to INTEGER DEFAULT 0)"),
+        env.DB.prepare("CREATE TABLE IF NOT EXISTS trade_chat (id INTEGER PRIMARY KEY AUTOINCREMENT, a TEXT NOT NULL, b TEXT NOT NULL, from_id TEXT NOT NULL, text TEXT NOT NULL, at INTEGER NOT NULL)"),
+      ]);
+      const mutualWith = async id => !!(await env.DB.prepare("SELECT 1 FROM friends a JOIN friends b ON b.user_id = a.friend_id AND b.friend_id = a.user_id WHERE a.user_id = ? AND a.friend_id = ?").bind(me.id, id).first());
+      const items = v => (Array.isArray(v) ? v : []).slice(0, 5).filter(x => x && typeof x.id === "string" && typeof x.t === "string").map(x => ({id: x.id.slice(0, 24), t: x.t.slice(0, 4)}));
+      const pair = id => me.id < id ? [me.id, id] : [id, me.id];
+      // spare cards (more than one copy) a friend has, read from their cloud save
+      if (path.startsWith("/trades/spares/") && m === "GET") {
+        const id = path.slice(15); if (!(await mutualWith(id))) return fail("You can only trade with friends.", 403);
+        const s = await env.DB.prepare("SELECT data FROM saves WHERE user_id = ?").bind(id).first();
+        const album = s ? (JSON.parse(s.data).album || {}) : {};
+        return json({spares: Object.entries(album).filter(([, n]) => n > 1).map(([k, n]) => { const i = k.lastIndexOf("|"); return {id: k.slice(0, i), t: k.slice(i + 1), n: n - 1}; })});
+      }
+      if (path === "/trades" && m === "GET") {
+        await env.DB.prepare("UPDATE trades SET status = 'expired' WHERE status = 'open' AND expires < ?").bind(now()).run();
+        const r = await env.DB.prepare("SELECT t.*, uf.name AS from_name, ut.name AS to_name FROM trades t JOIN users uf ON uf.id = t.from_id JOIN users ut ON ut.id = t.to_id WHERE (t.from_id = ?1 OR t.to_id = ?1) AND (t.status = 'open' OR t.created > ?2) ORDER BY t.id DESC LIMIT 40").bind(me.id, now() - 7 * 864e5).all();
+        return json({trades: r.results.map(t => ({id: t.id, from: t.from_id, fromName: t.from_name, to: t.to_id, toName: t.to_name, give: JSON.parse(t.give), get: JSON.parse(t.get), status: t.status, created: t.created, expires: t.expires, appliedFrom: !!t.applied_from, appliedTo: !!t.applied_to}))});
+      }
+      if (path === "/trades" && m === "POST") {
+        const b = await body(req), to = String(b.to || ""), give = items(b.give), get = items(b.get);
+        if (!give.length || !get.length) return fail("A trade needs at least one card from each side.");
+        if (!(await mutualWith(to))) return fail("You can only trade with friends.", 403);
+        const open = await env.DB.prepare("SELECT COUNT(*) AS n FROM trades WHERE from_id = ? AND status = 'open'").bind(me.id).first();
+        if (open && open.n >= 3) return fail("You can have 3 open offers at a time. Cancel one first.");
+        const r = await env.DB.prepare("INSERT INTO trades(from_id,to_id,give,get,status,created,expires) VALUES(?,?,?,?, 'open', ?, ?)").bind(me.id, to, JSON.stringify(give), JSON.stringify(get), now(), now() + 864e5).run();
+        return json({ok: true, id: r.meta ? r.meta.last_row_id : r.lastInsertRowid});
+      }
+      const act = path.match(/^\/trades\/(\d+)\/(accept|cancel|applied)$/);
+      if (act && m === "POST") {
+        const t = await env.DB.prepare("SELECT * FROM trades WHERE id = ?").bind(+act[1]).first();
+        if (!t || (t.from_id !== me.id && t.to_id !== me.id)) return fail("Trade not found.", 404);
+        if (act[2] === "accept") {
+          if (t.to_id !== me.id) return fail("Only the friend you sent it to can accept.", 403);
+          if (t.status !== "open" || t.expires < now()) return fail("That offer isn't open any more.", 409);
+          const r = await env.DB.prepare("UPDATE trades SET status = 'accepted' WHERE id = ? AND status = 'open'").bind(t.id).run();
+          if (!(r.meta ? r.meta.changes : r.changes)) return fail("That offer isn't open any more.", 409);
+          return json({ok: true});
+        }
+        if (act[2] === "cancel") { await env.DB.prepare("UPDATE trades SET status = ? WHERE id = ? AND status = 'open'").bind(t.from_id === me.id ? "cancelled" : "declined", t.id).run(); return json({ok: true}); }
+        await env.DB.prepare(`UPDATE trades SET ${t.from_id === me.id ? "applied_from" : "applied_to"} = 1 WHERE id = ?`).bind(t.id).run(); return json({ok: true});
+      }
+      if (path.startsWith("/tradechat/") && m === "GET") {
+        const id = path.slice(11); if (!(await mutualWith(id))) return fail("Friends only.", 403); const [a, c] = pair(id);
+        const r = await env.DB.prepare("SELECT from_id, text, at FROM trade_chat WHERE a = ? AND b = ? ORDER BY id DESC LIMIT 40").bind(a, c).all();
+        return json({messages: r.results.reverse().map(x => ({mine: x.from_id === me.id, text: x.text, at: x.at}))});
+      }
+      if (path === "/tradechat" && m === "POST") {
+        const b = await body(req), to = String(b.to || ""), text = String(b.text || "").replace(/\s+/g, " ").trim().slice(0, 140);
+        if (!text) return fail("Say something first."); if (!(await mutualWith(to))) return fail("Friends only.", 403);
+        const [a, c] = pair(to), last = await env.DB.prepare("SELECT at FROM trade_chat WHERE from_id = ? ORDER BY id DESC LIMIT 1").bind(me.id).first();
+        if (last && last.at > now() - 1500) return fail("Slow down a little.");
+        await env.DB.prepare("INSERT INTO trade_chat(a,b,from_id,text,at) VALUES(?,?,?,?,?)").bind(a, c, me.id, text, now()).run(); return json({ok: true});
+      }
+      return fail("Not found.", 404);
+    }
     // ----- friends: add by player name, visit their ground, play a friendly -----
     // ----- friends: requests (add + add back), suggestions, visit, attack -----
     if (path.startsWith("/friends")) {
@@ -319,7 +377,8 @@ export async function handleApi(req, env) {
           + (SELECT COUNT(*) FROM friend_suggestions s WHERE s.to_id = ?1 AND NOT EXISTS (SELECT 1 FROM friends f WHERE f.user_id = ?1 AND f.friend_id = s.who_id)) AS n`).bind(me.id).first();
         social = q ? q.n : 0;
       } catch (e) {} // tables appear the first time anyone opens Friends
-      return json({attacks: r.results.map(a => ({id: a.id, attackerId: a.attacker_id, at: a.at, club: a.club, ...JSON.parse(a.data)})), live: live.results, friendNew: social});
+      let tradeNew = 0; try { const q = await env.DB.prepare("SELECT COUNT(*) AS n FROM trades WHERE to_id = ? AND status = 'open' AND expires > ?").bind(me.id, now()).first(); tradeNew = q ? q.n : 0; } catch (e) {} // table appears with the first trade
+      return json({attacks: r.results.map(a => ({id: a.id, attackerId: a.attacker_id, at: a.at, club: a.club, ...JSON.parse(a.data)})), live: live.results, friendNew: social, tradeNew});
     }
     if (path === "/inbox/seen" && m === "POST") {
       const ids = ((await body(req)).ids || []).map(Number).filter(Number.isFinite).slice(0, 50);

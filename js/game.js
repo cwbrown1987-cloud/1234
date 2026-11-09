@@ -110,7 +110,7 @@ const reservesReady = () => !S.resUsedAt || Date.now() - S.resUsedAt >= RES_REFI
 // ---------- shop / build / upgrade ----------
 // Your first Pie Shop and Drink Tap are free, so spending everything can never leave you with no income.
 const FREE_FIRST = ["pieshop","drinktap"];
-const buildCost = t => t==="shed" ? SHED_COST[Math.min(5,sheds())] : FREE_FIRST.includes(t)&&countOf(t)===0 ? 0 : BLD[t].cost[0];
+const buildCost = t => t==="shed" ? SHED_COST[Math.min(5,sheds())] : FREE_FIRST.includes(t)&&countOf(t)===0 ? 0 : Math.round(BLD[t].cost[0]*tev("cost"));
 const missingIncome = () => S ? FREE_FIRST.filter(t=>countOf(t)===0) : [];
 function shopStatus(t){
   const lim=MAXC[t][th()-1], have=countOf(t);
@@ -179,7 +179,7 @@ function upgradeInfo(b){
   const d=BLD[b.t], mx=maxLevel(b.t,th());
   if(b.lv>=levels(b.t)) return {ok:false, why:"Max level"};
   if(b.lv>=mx){ let need=1; while(need<=MAX_TH&&maxLevel(b.t,need)<=b.lv) need++; return {ok:false, why:`Needs Clubhouse ${need}`}; }
-  return {ok:true, cost:d.cost[b.lv], res:d.res, time:d.time[b.lv]};
+  return {ok:true, cost:Math.round(d.cost[b.lv]*tev("cost")), res:d.res, time:Math.round(d.time[b.lv]*tev("time",d.res))};
 }
 function startUpgrade(b){ if(lockedToast()) return;
   const u=upgradeInfo(b); if(!u.ok) return toast(u.why);
@@ -347,8 +347,8 @@ function processTimers(){
 function produce(sec){
   const ev=eventNow();
   for(const b of S.buildings){ const d=BLD[b.t]; if(!d.makes||b.busy) continue;
-    const boost = d.makes==="pies"&&ev&&ev.pies ? ev.pies : 1;
-    b.store=Math.min(d.cap[b.lv-1], (b.store||0)+d.rate[b.lv-1]*boost/60*sec); }
+    const boost = (d.makes==="pies"&&ev&&ev.pies ? ev.pies : 1) * tev(d.makes);
+    b.store=Math.min(d.cap[b.lv-1]*tev("cap",d.makes), (b.store||0)+d.rate[b.lv-1]*boost/60*sec); }
 }
 // Star Bonus (like Clash): earn 5 stars in Battles or Ranked, collect bonus pies and drink, then it resets 24 hours later.
 const STAR_GOAL = 5;

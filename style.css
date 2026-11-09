@@ -879,3 +879,29 @@ body.editing #top,body.editing #homeBtns,body.editing #side,body.editing #eventB
 #shopLayouts .uia,#bCopy .uia,.modal h3 .uia{display:inline-block;width:1.5em;height:1.5em;vertical-align:middle}
 #shopLayouts .uia img,#bCopy .uia img,.modal h3 .uia img,#searchFx .sfoot img{width:100%;height:100%;object-fit:contain}
 #searchFx .sfoot .uia{display:inline-block;width:110px;height:110px}
+
+/* Card trading (beta) */
+.soontag.beta{background:#2f6fae;color:#fff}
+.tradebox{padding:4px 2px}
+.tradebox h3{margin:10px 0 6px}
+.toffer{background:#fffaf0;border:2px solid #c9a56a;border-radius:12px;padding:8px;margin-bottom:8px}
+.toffer small{display:block;color:#7a5a2a;margin-top:4px}
+.tline{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:4px}
+.tline span{font-weight:900;font-size:12px;width:46px}
+.tbtns{display:flex;gap:6px;margin-top:6px}
+.tcard{position:relative;width:58px;padding:0;border:2px solid transparent;border-radius:8px;background:none}
+.tcard img,.tcard canvas,.tcard svg{width:100%;height:auto;display:block;border-radius:6px}
+.tcard.on{border-color:#3fbf4f;box-shadow:0 0 0 3px #3fbf4f88}
+.tcard i{position:absolute;right:-4px;top:-6px;background:#d23a1c;color:#fff;font-style:normal;font-weight:900;font-size:11px;border-radius:9px;padding:0 5px;border:2px solid #fff}
+.thead{display:flex;align-items:center;gap:10px;margin-bottom:6px}
+.tside{background:#fffaf0;border:2px solid #c9a56a;border-radius:12px;padding:6px 8px;margin-bottom:8px}
+.tside small{font-weight:700;color:#7a5a2a;font-size:12px}
+.tgrid{display:flex;flex-wrap:wrap;gap:6px;max-height:150px;overflow-y:auto}
+.tchat{margin-top:10px;background:#fff;border:2px solid #c9a56a;border-radius:12px;padding:6px}
+.tmsgs{height:110px;overflow-y:auto;display:flex;flex-direction:column;gap:4px;padding:2px}
+.tmsg{align-self:flex-start;background:#eef3f8;border-radius:10px;padding:4px 8px;max-width:80%;font-size:13px}
+.tmsg.me{align-self:flex-end;background:#d7f5d9}
+.toffer,.tside,.tchat,.toffer *,.tside h3,.tside small,.tmsg,.tline span{color:#2b1d10!important;-webkit-text-stroke:0!important;text-shadow:none!important}
+.tside h3{font-size:16px;margin:2px 0 6px}
+.tradebox>p.tiny{color:#f3e2c0}
+.soonpill{display:inline-block;vertical-align:middle;margin-left:6px;background:#2f6fae;color:#fff;font-size:11px;font-weight:900;border-radius:8px;padding:2px 7px;-webkit-text-stroke:0;text-shadow:none}

@@ -9,12 +9,21 @@ const LANES = [4.5, 13.5];
 const R_SAVE = "ffRoyal";
 const MATCH = 180, LAST_Q = 60, SIREN = 60;
 const R_LEAGUES = [["Auskick",0],["Under-12s",300],["Under-18s",600],["Local Footy",1000],["State League",1500],["VFL",2000],["Reserves",2600],["AFL",3300],["All-Australian",4000],["Hall of Fame",5000]];
+// Balance dials. first = first-hit delay (s) after reaching a target; costs rise with rating within each position.
 const ROLES = {
-  mid:{name:"Rover",    cost:3, hp:300, dmg:60, spd:1.15, range:.9, rate:1,   icon:"🏃"},
-  fwd:{name:"Forward",  cost:4, hp:220, dmg:70, spd:.9,  range:4.5, rate:1.2, icon:"🎯"},
-  ruck:{name:"Ruck",    cost:5, hp:950, dmg:85, spd:.6,  range:.9, rate:1.5, icon:"🗼", towersOnly:true},
-  def:{name:"Defender", cost:4, hp:520, dmg:55, spd:.85, range:.9, rate:1,   icon:"🛡️", hunter:true},
+  mid:{name:"Rover",    cost:3, hp:210, dmg:48, spd:1.15, range:.9, rate:1,   first:.35, deploy:1, icon:"🏃"},
+  fwd:{name:"Forward",  cost:4, hp:240, dmg:78, spd:.9,  range:4.5, rate:1.2, first:.5,  deploy:1, icon:"🎯"},
+  ruck:{name:"Ruck",    cost:5, hp:950, dmg:85, spd:.6,  range:.9, rate:1.5, first:.6,  deploy:2.5, icon:"🗼", towersOnly:true},
+  def:{name:"Defender", cost:4, hp:420, dmg:70, spd:.85, range:.9, rate:1.1, first:.4,  deploy:1, icon:"🛡️", hunter:true, sweep:1.1},
 };
+const BUMP_DMG = 230, BUMP_TOWER = .3, HUDDLE_HEAL = 220;   // spell damage, spells' share of damage to towers, heal
+const statMul = r => .7 + .6 * (r - 60) / 39;               // rating 60 → ×0.70, rating 99 → ×1.30
+// Levels: cards grow ~10% a level (compounding); towers grow ~7.5% a level so low levels are forgiving. Stats always round down.
+const MAX_LV = 14;
+const cardM = L => Math.round(100 * 1.1 ** (L - 1)), towerM = L => Math.round(100 * 1.075 ** (L - 1));
+const lvStat = (base, L) => Math.floor(base * cardM(L) / 100);
+const cardLv = id => (RS.lv && RS.lv[id]) || 1;
+const upCost = L => 20 * 2 ** (L - 1);                       // gold to go from level L to L+1
 const R_SPELLS = [
   {id:"sp-bump", name:"Hip & Shoulder", cost:3, icon:"💥", desc:"Smashes players in an area and dents towers", spell:"bump"},
   {id:"sp-huddle", name:"Huddle", cost:2, icon:"🤝", desc:"Heals your players in an area", spell:"huddle"},
@@ -29,14 +38,14 @@ const R_CARDS = [], R_BY_ID = {};
     raw.push({id:`${ci}-${i}`, club:ci, name:p[0], no:p[1], pos:p[2], score:(s[1] + 6*s[2] + 2*s[3] + 3*s[4] + s[5]/3 + 3*s[6] + 4*s[7]) / g}); }));
   const sorted = raw.map(c => c.score).sort((a, b) => a - b);
   for (const c of raw) { const pct = sorted.indexOf(c.score) / Math.max(1, sorted.length - 1);
-    c.rating = Math.round(60 + pct * 39); const role = ROLES[c.pos]; c.cost = role.cost + (c.rating >= 92 ? 1 : 0);
+    c.rating = Math.round(60 + pct * 39); const role = ROLES[c.pos]; c.cost = role.cost + (c.rating >= 95 ? 1 : 0) - (c.rating < 72 ? 1 : 0);
     R_CARDS.push(c); R_BY_ID[c.id] = c; }
   for (const s of R_SPELLS) R_BY_ID[s.id] = s;
 })();
 
 // ----- saves: our own, plus a read of the Footy Fortress album -----
 const RS = (() => { try { return JSON.parse(localStorage.getItem(R_SAVE)) || {}; } catch (e) { return {}; } })();
-RS.trophies = RS.trophies || 0; RS.wins = RS.wins || 0; RS.played = RS.played || 0;
+RS.trophies = RS.trophies || 0; RS.wins = RS.wins || 0; RS.played = RS.played || 0; RS.gold = RS.gold ?? 100; RS.lv = RS.lv || {};
 const rsave = () => { try { localStorage.setItem(R_SAVE, JSON.stringify(RS)); } catch (e) {} };
 // Its own collection: every player is available; pick your favourite club on first launch (no link to Footy Fortress)
 function ownedCards(){ const club = RS.club ?? 0; return {ids:R_CARDS.map(c => c.id), club}; }
@@ -58,18 +67,19 @@ const cv = document.getElementById("rc"), ctx = cv.getContext("2d"), ui = docume
 const $r = id => document.getElementById(id);
 const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const clubOf = i => CLUBS[i] || CLUBS[0];
-function towers(side){ const y = side === 0 ? RH - 5 : 5, gy = side === 0 ? RH - 2.2 : 2.2;
-  return [{side, kind:"flank", x:LANES[0], y, hp:1400, max:1400, dmg:90, range:6.5, cd:0, chunks:0},
-          {side, kind:"flank", x:LANES[1], y, hp:1400, max:1400, dmg:90, range:6.5, cd:0, chunks:0},
-          {side, kind:"main", x:RW/2, y:gy, hp:2400, max:2400, dmg:110, range:7, cd:0, chunks:0}]; }
+function towers(side, L){ const y = side === 0 ? RH - 5 : 5, gy = side === 0 ? RH - 2.2 : 2.2, k = towerM(L) / 100;
+  const t = (kind, x, yy, hp, dmg, range) => ({side, kind, x, y:yy, hp:Math.floor(hp * k), max:Math.floor(hp * k), dmg:Math.floor(dmg * k), range, cd:0, chunks:0});
+  return [t("flank", LANES[0], y, 1400, 90, 6.5), t("flank", LANES[1], y, 1400, 90, 6.5), t("main", RW / 2, gy, 2400, 110, 7)]; }
 function startMatch(){
   const deck = myDeck(), lg = leagueOf(RS.trophies), oppClub = (Math.random() * 18) | 0;
   const pool = R_CARDS.filter(c => c.club === oppClub).sort((a, b) => b.rating - a.rating);
   const oppDeck = pool.slice(0, 6).map(c => c.id).concat(R_SPELLS.map(s => s.id));
   const shuffle = a => a.map(v => [Math.random(), v]).sort((p, q) => p[0] - q[0]).map(p => p[1]);
-  M = { t:0, over:false, units:[], fx:[], towers:[...towers(0), ...towers(1)],
-    side:[{club:ownedCards().club, drink:5, deck:shuffle(deck), hand:[], next:null, goals:0, behinds:0, lvl:1},
-          {club:oppClub, drink:5, deck:shuffle(oppDeck), hand:[], next:null, goals:0, behinds:0, lvl:.85 + lg * .04, think:0}],
+  // your tower level = average level of your deck; the opponent's matches your league
+  const myL = Math.max(1, Math.floor(deck.reduce((s, id) => s + cardLv(id), 0) / deck.length)), oppL = Math.max(1, Math.min(MAX_LV, 1 + lg + (Math.random() < .3 ? 1 : 0)));
+  M = { t:0, over:false, units:[], fx:[], towers:[...towers(0, myL), ...towers(1, oppL)], L:[myL, oppL],
+    side:[{club:ownedCards().club, drink:5, deck:shuffle(deck), hand:[], next:null, goals:0, behinds:0, lv:id => cardLv(id)},
+          {club:oppClub, drink:5, deck:shuffle(oppDeck), hand:[], next:null, goals:0, behinds:0, lv:() => oppL, think:0}],
     sel:null, siren:false };
   for (const s of M.side) { s.hand = s.deck.slice(0, 4); s.next = s.deck[4]; s.queue = s.deck.slice(5); }
   ui.innerHTML = ""; drawBattleUI(); resize();
@@ -81,11 +91,11 @@ function play(sideIx, id, x, y){
   if (!c.spell && (sideIx === 0 ? y < RH / 2 + .5 : y > RH / 2 - .5)) return false; // players start on your half
   s.drink -= c.cost; cycle(s, id);
   if (c.spell === "bump") { M.fx.push({k:"boom", x, y, t:0});
-    for (const u of M.units) if (u.side !== sideIx && Math.hypot(u.x - x, u.y - y) <= 1.8) u.hp -= 220 * s.lvl;
-    for (const t of M.towers) if (t.side !== sideIx && t.hp > 0 && Math.hypot(t.x - x, t.y - y) <= 2.2) hurtTower(t, 70 * s.lvl); return true; }
-  if (c.spell === "huddle") { M.fx.push({k:"heal", x, y, t:0}); for (const u of M.units) if (u.side === sideIx && Math.hypot(u.x - x, u.y - y) <= 2.2) u.hp = Math.min(u.max, u.hp + 220); return true; }
-  const r = ROLES[c.pos], m = (.7 + .6 * (c.rating - 60) / 39) * s.lvl, n = c.pos === "mid" && c.cost <= 3 ? 2 : 1;
-  for (let k = 0; k < n; k++) M.units.push({side:sideIx, card:c, role:r, x:x + (k ? .6 : 0), y, hp:r.hp * m, max:r.hp * m, dmg:r.dmg * m, cd:.6, lane:x < RW / 2 ? 0 : 1, face:1});
+    for (const u of M.units) if (u.side !== sideIx && Math.hypot(u.x - x, u.y - y) <= 1.8) u.hp -= lvStat(BUMP_DMG, s.lv(id));
+    for (const t of M.towers) if (t.side !== sideIx && t.hp > 0 && Math.hypot(t.x - x, t.y - y) <= 2.2) hurtTower(t, Math.floor(lvStat(BUMP_DMG, s.lv(id)) * BUMP_TOWER)); return true; }
+  if (c.spell === "huddle") { M.fx.push({k:"heal", x, y, t:0}); for (const u of M.units) if (u.side === sideIx && Math.hypot(u.x - x, u.y - y) <= 2.2) u.hp = Math.min(u.max, u.hp + HUDDLE_HEAL); return true; }
+  const r = ROLES[c.pos], L = s.lv(id), m = statMul(c.rating), n = c.pos === "mid" && c.cost <= 3 ? 2 : 1, hp = lvStat(r.hp * m, L);
+  for (let k = 0; k < n; k++) M.units.push({side:sideIx, card:c, role:r, x:x + (k ? .6 : 0), y, hp, max:hp, dmg:lvStat(r.dmg * m, L), cd:0, dep:r.deploy, lane:x < RW / 2 ? 0 : 1, face:1});
   return true;
 }
 function hurtTower(t, d){ if (t.hp <= 0) return; const before = t.hp; t.hp = Math.max(0, t.hp - d);
@@ -100,15 +110,16 @@ function step(dt){
   if (M.t >= MATCH && !M.siren) { const [a, b] = M.side; if (a.goals !== b.goals) return endMatch(a.goals > b.goals ? 0 : 1); M.siren = true; toast("📢 Siren time! Next goal wins"); }
   if (M.siren && M.t >= MATCH + SIREN) { const [a, b] = M.side; return endMatch(a.behinds === b.behinds ? -1 : a.behinds > b.behinds ? 0 : 1); }
   ai(dt);
-  for (const u of M.units) { if (u.hp <= 0) continue; u.cd -= dt;
+  for (const u of M.units) { if (u.hp <= 0) continue; if (u.dep > 0) { u.dep -= dt; continue; } u.cd -= dt;
     let tgt = null, td = 1e9;
     if (!u.role.towersOnly) for (const o of M.units) { if (o.side === u.side || o.hp <= 0) continue; const d = Math.hypot(o.x - u.x, o.y - u.y); if (d < td && d <= (u.role.hunter ? 6 : 4)) { td = d; tgt = o; } }
     if (!tgt) { tgt = nearestTower(u); td = tgt ? Math.hypot(tgt.x - u.x, tgt.y - u.y) - (tgt.kind === "main" ? 1.3 : .9) : 1e9; }
     if (!tgt) continue;
-    if (td > u.role.range) { const dx = tgt.x - u.x, dy = tgt.y - u.y, d = Math.hypot(dx, dy) || 1; u.x += dx / d * u.role.spd * dt; u.y += dy / d * u.role.spd * dt; u.face = dx >= 0 ? 1 : -1; u.moving = true; }
-    else { u.moving = false; u.atkT = Math.max(0, (u.atkT || 0) - dt); if (u.cd <= 0) { u.cd = u.role.rate; u.atkT = .5; const t = tgt;
+    if (td > u.role.range) { u.engaged = null; const dx = tgt.x - u.x, dy = tgt.y - u.y, d = Math.hypot(dx, dy) || 1; u.x += dx / d * u.role.spd * dt; u.y += dy / d * u.role.spd * dt; u.face = dx >= 0 ? 1 : -1; u.moving = true; }
+    else { u.moving = false; u.atkT = Math.max(0, (u.atkT || 0) - dt); if (u.engaged !== tgt) { u.engaged = tgt; u.cd = Math.max(u.cd, u.role.first); } if (u.cd <= 0) { u.cd = u.role.rate; u.atkT = .5; const t = tgt;
       if (u.role.range > 2) M.fx.push({k:"kick", x:u.x, y:u.y, tx:t.x, ty:t.y, t:0});
-      if (t.max && t.kind) hurtTower(t, u.dmg); else t.hp -= u.dmg; } } }
+      if (t.max && t.kind) hurtTower(t, u.dmg); else { t.hp -= u.dmg;
+        if (u.role.sweep) for (const o of M.units) if (o !== t && o.side !== u.side && o.hp > 0 && Math.hypot(o.x - t.x, o.y - t.y) <= u.role.sweep) o.hp -= u.dmg; } } } }
   // players spread out a little so they don't stack
   for (const a of M.units) for (const b of M.units) { if (a === b || a.hp <= 0 || b.hp <= 0) continue; const dx = a.x - b.x, dy = a.y - b.y, d = Math.hypot(dx, dy); if (d > 0 && d < .55) { a.x += dx / d * .02; a.y += dy / d * .02; } }
   for (const t of M.towers) { if (t.hp <= 0) continue; t.cd -= dt; if (t.cd > 0) continue;
@@ -132,11 +143,11 @@ function ai(dt){
 }
 function endMatch(win){
   if (M.over) return; M.over = true; RS.played++;
-  const delta = win === 0 ? 30 : win === 1 ? -15 : 0; RS.trophies = Math.max(0, RS.trophies + delta); if (win === 0) RS.wins++; rsave();
+  const delta = win === 0 ? 30 : win === 1 ? -15 : 0; RS.trophies = Math.max(0, RS.trophies + delta); const gold = win === 0 ? 40 + 10 * leagueOf(RS.trophies) : win === -1 ? 15 : 5; RS.gold += gold; if (win === 0) RS.wins++; rsave();
   const [a, b] = M.side, A = clubOf(a.club), B = clubOf(b.club);
   setTimeout(() => { ui.innerHTML = `<div class="rpanel result"><h2>${win === 0 ? "You win! 🏆" : win === 1 ? "Siren. You lost" : "It's a draw"}</h2>
     <div class="score"><b>${A.short} ${a.goals}.${a.behinds} (${a.goals * 6 + a.behinds})</b><span>v</span><b>${B.short} ${b.goals}.${b.behinds} (${b.goals * 6 + b.behinds})</b></div>
-    <p>${delta >= 0 ? "+" : ""}${delta} 🏆 · ${R_LEAGUES[leagueOf(RS.trophies)][0]} (${RS.trophies} 🏆)</p>
+    <p>${delta >= 0 ? "+" : ""}${delta} 🏆 · +${gold} 🪙 · ${R_LEAGUES[leagueOf(RS.trophies)][0]} (${RS.trophies} 🏆)</p>
     <button class="rbtn gold big" id="rAgain">Play again</button><button class="rbtn" id="rHome">Home</button></div>`;
     $r("rAgain").onclick = startMatch; $r("rHome").onclick = home; }, 900);
 }
@@ -173,7 +184,7 @@ function drawTower(t){
 }
 function drawUnit(u){
   const c = clubOf(M.side[u.side].club), x = X(u.x), y = Y(u.y), r = SC * (u.role.towersOnly ? .5 : .38);
-  ctx.globalAlpha = u.hp > 0 ? 1 : Math.max(0, 1 - u.dead / .4);
+  ctx.globalAlpha = u.hp > 0 ? (u.dep > 0 ? .55 : 1) : Math.max(0, 1 - u.dead / .4);
   const im = RART["unit-" + u.card.pos];
   if (im) { const dead = u.hp <= 0, row = dead ? 5 : u.moving ? (u.side === 0 ? 1 : 0) : (u.atkT > 0 ? (u.side === 0 ? 3 : 2) : 4),
       n = [8, 8, 6, 6, 4, 4][row], col = dead ? Math.min(3, Math.floor(u.dead / .1)) : Math.floor(performance.now() / 90 + u.x * 7) % n, s = r * 3.4;
@@ -205,7 +216,7 @@ const tierOf = c => c.spell ? "star-wildcard" : c.rating >= 93 ? "legendary" : c
 function cardTile(id, i){ const c = R_BY_ID[id]; if (!c) return ""; const cl = c.spell ? null : clubOf(c.club);
   const pic = c.spell ? `<span class="ricon">${c.icon}</span>` : `<span class="rpic" style="background-image:url(art/unit-${c.pos}.webp)"></span>`;
   return `<button class="rcard${c.spell ? " spell" : ""}${(M && M.sel) === id ? " on" : ""}" data-rc="${id}" style="--a:${cl ? cl.a : "#5b2d8a"};--b:${cl ? cl.b : "#c9a0ff"};${c.spell ? "" : `;--frame:url(art/cards/frame-${tierOf(c)}.webp)`}"><i class="cost">${c.cost}</i>
-    <span class="rinner">${pic}${c.spell ? "" : `<i class="rrate">${c.rating}</i>`}</span><b>${esc(c.spell ? c.name : c.name.split(" ").slice(-1)[0])}</b><small>${c.spell ? "Spell" : ROLES[c.pos].name}</small></button>`; }
+    <span class="rinner">${pic}${c.spell ? "" : `<i class="rrate">${c.rating}</i>`}<i class="rlv">Lv${cardLv(id)}</i></span><b>${esc(c.spell ? c.name : c.name.split(" ").slice(-1)[0])}</b><small>${c.spell ? "Spell" : ROLES[c.pos].name}</small></button>`; }
 function drawBattleUI(){
   ui.innerHTML = `<div class="rtop"><span id="rScore"></span><span id="rClock"></span></div>
     <div class="rbar"><div class="rnext"><small>Next</small><div id="rNext"></div></div><div class="rhand" id="rHand"></div>
@@ -230,27 +241,29 @@ cv.addEventListener("pointerdown", e => { if (!M || M.over || !M.sel) return; co
 function toast(t){ const el = document.createElement("div"); el.className = "rtoast"; el.textContent = t; document.body.appendChild(el); setTimeout(() => el.remove(), 1800); }
 function home(){ M = null; resize(); const lg = leagueOf(RS.trophies), next = R_LEAGUES[lg + 1];
   ui.innerHTML = `<div class="rpanel home"><div class="rhub"><b>FF: <span>Royal</span></b><i class="beta">BETA</i></div>
-    <div class="rleague"><b>${R_LEAGUES[lg][0]}</b><span>🏆 ${RS.trophies}${next ? ` · ${next[1] - RS.trophies} to ${next[0]}` : ""}</span></div>
+    <div class="rleague"><b>${R_LEAGUES[lg][0]}</b><span>🏆 ${RS.trophies}${next ? ` · ${next[1] - RS.trophies} to ${next[0]}` : ""} · 🪙 ${RS.gold}</span></div>
     <button class="rbtn battle big" id="rPlay">⚔️ Battle</button><button class="rbtn blue" id="rDeck">🃏 My deck</button><button class="rbtn" id="rHow">❓ How to play</button>
     <button class="rbtn ghost" id="rClub">Club: ${clubOf(RS.club ?? 0).name}</button><p class="tiny">Wins ${RS.wins} / ${RS.played}</p></div>`;
   $r("rPlay").onclick = startMatch; $r("rDeck").onclick = deckScreen; $r("rHow").onclick = howTo;
   $r("rClub").onclick = () => { RS.club = ((RS.club ?? 0) + 1) % CLUBS.length; RS.deck = null; rsave(); home(); }; }
 // What a card actually does, with its numbers (same maths as in battle)
 const ROLE_TEXT = {mid:"Fast runner who attacks whatever is nearest. Cheaper Rovers (3 💧) run on in pairs.", fwd:"Kicks goals from range. Fragile up close, so protect them.",
-  ruck:"A big body that ignores players and marches straight at towers.", def:"Hunts down attacking players from further away before going for towers."};
-function cardStats(c){
-  if (c.spell) return [["Cost", c.cost + " 💧"], ["Area", c.spell === "bump" ? "Radius 1.8" : "Radius 2.2"], c.spell === "bump" ? ["Damage", "220 (70 to towers)"] : ["Heals", "220 per player"]];
-  const r = ROLES[c.pos], m = .7 + .6 * (c.rating - 60) / 39, n = c.pos === "mid" && c.cost <= 3 ? 2 : 1;
-  return [["Cost", c.cost + " 💧"], ["Hitpoints", Math.round(r.hp * m)], ["Damage", Math.round(r.dmg * m)], ["Hit speed", r.rate + "s"], ["Damage/sec", Math.round(r.dmg * m / r.rate)],
-    ["Speed", r.spd >= 1.1 ? "Fast" : r.spd >= .85 ? "Medium" : "Slow"], ["Range", r.range > 2 ? r.range + " tiles" : "Melee"], ["Targets", r.towersOnly ? "Towers" : "Players & towers"], ["Count", "×" + n], ["Rating", c.rating]];
+  ruck:"A big body that ignores players and marches straight at towers.", def:"Hunts down attacking players from further away, and each hit sweeps through a pack."};
+function cardStats(c, L = cardLv(c.id)){
+  if (c.spell) return [["Cost", c.cost + " 💧"], ["Area", c.spell === "bump" ? "Radius 1.8" : "Radius 2.2"], c.spell === "bump" ? ["Damage", lvStat(BUMP_DMG, L)] : ["Heals", HUDDLE_HEAL + " each"], c.spell === "bump" ? ["To towers (30%)", Math.floor(lvStat(BUMP_DMG, L) * BUMP_TOWER)] : ["Targets", "Your players"], ["Level", L]];
+  const r = ROLES[c.pos], m = statMul(c.rating), n = c.pos === "mid" && c.cost <= 3 ? 2 : 1, hp = lvStat(r.hp * m, L), dmg = lvStat(r.dmg * m, L), bump = lvStat(BUMP_DMG, L);
+  return [["Cost", c.cost + " 💧"], ["Rating", c.rating], ["Level", L], ["Hitpoints", hp], ["Damage", dmg], ["Hit speed", r.rate + "s"], ["Damage/sec", Math.floor(dmg / r.rate)],
+    ["Speed", r.spd >= 1.1 ? "Fast" : r.spd >= .85 ? "Medium" : "Slow"], ["Range", r.range > 2 ? r.range + " tiles" : r.sweep ? "Melee, sweeps" : "Melee"], ["Targets", r.towersOnly ? "Towers" : "Players & towers"], ["Count", "×" + n], ["First hit", r.first + "s"], ["Deploy time", r.deploy + "s"], ["Hip & Shoulder", hp > bump ? `Survives (${hp - bump} left)` : "Knocked out"]];
 }
 function cardInfo(id, onToggle, inDeck){
   const c = R_BY_ID[id], el = document.createElement("div"); el.className = "rinfo";
   el.innerHTML = `<div class="rinfo-box"><div class="rinfo-top">${cardTile(id)}<div><h3>${esc(c.name)}</h3><small>${c.spell ? "Spell" : `${ROLES[c.pos].name} · ${esc(clubOf(c.club).name)} · #${c.no}`}</small>
     <p>${c.spell ? c.desc : ROLE_TEXT[c.pos]}</p></div></div><div class="rstats">${cardStats(c).map(([k, v]) => `<div><small>${k}</small><b>${v}</b></div>`).join("")}</div>
-    <div class="rinfo-btns"><button class="rbtn ${inDeck ? "" : "gold"}" id="rInfoGo">${inDeck ? "Remove from deck" : "Add to deck"}</button><button class="rbtn blue" id="rInfoX">Close</button></div></div>`;
+    <div class="rinfo-btns">${cardLv(id) < MAX_LV ? `<button class="rbtn battle" id="rInfoUp">⬆ Level ${cardLv(id) + 1}<small> ${upCost(cardLv(id))} 🪙</small></button>` : ""}<button class="rbtn ${inDeck ? "" : "gold"}" id="rInfoGo">${inDeck ? "Remove from deck" : "Add to deck"}</button><button class="rbtn blue" id="rInfoX">Close</button></div></div>`;
   document.body.appendChild(el); el.onclick = e => { if (e.target === el) el.remove(); };
-  el.querySelector("#rInfoX").onclick = () => el.remove(); el.querySelector("#rInfoGo").onclick = () => { el.remove(); onToggle(); };
+  el.querySelector("#rInfoX").onclick = () => el.remove();
+  const up = el.querySelector("#rInfoUp"); if (up) up.onclick = () => { const L = cardLv(id), cost = upCost(L); if (RS.gold < cost) return toast(`Need ${cost} 🪙. Win matches for gold`);
+    RS.gold -= cost; RS.lv[id] = L + 1; rsave(); el.remove(); cardInfo(id, onToggle, inDeck); toast(`${c.name} is now level ${L + 1}`); }; el.querySelector("#rInfoGo").onclick = () => { el.remove(); onToggle(); };
 }
 function deckScreen(){ M = null; let deck = myDeck(); const own = ownedCards().ids.map(id => R_BY_ID[id]).concat(R_SPELLS);
   const draw = () => { const shown = own.slice().sort((a, b) => (b.rating || 0) - (a.rating || 0));
@@ -262,6 +275,7 @@ function deckScreen(){ M = null; let deck = myDeck(); const own = ownedCards().i
     $r("rSave").onclick = () => { if (deck.length !== 8) return toast("Pick 8 cards"); RS.deck = deck; rsave(); home(); }; };
   M = {sel:null}; draw(); M = null; }
 function howTo(){ ui.innerHTML = `<div class="rpanel"><h2>How to play</h2><ul class="rhow">
+    <li>🪙 Win matches for gold, then tap a card in My deck to level it up. Each level adds about 10% health and damage. Your Goal Towers level up with your deck's average level.</li>
     <li>💧 Sports Drink refills over time (up to 10). Tap a card, then tap your half of the ground to send a player.</li>
     <li>Players run up the nearest flank and go for the other team's Goal Towers, then their Goalposts.</li>
     <li>🏃 Rovers come in pairs. 🎯 Forwards kick from range. 🗼 Rucks only go for towers. 🛡️ Defenders hunt down attackers.</li>

@@ -87,3 +87,6 @@ body{background:#13314d}
 .rstats div{background:#fffaf0;border:2px solid #c9a56a;border-radius:10px;padding:4px 8px;display:flex;justify-content:space-between;align-items:center}
 .rstats small{color:#6b4a22}.rstats b{font-size:15px}
 .rinfo-btns{display:flex;gap:8px}.rinfo-btns .rbtn{margin:0}
+.rcard .rlv{position:absolute;left:3px;bottom:2px;font-style:normal;font-size:9px;background:#000a;border-radius:6px;padding:0 4px}
+.rcard.spell .rlv{position:static;display:inline-block;margin-top:2px}
+.rinfo-btns{flex-wrap:wrap}.rinfo-btns .rbtn{flex:1 1 40%}.rinfo-btns .rbtn small{display:block;font-size:12px}

@@ -16,7 +16,8 @@ const ROLES = {
   ruck:{name:"Ruck",    cost:5, hp:950, dmg:85, spd:.6,  range:.9, rate:1.5, first:.6,  deploy:2.5, icon:"🗼", towersOnly:true},
   def:{name:"Defender", cost:4, hp:420, dmg:70, spd:.85, range:.9, rate:1.1, first:.4,  deploy:1, icon:"🛡️", hunter:true, sweep:1.1},
 };
-const BUMP_DMG = 230, BUMP_TOWER = .3, HUDDLE_HEAL = 220;   // spell damage, spells' share of damage to towers, heal
+const BUMP_DMG = 230, BUMP_TOWER = .3, HUDDLE_HEAL = 220, HAIL_DMG = 380, HAIL_R = 3.5;
+const q = v => Math.round(v * 100) / 100; // fixed 1/100-tile precision so ties always break the same way   // spell damage, spells' share of damage to towers, heal
 const statMul = r => .7 + .6 * (r - 60) / 39;               // rating 60 → ×0.70, rating 99 → ×1.30
 // Levels: cards grow ~10% a level (compounding); towers grow ~7.5% a level so low levels are forgiving. Stats always round down.
 const MAX_LV = 14;
@@ -27,6 +28,7 @@ const upCost = L => 20 * 2 ** (L - 1);                       // gold to go from 
 const R_SPELLS = [
   {id:"sp-bump", name:"Hip & Shoulder", cost:3, icon:"💥", desc:"Smashes players in an area and dents towers", spell:"bump"},
   {id:"sp-huddle", name:"Huddle", cost:2, icon:"🤝", desc:"Heals your players in an area", spell:"huddle"},
+  {id:"sp-hail", name:"Hail Storm", cost:6, icon:"🌩️", desc:"Three strikes on the three toughest targets in a wide area (towers take 30%). A big body can soak a strike for its mates.", spell:"hail"},
 ];
 
 // ----- cards from the 2026 player list, rated from real per-game stats -----
@@ -93,9 +95,15 @@ function play(sideIx, id, x, y){
   if (c.spell === "bump") { M.fx.push({k:"boom", x, y, t:0});
     for (const u of M.units) if (u.side !== sideIx && Math.hypot(u.x - x, u.y - y) <= 1.8) u.hp -= lvStat(BUMP_DMG, s.lv(id));
     for (const t of M.towers) if (t.side !== sideIx && t.hp > 0 && Math.hypot(t.x - x, t.y - y) <= 2.2) hurtTower(t, Math.floor(lvStat(BUMP_DMG, s.lv(id)) * BUMP_TOWER)); return true; }
+  if (c.spell === "hail") { // sort everything in range by current health (toughest first) and strike the top three
+    const hits = [...M.units.filter(u => u.side !== sideIx && u.hp > 0 && u.dep <= 0 || u.side !== sideIx && u.hp > 0), ...M.towers.filter(t => t.side !== sideIx && t.hp > 0)]
+      .filter(o => Math.hypot(o.x - x, o.y - y) <= HAIL_R).sort((a, b) => b.hp - a.hp).slice(0, 3);
+    const d = lvStat(HAIL_DMG, s.lv(id));
+    hits.forEach((o, i) => setTimeout(() => { if (!M || M.over) return; M.fx.push({k:"boom", x:o.x, y:o.y, t:0}); if (o.kind) hurtTower(o, Math.floor(d * BUMP_TOWER)); else o.hp -= d; }, i * 250));
+    if (!hits.length) M.fx.push({k:"boom", x, y, t:0}); return true; }
   if (c.spell === "huddle") { M.fx.push({k:"heal", x, y, t:0}); for (const u of M.units) if (u.side === sideIx && Math.hypot(u.x - x, u.y - y) <= 2.2) u.hp = Math.min(u.max, u.hp + HUDDLE_HEAL); return true; }
   const r = ROLES[c.pos], L = s.lv(id), m = statMul(c.rating), n = c.pos === "mid" && c.cost <= 3 ? 2 : 1, hp = lvStat(r.hp * m, L);
-  for (let k = 0; k < n; k++) M.units.push({side:sideIx, card:c, role:r, x:x + (k ? .6 : 0), y, hp, max:hp, dmg:lvStat(r.dmg * m, L), cd:0, dep:r.deploy, lane:x < RW / 2 ? 0 : 1, face:1});
+  for (let k = 0; k < n; k++) M.units.push({side:sideIx, card:c, role:r, x:x + (k ? .6 : 0), y, hp, max:hp, dmg:lvStat(r.dmg * m, L), cd:0, dep:r.deploy, lane:q(x) < RW / 2 ? 0 : 1, face:1});
   return true;
 }
 function hurtTower(t, d){ if (t.hp <= 0) return; const before = t.hp; t.hp = Math.max(0, t.hp - d);
@@ -120,6 +128,10 @@ function step(dt){
       if (u.role.range > 2) M.fx.push({k:"kick", x:u.x, y:u.y, tx:t.x, ty:t.y, t:0});
       if (t.max && t.kind) hurtTower(t, u.dmg); else { t.hp -= u.dmg;
         if (u.role.sweep) for (const o of M.units) if (o !== t && o.side !== u.side && o.hp > 0 && Math.hypot(o.x - t.x, o.y - t.y) <= u.role.sweep) o.hp -= u.dmg; } } } }
+  // pushing: faster teammates crowding a slower player from behind nudge it forward (lighter pushers add less)
+  for (const a of M.units) { if (a.hp <= 0 || !a.moving || a.dep > 0) continue; const fwd = a.side === 0 ? -1 : 1;
+    for (const b of M.units) { if (b === a || b.side !== a.side || b.hp <= 0 || !b.moving || b.role.spd <= a.role.spd) continue;
+      const dy = (a.y - b.y) * fwd, dx = Math.abs(a.x - b.x); if (dy > 0 && dy < .7 && dx < .5) a.y += fwd * (b.role.spd - a.role.spd) * .14 * dt; } }
   // players spread out a little so they don't stack
   for (const a of M.units) for (const b of M.units) { if (a === b || a.hp <= 0 || b.hp <= 0) continue; const dx = a.x - b.x, dy = a.y - b.y, d = Math.hypot(dx, dy); if (d > 0 && d < .55) { a.x += dx / d * .02; a.y += dy / d * .02; } }
   for (const t of M.towers) { if (t.hp <= 0) continue; t.cd -= dt; if (t.cd > 0) continue;
@@ -250,6 +262,7 @@ function home(){ M = null; resize(); const lg = leagueOf(RS.trophies), next = R_
 const ROLE_TEXT = {mid:"Fast runner who attacks whatever is nearest. Cheaper Rovers (3 💧) run on in pairs.", fwd:"Kicks goals from range. Fragile up close, so protect them.",
   ruck:"A big body that ignores players and marches straight at towers.", def:"Hunts down attacking players from further away, and each hit sweeps through a pack."};
 function cardStats(c, L = cardLv(c.id)){
+  if (c.spell === "hail") return [["Cost", c.cost + " 💧"], ["Area", "Radius " + HAIL_R], ["Strikes", "3 (toughest first)"], ["Damage", lvStat(HAIL_DMG, L) + " each"], ["To towers (30%)", Math.floor(lvStat(HAIL_DMG, L) * BUMP_TOWER)], ["Level", L]];
   if (c.spell) return [["Cost", c.cost + " 💧"], ["Area", c.spell === "bump" ? "Radius 1.8" : "Radius 2.2"], c.spell === "bump" ? ["Damage", lvStat(BUMP_DMG, L)] : ["Heals", HUDDLE_HEAL + " each"], c.spell === "bump" ? ["To towers (30%)", Math.floor(lvStat(BUMP_DMG, L) * BUMP_TOWER)] : ["Targets", "Your players"], ["Level", L]];
   const r = ROLES[c.pos], m = statMul(c.rating), n = c.pos === "mid" && c.cost <= 3 ? 2 : 1, hp = lvStat(r.hp * m, L), dmg = lvStat(r.dmg * m, L), bump = lvStat(BUMP_DMG, L);
   return [["Cost", c.cost + " 💧"], ["Rating", c.rating], ["Level", L], ["Hitpoints", hp], ["Damage", dmg], ["Hit speed", r.rate + "s"], ["Damage/sec", Math.floor(dmg / r.rate)],

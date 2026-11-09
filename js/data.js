@@ -1,5 +1,5 @@
 // ---------- Game data ----------
-const VERSION = "2026.11.11.36";
+const VERSION = "2026.11.11.37";
 // Club names + colours. Logos: drop PNGs named <abbr>.png (e.g. coll.png) into the logos/ folder and they're used everywhere.
 // Player names checked against the 2026 trade period and retirements (lists for the 2027 season); edit freely.
 const CLUBS = [
@@ -214,3 +214,18 @@ function timedEventAt(t){ const d=new Date(t), y=d.getFullYear();
 const timedEventNow = () => TIMED_LIVE ? timedEventAt(Date.now()) : null;
 const tev = (k, res) => { const e=timedEventNow(); return e&&e[k]&&(!e.res||!res||e.res===res) ? e[k] : 1; }; // multiplier, 1 when no event
 
+// Storage fix: at every Clubhouse level, a full set of storages plus the Clubhouse must hold the most expensive thing you can buy
+// at that level (otherwise some upgrades can never be afforded). The Clubhouse's own storage tops up whatever is missing.
+(function fitStorage(){
+  for (let th = 1; th <= MAX_TH; th++) {
+    let need = 0;
+    for (const res of ["pies", "drink"]) {
+      let worst = th < MAX_TH && res === BLD.clubhouse.res ? BLD.clubhouse.cost[th] : 0;
+      for (const [t, d] of Object.entries(BLD)) { if (d.res !== res || !d.cost || t === "clubhouse" || !(MAXC[t] && MAXC[t][th-1])) continue;
+        const lv = maxLevel(t, th); for (let l = 0; l < lv; l++) worst = Math.max(worst, d.cost[l] || 0); }
+      let stores = 0; for (const [t, d] of Object.entries(BLD)) if (d.stores === res && MAXC[t] && MAXC[t][th-1]) { const lv = maxLevel(t, th); if (lv) stores += MAXC[t][th-1] * d.cap[lv-1]; }
+      need = Math.max(need, worst - stores);
+    }
+    BLD.clubhouse.store[th-1] = Math.max(BLD.clubhouse.store[th-1], Math.ceil(need / 1000) * 1000, th > 1 ? BLD.clubhouse.store[th-2] : 0); // never drops when you level up
+  }
+})();

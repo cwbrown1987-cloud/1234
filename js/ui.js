@@ -276,13 +276,6 @@ const SHOP_BOOSTS = [
   {id:"tokens", icon:"🎟️", name:"Footy Tokens", desc:"3 tokens: enough for a card pack", cost:15, ok:()=>true, use:()=>{ earnTokens(3); }},
 ];
 function shopDeals(g){
-  // Chloe's Special: a free one-time gift of 100 Brownlow votes
-  { const it=document.createElement("div"), got=!!S.chloeSpecial; it.className="item special"+(got?" off":"");
-    it.innerHTML=`<div class="pack" style="--pc:#d24fa0"><span style="font-size:34px">💜</span></div><div class="nm">Chloe's Special</div><div class="meta">A one-time gift: 100 Brownlow votes, a Prize Pack (with a 24K Gold card), 10 Footy Tokens and full pies and drink</div><div class="cost">${got?"Claimed ✔":"FREE"}</div>`;
-    it.onclick=()=>{ if(S.chloeSpecial) return toast("You've already claimed Chloe's Special 💜");
-      S.chloeSpecial=Date.now(); S.medals+=100; S.prizePacks=(S.prizePacks||0)+1; earnTokens(10); for(const r of ["pies","drink"]) addRes(r,capOf(r));
-      sfx("collect"); save(); toast("💜 Chloe's Special: +100 🏅, a Prize Pack, 10 🎟️ and full storage!"); openShop("Deals"); };
-    g.append(it); }
   for(const b of SHOP_BOOSTS){
     const it=document.createElement("div"); it.className="item";
     it.innerHTML=`<div class="pack" style="--pc:#7a4fd0"><span style="font-size:34px">${b.icon}</span></div><div class="nm">${b.name}</div><div class="meta">${b.id==="oven"&&S.prodBoost>Date.now()?`On for ${fmtTime((S.prodBoost-Date.now())/1000)}`:b.desc}</div><div class="cost ${S.medals>=b.cost?"":"bad"}">${b.cost} 🏅</div>`;

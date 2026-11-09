@@ -910,3 +910,4 @@ body.editing #top,body.editing #homeBtns,body.editing #side,body.editing #eventB
 .havebar b{background:#fff6dc;border:2px solid #c9a56a;border-radius:10px;padding:2px 8px;font-size:14px;color:#2b1d10}
 .havebar b img{height:1.1em;vertical-align:-2px}
 .res[data-r="pies"] .cap,.res[data-r="drink"] .cap{left:16px}
+#shopGrid .item.special{border-color:#d24fa0;box-shadow:0 0 0 3px #d24fa055}

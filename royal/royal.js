@@ -212,7 +212,7 @@ function endMatch(win){
   const [a, b] = M.side, A = clubOf(a.club), B = clubOf(b.club);
   setTimeout(() => { ui.innerHTML = `<div class="rpanel result"><h2>${win === 0 ? "You win! 🏆" : win === 1 ? "Siren. You lost" : "It's a draw"}</h2>
     <div class="score"><b>${A.short} ${a.goals}.${a.behinds} (${a.goals * 6 + a.behinds})</b><span>v</span><b>${B.short} ${b.goals}.${b.behinds} (${b.goals * 6 + b.behinds})</b></div>
-    <p>${delta >= 0 ? "+" : ""}${delta} 🏆 · +${gold} 🪙 · ${R_LEAGUES[leagueOf(RS.trophies)][0]} (${RS.trophies} 🏆)</p>
+    <img class="rlg big" src="art/ui/league-${leagueOf(RS.trophies) + 1}.webp" alt=""><p>${delta >= 0 ? "+" : ""}${delta} 🏆 · +${gold} 🪙 · ${R_LEAGUES[leagueOf(RS.trophies)][0]} (${RS.trophies} 🏆)</p>
     <button class="rbtn gold big" id="rAgain">Play again</button><button class="rbtn" id="rHome">Home</button></div>`;
     $r("rAgain").onclick = startMatch; $r("rHome").onclick = home; }, 900);
 }
@@ -252,7 +252,7 @@ function drawTrap(tr){ const show = tr.side === 0 ? (tr.armed ? .4 : 0) : 0; con
   ctx.globalAlpha = 1; }
 function drawTower(t){
   if (t.kind === "bld") { if (t.hp <= 0) return; const c = clubOf(M.side[t.side].club), x = X(t.x), y = Y(t.y), s = SC * 1.6, im = RART["bld-" + t.bld];
-    ctx.fillStyle = c.a; ctx.beginPath(); ctx.ellipse(x, y, s * .55, s * .22, 0, 0, 7); ctx.fill();
+    ctx.fillStyle = "#0003"; ctx.beginPath(); ctx.ellipse(x, y + s * .1, s * .45, s * .15, 0, 0, 7); ctx.fill();
     const mi = RART[MODEL[t.bld]]; if (mi) { const ih = s * ({goaltower:1.8, floodlight:1.9, cannon:1.2, catapult:1.2}[t.bld] || 1.15), iw = Math.min(s * 1.4, ih * mi.width / mi.height), h2 = iw * mi.height / mi.width; ctx.drawImage(mi, x - iw / 2, y + s * .2 - h2, iw, h2); }
     else if (im) { const ih = s * (t.bld === "cannon" || t.bld === "goaltower" ? 1.5 : 1.1), iw = ih * im.width / im.height; ctx.drawImage(im, x - iw / 2, y + s * .15 - ih, iw, ih); }
     else { ctx.font = `${s * .8}px sans-serif`; ctx.textAlign = "center"; ctx.fillText({cannon:"📣", bench:"🪑", catapult:"🏉", goaltower:"🥅"}[t.bld] || "🏗️", x, y); }
@@ -260,7 +260,7 @@ function drawTower(t){
   const c = clubOf(M.side[t.side].club), big = t.kind === "main", w = (big ? 2.4 : 1.7) * SC, h = (big ? 3.1 : 2.4) * SC, x = X(t.x), y = Y(t.y);
   if (t.hp <= 0) { ctx.fillStyle = "#5b5148"; ctx.beginPath(); ctx.ellipse(x, y, w * .45, h * .18, 0, 0, 7); ctx.fill(); return; }
   const im = RART[big ? "tower-main" : "tower-flank"];
-  if (im) { const ih = h * (big ? 1.25 : 1.45), iw = ih * im.width / im.height; ctx.fillStyle = c.a; ctx.beginPath(); ctx.ellipse(x, y + h * .12, w * .62, w * .26, 0, 0, 7); ctx.fill(); ctx.drawImage(im, x - iw / 2, y + h * .2 - ih, iw, ih); }
+  if (im) { const ih = h * (big ? 1.25 : 1.45), iw = ih * im.width / im.height; ctx.fillStyle = "#0003"; ctx.beginPath(); ctx.ellipse(x, y + h * .14, w * .5, w * .16, 0, 0, 7); ctx.fill(); ctx.drawImage(im, x - iw / 2, y + h * .2 - ih, iw, ih); }
   else { ctx.fillStyle = c.a; ctx.fillRect(x - w / 2, y - h * .55, w, h * .7); ctx.fillStyle = c.b; ctx.fillRect(x - w / 2, y - h * .55, w, h * .16);
     ctx.strokeStyle = "#fff"; ctx.lineWidth = 2; for (const k of big ? [-.32, -.11, .11, .32] : [-.22, .22]) { ctx.beginPath(); ctx.moveTo(x + w * k, y - h * .55); ctx.lineTo(x + w * k, y - h * (big ? 1.05 : .9)); ctx.stroke(); }
     ctx.strokeStyle = "#111"; ctx.lineWidth = 1.5; ctx.strokeRect(x - w / 2, y - h * .55, w, h * .7); }
@@ -342,12 +342,12 @@ cv.addEventListener("pointerdown", e => { if (!M || M.over || !M.sel) return; co
 function toast(t){ const el = document.createElement("div"); el.className = "rtoast"; el.textContent = t; document.body.appendChild(el); setTimeout(() => el.remove(), 1800); }
 function home(){ M = null; resize(); const lg = leagueOf(RS.trophies), next = R_LEAGUES[lg + 1];
   ui.innerHTML = `<div class="rpanel home"><div class="rhub"><b>FF: <span>Royal</span></b><i class="beta">BETA</i></div>
-    <div class="rleague"><b>${R_LEAGUES[lg][0]}</b><span>🏆 ${RS.trophies}${next ? ` · ${next[1] - RS.trophies} to ${next[0]}` : ""}</span><i class="rbarx"><i style="width:${next ? Math.min(100, (RS.trophies - R_LEAGUES[lg][1]) / (next[1] - R_LEAGUES[lg][1]) * 100) : 100}%"></i></i></div>
-    <button class="rbtn battle big" id="rPlay">⚔️ Battle</button>
+    <div class="rleague"><img class="rlg" src="art/ui/league-${lg + 1}.webp" alt=""><b>${R_LEAGUES[lg][0]}</b><span>🏆 ${RS.trophies}${next ? ` · ${next[1] - RS.trophies} to ${next[0]}` : ""}</span><i class="rbarx"><i style="width:${next ? Math.min(100, (RS.trophies - R_LEAGUES[lg][1]) / (next[1] - R_LEAGUES[lg][1]) * 100) : 100}%"></i></i></div>
+    <button class="rbtn battle big" id="rPlay"><img class="ri" src="art/ui/ico-battle.webp" alt="">Battle</button>
     <h3 class="rclubh">Your club · <b>${esc(clubOf(RS.club ?? 0).name)}</b></h3>
     <div class="rclubs">${CLUBS.map((c, i) => `<button class="rbadge${i === (RS.club ?? 0) ? " on" : ""}" data-club="${i}" title="${esc(c.name)}" style="--a:${c.a};--b:${c.b}"><span>${c.short}</span></button>`).join("")}</div>
     <div class="rstat"><span>🏆 <b>${RS.wins}</b> wins</span><span>⚔️ <b>${RS.played}</b> played</span><span>🪙 <b>${RS.gold}</b></span></div></div>`;
-  const nav = document.createElement("nav"); nav.className = "rnav"; nav.innerHTML = `<button id="rDeck"><b>🃏</b>Deck</button><button class="on" id="rNavPlay"><b>⚔️</b>Battle</button><button id="rHow"><b>❓</b>How to</button>`; ui.appendChild(nav);
+  const nav = document.createElement("nav"); nav.className = "rnav"; nav.innerHTML = `<button id="rDeck"><img src="art/ui/ico-cards.webp" alt="">Deck</button><button class="on" id="rNavPlay"><img src="art/ui/ico-battle.webp" alt="">Battle</button><button id="rHow"><img src="art/ui/ico-recipes.webp" alt="">How to play</button>`; ui.appendChild(nav);
   $r("rPlay").onclick = startMatch; $r("rNavPlay").onclick = startMatch; $r("rDeck").onclick = deckScreen; $r("rHow").onclick = howTo;
   ui.querySelectorAll("[data-club]").forEach(b => b.onclick = () => { const i = +b.dataset.club; if (i === (RS.club ?? 0)) return; RS.club = i; RS.deck = null; rsave(); home(); toast(`Now playing as ${clubOf(i).name}`); }); }
 // What a card actually does, with its numbers (same maths as in battle)
@@ -383,20 +383,19 @@ function deckScreen(){ M = null; let deck = myDeck(); const own = ownedCards().i
       cardInfo(id, () => { if (deck.includes(id)) deck = deck.filter(x => x !== id); else if (deck.length < 8) deck.push(id); else toast("A deck holds 8 cards. Remove one first"); draw(); }, deck.includes(id)); });
     $r("rSave").onclick = () => { if (deck.length !== 8) return toast("Pick 8 cards"); RS.deck = deck; rsave(); home(); }; };
   M = {sel:null}; draw(); M = null; }
-function howTo(){ ui.innerHTML = `<div class="rpanel"><h2>How to play</h2><ul class="rhow">
-    <li>🪙 Win matches for gold, then tap a card in My deck to level it up. Each level adds about 10% health and damage. Your Goal Towers level up with your deck's average level.</li>
-    <li>⭐ Play a player card twice and its next play comes on <b>in form</b>: 25% stronger, with a gold glow.</li>
-    <li>🪑 Buildings go on your half. Opposition players and Rucks walk to a building when it's closer than your tower. Drop one in the middle to pull them into range of both Goal Towers.</li>
-    <li>💧 Sports Drink refills over time (up to 10). Tap a card, then tap your half of the ground to send a player.</li>
-    <li>Players run up the nearest flank and go for the other team's Goal Towers, then their Goalposts.</li>
-    <li>🏃 Rovers come in pairs. 🎯 Forwards kick from range. 🗼 Rucks only go for towers. 🛡️ Defenders hunt down attackers.</li>
-    <li>A tower down is a <b>goal</b>. Every quarter of a tower's health knocked off is a <b>behind</b>. Knock over the Goalposts to win straight away.</li>
-    <li>The last minute is the last quarter: drink flows twice as fast. Level on goals after 3 minutes? <b>Siren time</b>: next goal wins.</li>
-    <li>Build your deck of 8 from any 2026 player. Tap Club on the home screen to change your team.</li></ul><button class="rbtn gold" id="rBack">Got it</button></div>`;
+function howTo(){ ui.innerHTML = `<div class="rpanel how"><div class="rhub"><b>How to <span>play</span></b></div><div class="rhow">
+    <section><h3>💧 The basics</h3><p>Sports Drink fills up over time, to a max of 10. Tap a card, then tap your half of the ground to play it. The hint above your cards says what it does.</p></section>
+    <section><h3>🏉 Scoring</h3><p>Knock down a Goal Tower for a <b>goal</b>. Every quarter of a tower's health knocked off is a <b>behind</b>. Knock over the Clubhouse and you win on the spot.</p></section>
+    <section><h3>⏱️ Time</h3><p>Matches last 3 minutes. The last minute is the last quarter, with drink twice as fast. Level on goals? <b>Siren time</b>: drink three times as fast and the next goal wins.</p></section>
+    <section><h3>🚧 Crossing halfway</h3><p>Boundary boards cover halfway. Players can only cross through the gap on each flank. Spells and kicks go over the top.</p></section>
+    <section><h3>🃏 Players</h3><p><b>Rovers</b> are fast, and the cheaper ones come in pairs. <b>Forwards</b> kick from range. <b>Rucks</b> ignore players and march at towers. <b>Defenders</b> hunt attackers and hit a whole pack. Rovers beat Forwards, Forwards beat Defenders, and Defenders beat Rovers.</p></section>
+    <section><h3>🏗️ Buildings and traps</h3><p>Buildings go on your half and pull attackers within 7 tiles towards them, which is handy for dragging a Ruck between both towers. Traps stay hidden until an attacker walks over one.</p></section>
+    <section><h3>⭐ Getting stronger</h3><p>Play a player twice and their next play is <b>in form</b>: 25% stronger. Win matches for 🪙 gold, then tap a card in Deck to level it up. Each level adds about 10% health and damage.</p></section>
+  </div><button class="rbtn gold" id="rBack">Let's play</button></div>`;
   $r("rBack").onclick = home; }
 
 // What's new: a small note at the side after each update, fades after 10 s
-const R_VERSION = "1.6", R_NEWS = "Drink bar with 10 pips · team panels for both sides · placement preview when a card is picked · new bottom menu bar";
+const R_VERSION = "1.7", R_NEWS = "League badges, Footy Fortress icons on buttons, cleaner towers and a new How to play page";
 function whatsNew(){ if (RS.seen === R_VERSION) return; RS.seen = R_VERSION; rsave();
   const n = document.createElement("div"); n.className = "rnews"; n.innerHTML = `<b>Updated · v${R_VERSION}</b>${esc(R_NEWS)}`; document.body.appendChild(n);
   setTimeout(() => n.classList.add("out"), 9200); setTimeout(() => n.remove(), 10000); }

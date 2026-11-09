@@ -146,3 +146,13 @@ body{background:#13314d}
 @media (prefers-reduced-motion:reduce){.rnews{animation:none}}
 .rme{top:calc(48px + env(safe-area-inset-top));bottom:auto}
 .rcard.spell .rlv{bottom:auto}
+/* more Footy Fortress art */
+.rleague{position:relative;padding-left:64px!important;text-align:left;align-items:flex-start}
+.rlg{position:absolute;left:8px;top:50%;transform:translateY(-50%);width:50px;height:50px;object-fit:contain;filter:drop-shadow(0 2px 0 #13314d)}
+.rlg.big{position:static;transform:none;width:72px;height:72px;display:block;margin:4px auto}
+.rbtn .ri{width:30px;height:30px;object-fit:contain;vertical-align:middle;margin-right:8px}
+.rnav button img{width:30px;height:30px;object-fit:contain}
+.rpanel.how{max-height:84vh;display:flex;flex-direction:column}
+.rhow{overflow:auto;text-align:left;padding:0;margin:0 0 8px}
+.rhow section{background:#fffaf0;border:2px solid #c9a56a;border-radius:12px;padding:6px 10px;margin-bottom:8px}
+.rhow h3{margin:0 0 2px;font-size:16px}.rhow p{margin:0;font-size:14px;line-height:1.35}

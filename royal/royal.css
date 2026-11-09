@@ -90,3 +90,4 @@ body{background:#13314d}
 .rcard .rlv{position:absolute;left:3px;bottom:2px;font-style:normal;font-size:9px;background:#000a;border-radius:6px;padding:0 4px}
 .rcard.spell .rlv{position:static;display:inline-block;margin-top:2px}
 .rinfo-btns{flex-wrap:wrap}.rinfo-btns .rbtn{flex:1 1 40%}.rinfo-btns .rbtn small{display:block;font-size:12px}
+.rhand .rcard.inform::after{content:"IN FORM";position:absolute;left:50%;top:-12px;transform:translateX(-50%);background:linear-gradient(#ffe88c,#d58a12);color:#2b1d10;font-size:9px;font-weight:900;border:2px solid #2b1d10;border-radius:8px;padding:0 5px;white-space:nowrap}

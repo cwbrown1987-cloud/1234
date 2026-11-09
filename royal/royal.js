@@ -45,13 +45,17 @@ const R_SPELLS = [
 ];
 
 // ----- cards from the 2026 player list, rated from real per-game stats -----
+// Only players with painted card art (art/players/NNN.webp, NNN = album number) are in the game
+const R_BASE_SET = [["Ben Keays", "Sam Berry", "Josh Rachele", "Jordan Dawson", "Jake Soligo", "Brayden Cook", "Max Michalanney", "Izak Rankine", "Josh Worrell", "Alex Neal-Bullen", "Lachlan McAndrew"], ["Kai Lohmann", "Jaspa Fletcher", "Josh Dunkley", "Will Ashcroft", "Lachie Neale", "Levi Ashcroft", "Logan Morris", "Cam Rayner", "Charlie Cameron", "Zac Bailey", "Darcy Wilmot"], ["Lachlan Cowan", "Adam Cerra", "Jagga Smith", "Patrick Cripps", "Harry McKay", "Mitch McGovern", "Ben Ainsworth", "Oliver Florent", "Brodie Kemp", "Sam Walsh", "Francis Evans"], ["Jordan de Goey", "Josh Daicos", "Lachie Schultz", "Dan Houston", "Daniel McStay", "Darcy Cameron", "Billy Frampton", "Jack Crisp", "Beau McCreery", "Nick Daicos", "Ned Long"], ["Andrew McGrath", "Jacob Farrow", "Kyle Langford", "Zach Merrett", "Archie Roberts", "Sam Durham", "Jaxon Prior", "Xavier Duursma", "Nate Caddy", "Zach Reid", "Archer Day-Wicks"], ["Caleb Serong", "Jordan Clark", "Andrew Brayshaw", "Luke Jackson", "Shai Bolton", "Luke Ryan", "Karl Worner", "Neil Erasmus", "Josh Treacy", "Isaiah Dudley", "Matthew Johnson"], ["Bailey Smith", "Jeremy Cameron", "Shaun Mannagh", "Connor OSullivan", "Lawson Humphries", "Oliver Dempsey", "Tom Atkins", "Shannon Neale", "Oisin Mullin", "Oliver Henry", "Zach Guthrie"], ["Mac Andrew", "John Noble", "Bodhi Uwland", "Leo Lombard", "Touk Miller", "Noah Anderson", "Joel Jeffrey", "Matt Rowell", "Ben Long", "Sam Collins", "Ben King"], ["Harvey Thomas", "Stephen Coniglio", "Toby Greene", "Lachie Whitfield", "Lachie Ash", "Ryan Angwin", "Clayton Oliver", "Jake Stringer", "Harry Himmelberg", "Joe Fonti", "Connor Idun"], ["Mitch Lewis", "Jai Newcombe", "Jarman Impey", "James Sicily", "Dylan Moore", "Connor Macdonald", "Blake Hardwick", "Massimo DAmbrosio", "Lloyd Meek", "Josh Ward", "Jack Ginnivan"], ["Harvey Langford", "Jake Lever", "Jack Steele", "Max Gawn", "Koltyn Tholstrup", "Ed Langdon", "Harry Sharp", "Bayley Fritsch", "Tom Sparrow", "Kysaiah Pickett", "Kade Chandler"], ["Harry Sheezel", "Caleb Daniel", "Luke Davies-Uniacke", "Colby McKercher", "Jy Simpkin", "Dylan Stephens", "Nick Larkey", "Luke Parker", "Charlie Comben", "Cameron Zurhaar", "Cooper Trembath"], ["Connor Rozee", "Joe Berry", "Jase Burgoyne", "Jack Whitlock", "Jason Horne-Francis", "Mitch Georgiades", "Aliir Aliir", "Jordon Sweet", "Willem Drew", "Darcy Byrne-Jones", "Corey Durdin"], ["Nick Vlastuin", "Jack Ross", "Ben Miller", "Tim Taranto", "Jayden Short", "Sam Grlj", "Patrick Retschko", "Nathan Broad", "Mykelti Lefau", "Seth Campbell", "Steely Green"], ["Marcus Windhager", "Jack Silvagni", "Nasiah Wanganeen-Milera", "Bradley Hill", "Rowan Marshall", "Darcy Wilson", "Mattaes Phillipou", "Hugo Garcia", "Max Hall", "Cooper Sharman", "Callum Wilkie"], ["Chad Warner", "Brodie Grundy", "Isaac Heeney", "Logan McDonald", "James Rowbottom", "Jai Serong", "Callum Mills", "Nick Blakey", "Tom McCartin", "Charlie Curnow", "Jake Lloyd"], ["Willem Duursma", "Jake Waterman", "Elliot Yeo", "Harley Reid", "Tim Kelly", "Liam Duggan", "Tom McCarthy", "Brady Hough", "Tylar Young", "Jobe Shanahan", "Hamish Davis"], ["Marcus Bontempelli", "Cooper Hynes", "Matthew Kennedy", "Ryley Sanders", "Rhylee West", "Ed Richards", "Buku Khamis", "Joel Freijah", "Lachlan Bramble", "Aaron Naughton", "Michael Sellwood"]];
+const PAINTED = new Set([4, 26, 43, 68, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 133, 168, 180, 188]);
 const R_CARDS = [], R_BY_ID = {};
 (function build(){
+  const numOf = {}; let n = 0; CLUBS.forEach((club, ci) => { const list = CARD_SET[ci] || []; for (const name of R_BASE_SET[ci] || []) { n++; const i = list.findIndex(p => p[0] === name); if (i >= 0) numOf[`${ci}-${i}`] = n; } });
   const raw = [];
   CARD_SET.forEach((list, ci) => list.forEach((p, i) => { const s = p[3], g = Math.max(1, s[0]);
-    if (s[0] < 3 || !ROLES[p[2]]) return;
-    raw.push({id:`${ci}-${i}`, club:ci, name:p[0], no:p[1], pos:p[2], score:(s[1] + 6*s[2] + 2*s[3] + 3*s[4] + s[5]/3 + 3*s[6] + 4*s[7]) / g}); }));
-  const sorted = raw.map(c => c.score).sort((a, b) => a - b);
+    if (!ROLES[p[2]] || !PAINTED.has(numOf[`${ci}-${i}`])) return;
+    raw.push({num:numOf[`${ci}-${i}`], id:`${ci}-${i}`, club:ci, name:p[0], no:p[1], pos:p[2], score:(s[1] + 6*s[2] + 2*s[3] + 3*s[4] + s[5]/3 + 3*s[6] + 4*s[7]) / g}); }));
+  const sorted = raw.map(c => c.score).sort((a, b) => a - b); // ranked among the painted players
   for (const c of raw) { const pct = sorted.indexOf(c.score) / Math.max(1, sorted.length - 1);
     c.rating = Math.round(60 + pct * 39); const role = ROLES[c.pos]; c.cost = role.cost + (c.rating >= 95 ? 1 : 0) - (c.rating < 72 ? 1 : 0);
     R_CARDS.push(c); R_BY_ID[c.id] = c; }
@@ -66,7 +70,7 @@ const rsave = () => { try { localStorage.setItem(R_SAVE, JSON.stringify(RS)); } 
 function ownedCards(){ const club = RS.club ?? 0; return {ids:R_CARDS.map(c => c.id), club}; }
 function myDeck(){
   const own = ownedCards(); let d = (RS.deck || []).filter(id => R_BY_ID[id]);
-  for (const c of R_CARDS.filter(c => c.club === own.club).sort((a, b) => b.rating - a.rating)) { if (d.length >= 6) break; if (!d.includes(c.id)) d.push(c.id); }
+  for (const c of R_CARDS.slice().sort((a, b) => (b.club === own.club) - (a.club === own.club) || b.rating - a.rating)) { if (d.length >= 6) break; if (!d.includes(c.id)) d.push(c.id); }
   for (const s of R_SPELLS) if (d.length < 8 && !d.includes(s.id)) d.push(s.id);
   return d.slice(0, 8);
 }
@@ -87,7 +91,7 @@ function towers(side, L){ const y = side === 0 ? RH - 5 : 5, gy = side === 0 ? R
   return [t("flank", LANES[0], y, 1400, 90, 6.5), t("flank", LANES[1], y, 1400, 90, 6.5), t("main", RW / 2, gy, 2400, 110, 7)]; }
 function startMatch(){
   const deck = myDeck(), streak = (RS.lossStreak || 0) >= 3, lg = Math.max(0, leagueOf(RS.trophies) - (streak ? 2 : 0)), oppClub = (Math.random() * 18) | 0;
-  const pool = R_CARDS.filter(c => c.club === oppClub).sort((a, b) => streak ? a.rating - b.rating : b.rating - a.rating);
+  const pool = R_CARDS.slice().sort(() => Math.random() - .5).sort((a, b) => streak ? a.rating - b.rating : b.rating - a.rating);
   const oppDeck = pool.slice(0, 5).map(c => c.id).concat(["sp-bump", "bd-cannon", "sp-huddle"]);
   const shuffle = a => a.map(v => [Math.random(), v]).sort((p, q) => p[0] - q[0]).map(p => p[1]);
   // your tower level = average level of your deck; the opponent's matches your league
@@ -277,7 +281,7 @@ function frame(now){
 // Cards use Footy Fortress's card frames (rarity by rating) and the player's sprite as the picture
 const tierOf = c => c.spell ? "star-wildcard" : c.rating >= 93 ? "legendary" : c.rating >= 85 ? "epic" : c.rating >= 75 ? "rare" : "common";
 function cardTile(id, i){ const c = R_BY_ID[id]; if (!c) return ""; const cl = c.spell ? null : clubOf(c.club);
-  const pic = c.spell ? `<span class="ricon">${c.icon}</span>` : `<span class="rpic" style="background-image:url(art/unit-${c.pos}.webp)"></span>`;
+  const pic = c.spell ? `<span class="ricon">${c.icon}</span>` : `<span class="rpic face" style="background-image:url(art/players/${String(c.num).padStart(3, "0")}.webp)"></span>`;
   return `<button class="rcard${c.spell ? " spell" : ""}${(M && M.sel) === id ? " on" : ""}" data-rc="${id}" style="--a:${cl ? cl.a : "#5b2d8a"};--b:${cl ? cl.b : "#c9a0ff"};${c.spell ? "" : `;--frame:url(art/cards/frame-${tierOf(c)}.webp)`}"><i class="cost">${c.cost}</i>
     <span class="rinner">${pic}${c.spell ? "" : `<i class="rrate">${c.rating}</i>`}<i class="rlv">Lv${cardLv(id)}</i></span><b>${esc(c.spell ? c.name : c.name.split(" ").slice(-1)[0])}</b><small>${c.build ? "Building" : c.trap ? "Trap" : c.spell ? "Spell" : ROLES[c.pos].name}</small></button>`; }
 function drawBattleUI(){
@@ -341,7 +345,7 @@ function cardInfo(id, onToggle, inDeck){
 function deckScreen(){ M = null; let deck = myDeck(); const own = ownedCards().ids.map(id => R_BY_ID[id]).concat(R_SPELLS);
   const draw = () => { const shown = own.slice().sort((a, b) => (b.rating || 0) - (a.rating || 0));
     ui.innerHTML = `<div class="rpanel deck"><h2>My deck <small>${deck.length}/8</small></h2><div class="rgrid">${deck.map(id => cardTile(id)).join("")}</div>
-      <h3>All players <small>2026 season</small></h3><div class="rgrid all">${shown.map(c => cardTile(c.id).replace("rcard", "rcard" + (deck.includes(c.id) ? " in" : ""))).join("")}</div>
+      <h3>All players <small>${R_CARDS.length} painted so far</small></h3><div class="rgrid all">${shown.map(c => cardTile(c.id).replace("rcard", "rcard" + (deck.includes(c.id) ? " in" : ""))).join("")}</div>
       <button class="rbtn gold" id="rSave">Save deck</button></div>`;
     ui.querySelectorAll(".rgrid [data-rc]").forEach(b => b.onclick = () => { const id = b.dataset.rc;
       cardInfo(id, () => { if (deck.includes(id)) deck = deck.filter(x => x !== id); else if (deck.length < 8) deck.push(id); else toast("A deck holds 8 cards. Remove one first"); draw(); }, deck.includes(id)); });

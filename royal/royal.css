@@ -121,3 +121,4 @@ body{background:#13314d}
 .rclubs{grid-template-columns:repeat(9,1fr);gap:4px}
 .rbadge{border-width:2px;box-shadow:0 2px 0 #2b1d10}.rbadge span{font-size:8px;padding:1px 2px}
 .rclubh{margin:8px 0 5px}
+.rcard .rpic.face{inset:0;background-size:cover;background-position:center 15%}

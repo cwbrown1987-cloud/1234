@@ -18,7 +18,10 @@ const ROLES = {
 };
 // Building and trap tables (base stats at level 1; levels add ~10% each)
 const BUILDS = { bench:{hp:900, life:30}, cannon:{hp:700, life:30, dmg:60, range:5.5, rate:.8},
-  goaltower:{hp:800, life:40, dmg:75, range:7, rate:1.1}, catapult:{hp:600, life:40, dmg:130, range:9, min:3, rate:3, splash:1.3} };
+  goaltower:{hp:800, life:40, dmg:75, range:7, rate:1.1}, catapult:{hp:600, life:40, dmg:130, range:9, min:3, rate:3, splash:1.3},
+  floodlight:{hp:650, life:40, dmg:30, range:7.5, rate:1.2, slow:1.5}, drinktap:{hp:550, life:70, gen:8.5}, piewarmer:{hp:700, life:35, spawn:7} };
+const MODEL = {bench:"b-bench", cannon:"b-siren", goaltower:"b-goalpost", catapult:"b-catapult", floodlight:"b-floodlight", drinktap:"b-drinktap", piewarmer:"b-piewarmer",
+  sprinkler:"b-drinktap", sendoff:"b-office", streaker:"b-locker", gust:"b-oval", flooder:"b-esky"};
 const TRAPS = { sprinkler:{r:.9, dmg:180, area:1.4}, sendoff:{r:.8}, streaker:{r:1, stun:3, area:2.4}, gust:{r:1, hold:3, area:2.8}, flooder:{r:1.2, dmg:330, area:2.6} };
 const BUMP_DMG = 230, BUMP_TOWER = .3, HUDDLE_HEAL = 220, HAIL_DMG = 380, HAIL_R = 3.5;
 const q = v => Math.round(v * 100) / 100; // fixed 1/100-tile precision so ties always break the same way   // spell damage, spells' share of damage to towers, heal
@@ -36,11 +39,14 @@ const R_SPELLS = [
   {id:"bd-cannon", name:"Siren Cannon", cost:4, icon:"📣", desc:"Fast shots at the nearest attacker in range. Pulls attackers towards it. Wears down over 30s.", spell:"cannon", build:true},
   {id:"bd-goaltower", name:"Goal Tower", cost:5, icon:"🥅", desc:"Long-range kicks at attackers, steady damage. Pulls attackers. Wears down over 40s.", spell:"goaltower", build:true},
   {id:"bd-catapult", name:"Kick-Out Catapult", cost:6, icon:"🏉", desc:"Lobs a ball that hits a whole pack. Huge range but can't hit anyone right next to it. Wears down over 40s.", spell:"catapult", build:true},
-  {id:"tr-sprinkler", name:"Sprinkler Trap", cost:2, icon:"💦", desc:"Hidden. Soaks the first attackers who run over it for a burst of damage.", spell:"sprinkler", trap:true},
-  {id:"tr-sendoff", name:"Send-Off Gate", cost:3, icon:"🟥", desc:"Hidden. The umpire sends off the first Rover or Forward who steps on it. Rucks are too big.", spell:"sendoff", trap:true},
-  {id:"tr-streaker", name:"Streaker", cost:3, icon:"🏃", desc:"Hidden. A streaker runs on and every attacker nearby stops to watch for 3 seconds.", spell:"streaker", trap:true},
-  {id:"tr-gust", name:"Wind Gust", cost:4, icon:"🌪️", desc:"Hidden. A gust drags nearby attackers into one spot and holds them for 3 seconds.", spell:"gust", trap:true},
-  {id:"tr-flooder", name:"Pitch Flooder", cost:5, icon:"🌊", desc:"Hidden. A huge soaking for a whole pack of attackers.", spell:"flooder", trap:true},
+  {id:"bd-floodlight", name:"Floodlight Tower", cost:4, icon:"💡", desc:"Dazzles attackers in a wide beam: light damage and they run 40% slower for a moment. Wears down over 40s.", spell:"floodlight", build:true},
+  {id:"bd-drinktap", name:"Drink Tap", cost:5, icon:"🚰", desc:"Pours you +1 💧 every 8.5 seconds for 70 seconds. Pays for itself if it survives. Attackers will target it.", spell:"drinktap", build:true},
+  {id:"bd-piewarmer", name:"Pie Warmer", cost:5, icon:"🥧", desc:"Fed Rovers run out of it every 7 seconds for 35 seconds. Attackers will target it.", spell:"piewarmer", build:true},
+  {id:"tr-sprinkler", name:"Drink Tap Sprinkler", cost:2, icon:"💦", desc:"Hidden. A drink tap bursts under the first attackers who run over it.", spell:"sprinkler", trap:true},
+  {id:"tr-sendoff", name:"Umpires' Office", cost:3, icon:"🟥", desc:"Hidden. The umpire steps out and sends off the first Rover, Forward or Defender who walks past. Rucks are too big.", spell:"sendoff", trap:true},
+  {id:"tr-streaker", name:"Locker Room Streaker", cost:3, icon:"🏃", desc:"Hidden. A streaker runs on and every attacker nearby stops to watch for 3 seconds.", spell:"streaker", trap:true},
+  {id:"tr-gust", name:"Training Oval Gust", cost:4, icon:"🌪️", desc:"Hidden. A gust drags nearby attackers into one spot and holds them for 3 seconds.", spell:"gust", trap:true},
+  {id:"tr-flooder", name:"Esky Flood", cost:5, icon:"🌊", desc:"Hidden. A giant esky tips over and soaks a whole pack of attackers.", spell:"flooder", trap:true},
   {id:"sp-hail", name:"Hail Storm", cost:6, icon:"🌩️", desc:"Three strikes on the three toughest targets in a wide area (towers take 30%). A big body can soak a strike for its mates.", spell:"hail"},
 ];
 
@@ -78,7 +84,7 @@ const leagueOf = t => { let k = 0; R_LEAGUES.forEach((l, i) => { if (t >= l[1]) 
 
 // ----- optional art (placeholders are drawn when a file is missing) -----
 const RART = {};
-for (const k of ["bld-bench", "bld-cannon", "field", "crowd", "tower-flank", "tower-main", "unit-mid", "unit-fwd", "unit-ruck", "unit-def"]) { const im = new Image(); im.onload = () => RART[k] = im; im.src = `art/${k}.webp`; }
+for (const k of ["b-bench", "b-siren", "b-goalpost", "b-catapult", "b-floodlight", "b-drinktap", "b-piewarmer", "b-esky", "b-office", "b-locker", "b-oval", "b-pieshop", "field", "crowd", "tower-flank", "tower-main", "unit-mid", "unit-fwd", "unit-ruck", "unit-def"]) { const im = new Image(); im.onload = () => RART[k] = im; im.src = `art/${k}.webp`; }
 
 // ----- the match -----
 let M = null, last = 0;
@@ -101,6 +107,7 @@ function startMatch(){
           {club:oppClub, drink:5, deck:shuffle(oppDeck), hand:[], next:null, goals:0, behinds:0, lv:() => oppL, think:0}],
     sel:null, siren:false };
   for (const s of M.side) { s.hand = s.deck.slice(0, 4); s.next = s.deck[4]; s.queue = s.deck.slice(5); }
+  M.wait = 3.2;
   ui.innerHTML = ""; drawBattleUI(); resize();
 }
 const rateNow = () => M.siren ? 3 : M.t >= MATCH - LAST_Q ? 2 : 1;
@@ -113,7 +120,7 @@ function play(sideIx, id, x, y){
     for (const u of M.units) if (u.side !== sideIx && Math.hypot(u.x - x, u.y - y) <= 1.8) u.hp -= lvStat(BUMP_DMG, s.lv(id));
     for (const t of M.towers) if (t.side !== sideIx && t.hp > 0 && Math.hypot(t.x - x, t.y - y) <= 2.2) hurtTower(t, Math.floor(lvStat(BUMP_DMG, s.lv(id)) * BUMP_TOWER)); return true; }
   if (c.build) { const L = s.lv(id), B = BUILDS[c.spell], hp = lvStat(B.hp, L);
-    M.towers.push({side:sideIx, kind:"bld", bld:c.spell, x, y, hp, max:hp, life:B.life, dmg:B.dmg ? lvStat(B.dmg, L) : 0, range:B.range || 0, min:B.min || 0, splash:B.splash || 0, rate:B.rate || 1, cd:1, chunks:0}); return true; }
+    M.towers.push({side:sideIx, kind:"bld", bld:c.spell, x, y, hp, max:hp, life:B.life, dmg:B.dmg ? lvStat(B.dmg, L) : 0, range:B.range || 0, min:B.min || 0, splash:B.splash || 0, slow:B.slow || 0, rate:B.rate || 1, cd:1, chunks:0, gen:B.gen, spawn:B.spawn, tick:B.gen || B.spawn || 0, L}); return true; }
   if (c.trap) { const T = TRAPS[c.spell], L = s.lv(id); (M.traps = M.traps || []).push({side:sideIx, t:c.spell, x, y, ...T, dmg:T.dmg ? lvStat(T.dmg, L) : 0, armed:true}); return true; }
   if (c.spell === "hail") { // sort everything in range by current health (toughest first) and strike the top three
     const hits = [...M.units.filter(u => u.side !== sideIx && u.hp > 0 && u.dep <= 0 || u.side !== sideIx && u.hp > 0), ...M.towers.filter(t => t.side !== sideIx && t.hp > 0)]
@@ -141,7 +148,9 @@ function nearestTower(u){
   const bld = alive.filter(t => t.kind === "bld" && dist(t) <= SIGHT).sort((a, b) => dist(a) - dist(b))[0];
   return bld && dist(bld) < dist(main) ? bld : main; }
 function step(dt){
-  if (!M || M.over) return; M.t += dt;
+  if (!M || M.over) return;
+  if (M.wait > 0) { M.wait -= dt; return; }
+  M.t += dt;
   for (const s of M.side) s.drink = Math.min(10, s.drink + dt / 2.8 * rateNow());
   if (M.t >= MATCH && !M.siren) { const [a, b] = M.side; if (a.goals !== b.goals) return endMatch(a.goals > b.goals ? 0 : 1); M.siren = true; toast("📢 Siren time! Next goal wins"); }
   if (M.siren && M.t >= MATCH + SIREN) { const [a, b] = M.side; return endMatch(a.behinds === b.behinds ? -1 : a.behinds > b.behinds ? 0 : 1); }
@@ -151,7 +160,7 @@ function step(dt){
     if (!u.role.towersOnly) for (const o of M.units) { if (o.side === u.side || o.hp <= 0) continue; const d = Math.hypot(o.x - u.x, o.y - u.y); if (d < td && d <= (u.role.hunter ? 6 : 4)) { td = d; tgt = o; } }
     if (!tgt) { tgt = nearestTower(u); td = tgt ? Math.hypot(tgt.x - u.x, tgt.y - u.y) - (tgt.kind === "main" ? 1.3 : .9) : 1e9; }
     if (!tgt) continue;
-    if (td > u.role.range) { u.engaged = null; const [wx, wy] = waypoint(u, tgt.x, tgt.y), dx = wx - u.x, dy = wy - u.y, d = Math.hypot(dx, dy) || 1; u.x += dx / d * u.role.spd * dt; u.y += dy / d * u.role.spd * dt; u.face = dx >= 0 ? 1 : -1; u.moving = true; }
+    if (td > u.role.range) { u.engaged = null; if (u.slow > 0) u.slow -= dt; const [wx, wy] = waypoint(u, tgt.x, tgt.y), dx = wx - u.x, dy = wy - u.y, d = Math.hypot(dx, dy) || 1; u.x += dx / d * u.role.spd * (u.slow > 0 ? .6 : 1) * dt; u.y += dy / d * u.role.spd * (u.slow > 0 ? .6 : 1) * dt; u.face = dx >= 0 ? 1 : -1; u.moving = true; }
     else { u.moving = false; u.atkT = Math.max(0, (u.atkT || 0) - dt); if (u.engaged !== tgt) { u.engaged = tgt; u.cd = Math.max(u.cd, u.role.first); } if (u.cd <= 0) { u.cd = u.role.rate; u.atkT = .5; const t = tgt;
       if (u.role.range > 2) M.fx.push({k:"kick", x:u.x, y:u.y, tx:t.x, ty:t.y, t:0});
       if (t.max && t.kind) hurtTower(t, u.dmg); else { t.hp -= u.dmg;
@@ -169,12 +178,17 @@ function step(dt){
       const dy = (a.y - b.y) * fwd, dx = Math.abs(a.x - b.x); if (dy > 0 && dy < .7 && dx < .5) a.y += fwd * (b.role.spd - a.role.spd) * .5 * dt; } }
   // players spread out a little so they don't stack
   for (const a of M.units) for (const b of M.units) { if (a === b || a.hp <= 0 || b.hp <= 0) continue; const dx = a.x - b.x, dy = a.y - b.y, d = Math.hypot(dx, dy); if (d > 0 && d < .55) a.x += (dx || (a.side ? .1 : -.1)) / (d || 1) * .02; }
-  for (const t of M.towers) { if (t.hp <= 0) continue; if (t.kind === "bld") { t.hp -= t.max / t.life * dt; if (t.hp <= 0) { t.hp = 0; continue; } if (!t.dmg) continue; }
+  for (const t of M.towers) { if (t.hp <= 0) continue; if (t.kind === "bld") { t.hp -= t.max / t.life * dt; if (t.hp <= 0) { t.hp = 0; continue; }
+      if (t.gen || t.spawn) { t.tick -= dt; if (t.tick <= 0) { t.tick = t.gen || t.spawn;
+        if (t.gen) { const s = M.side[t.side]; s.drink = Math.min(10, s.drink + 1); M.fx.push({k:"pop", x:t.x, y:t.y, t:0, txt:"+1 💧"}); }
+        else { const c = R_CARDS.filter(c => c.pos === "mid").sort((a, b) => a.rating - b.rating)[0], r = ROLES.mid, hp = lvStat(r.hp * statMul(c.rating) * .8, t.L);
+          M.units.push({side:t.side, card:c, role:r, x:t.x + (Math.random() - .5), y:t.y + (t.side ? 1 : -1), hp, max:hp, dmg:lvStat(r.dmg * statMul(c.rating) * .8, t.L), cd:0, dep:.4, lane:t.x < RW / 2 ? 0 : 1, face:1}); } } }
+      if (!t.dmg) continue; }
     t.cd -= dt; if (t.cd > 0) continue;
     let tgt = null, td = t.range; for (const u of M.units) { if (u.side === t.side || u.hp <= 0) continue; const d = Math.hypot(u.x - t.x, u.y - t.y); if (d <= td && d >= (t.min || 0)) { td = d; tgt = u; } }
     if (tgt && t.splash) { t.cd = t.rate; const tx = tgt.x, ty = tgt.y, d = t.dmg; M.fx.push({k:"kick", x:t.x, y:t.y, tx, ty, t:0});
       setTimeout(() => { if (!M || M.over) return; M.fx.push({k:"boom", x:tx, y:ty, t:0}); for (const u of M.units) if (u.side !== t.side && u.hp > 0 && Math.hypot(u.x - tx, u.y - ty) <= t.splash) u.hp -= d; }, 450); continue; }
-    if (tgt) { t.cd = t.rate || .9; tgt.hp -= t.dmg; M.fx.push({k:"kick", x:t.x, y:t.y, tx:tgt.x, ty:tgt.y, t:0}); } }
+    if (tgt) { t.cd = t.rate || .9; tgt.hp -= t.dmg; if (t.slow) tgt.slow = t.slow; M.fx.push({k:"kick", x:t.x, y:t.y, tx:tgt.x, ty:tgt.y, t:0}); } }
   M.units = M.units.filter(u => u.hp > 0 || (u.dead = (u.dead || 0) + dt) < .4);
   for (const f of M.fx) f.t += dt; M.fx = M.fx.filter(f => f.t < (f.k === "goal" ? 1.6 : .45));
 }
@@ -230,13 +244,17 @@ function drawField(){
   if (M && M.sel) { ctx.fillStyle = "#ff40401c"; ctx.fillRect(X(0), Y(0), RW * SC, RH / 2 * SC); }
 }
 const TRAP_ICON = {sprinkler:"💦", sendoff:"🟥", streaker:"🏃", gust:"🌪️", flooder:"🌊"};
-function drawTrap(tr){ const show = tr.side === 0 ? (tr.armed ? .45 : 0) : 0; const sprung = tr.sprung > 0 ? tr.sprung : 0;
-  if (!show && !sprung) return; ctx.globalAlpha = sprung ? Math.min(1, sprung) : show; ctx.font = `${SC * .9}px sans-serif`; ctx.textAlign = "center"; ctx.textBaseline = "middle";
-  ctx.fillText(TRAP_ICON[tr.t], X(tr.x), Y(tr.y)); ctx.globalAlpha = 1; }
+function drawTrap(tr){ const show = tr.side === 0 ? (tr.armed ? .4 : 0) : 0; const sprung = tr.sprung > 0 ? tr.sprung : 0;
+  if (!show && !sprung) return; ctx.globalAlpha = sprung ? Math.min(1, sprung) : show; const im = RART[MODEL[tr.t]], x = X(tr.x), y = Y(tr.y);
+  if (im) { const w = SC * (sprung ? 1.5 + (1 - sprung) * .4 : 1.1), h = w * im.height / im.width; ctx.drawImage(im, x - w / 2, y + SC * .3 - h, w, h); }
+  else { ctx.font = `${SC * .9}px sans-serif`; ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.fillText(TRAP_ICON[tr.t], x, y); }
+  if (tr.side === 0 && tr.armed) { ctx.strokeStyle = "#7fe0ff"; ctx.setLineDash([4, 4]); ctx.beginPath(); ctx.arc(x, y, tr.r * SC, 0, 7); ctx.stroke(); ctx.setLineDash([]); }
+  ctx.globalAlpha = 1; }
 function drawTower(t){
   if (t.kind === "bld") { if (t.hp <= 0) return; const c = clubOf(M.side[t.side].club), x = X(t.x), y = Y(t.y), s = SC * 1.6, im = RART["bld-" + t.bld];
     ctx.fillStyle = c.a; ctx.beginPath(); ctx.ellipse(x, y, s * .55, s * .22, 0, 0, 7); ctx.fill();
-    if (im) { const ih = s * (t.bld === "cannon" || t.bld === "goaltower" ? 1.5 : 1.1), iw = ih * im.width / im.height; ctx.drawImage(im, x - iw / 2, y + s * .15 - ih, iw, ih); }
+    const mi = RART[MODEL[t.bld]]; if (mi) { const ih = s * ({goaltower:1.8, floodlight:1.9, cannon:1.2, catapult:1.2}[t.bld] || 1.15), iw = Math.min(s * 1.4, ih * mi.width / mi.height), h2 = iw * mi.height / mi.width; ctx.drawImage(mi, x - iw / 2, y + s * .2 - h2, iw, h2); }
+    else if (im) { const ih = s * (t.bld === "cannon" || t.bld === "goaltower" ? 1.5 : 1.1), iw = ih * im.width / im.height; ctx.drawImage(im, x - iw / 2, y + s * .15 - ih, iw, ih); }
     else { ctx.font = `${s * .8}px sans-serif`; ctx.textAlign = "center"; ctx.fillText({cannon:"📣", bench:"🪑", catapult:"🏉", goaltower:"🥅"}[t.bld] || "🏗️", x, y); }
     ctx.fillStyle = "#000a"; ctx.fillRect(x - s * .5, y + s * .3, s, 5); ctx.fillStyle = t.side === 0 ? "#3ccf55" : "#ff5a4a"; ctx.fillRect(x - s * .5, y + s * .3, s * t.hp / t.max, 5); return; }
   const c = clubOf(M.side[t.side].club), big = t.kind === "main", w = (big ? 2.4 : 1.7) * SC, h = (big ? 3.1 : 2.4) * SC, x = X(t.x), y = Y(t.y);
@@ -268,11 +286,16 @@ function drawUnit(u){
 function drawFx(f){
   if (f.k === "kick") { const p = f.t / .45, x = X(f.x + (f.tx - f.x) * p), y = Y(f.y + (f.ty - f.y) * p) - Math.sin(p * Math.PI) * SC; ctx.fillStyle = "#b5422a"; ctx.beginPath(); ctx.ellipse(x, y, 5, 3.5, p * 6, 0, 7); ctx.fill(); }
   if (f.k === "boom" || f.k === "heal") { ctx.globalAlpha = 1 - f.t / .45; ctx.fillStyle = f.k === "boom" ? "#ffb347" : "#7dffa0"; ctx.beginPath(); ctx.arc(X(f.x), Y(f.y), SC * 1.8 * (.4 + f.t * 2), 0, 7); ctx.fill(); ctx.globalAlpha = 1; }
+  if (f.k === "pop") { ctx.globalAlpha = 1 - f.t / .45; ctx.fillStyle = "#7fe3ff"; ctx.font = `900 ${SC * .7}px sans-serif`; ctx.textAlign = "center"; ctx.fillText(f.txt, X(f.x), Y(f.y) - SC * (1 + f.t * 2)); ctx.globalAlpha = 1; }
   if (f.k === "goal") { ctx.fillStyle = "#ffe066"; ctx.font = `900 ${SC * 1.4}px sans-serif`; ctx.textAlign = "center"; ctx.fillText("GOAL!", X(f.x), Y(f.y) - SC * 2 - f.t * SC); }
 }
+function drawKickoff(){ if (!M || !(M.wait > 0)) return; const A = clubOf(M.side[0].club), B = clubOf(M.side[1].club), n = Math.ceil(M.wait - .2), cx = innerWidth / 2, cy = innerHeight * .42;
+  ctx.fillStyle = "#13314dcc"; ctx.fillRect(0, cy - 70, innerWidth, 140); ctx.textAlign = "center"; ctx.textBaseline = "middle";
+  ctx.font = "900 26px 'Lilita One',sans-serif"; ctx.fillStyle = "#fff"; const names = innerWidth < 600 ? `${A.short}  v  ${B.short}` : `${A.name}  v  ${B.name}`; ctx.fillText(names, cx, cy - 34);
+  ctx.font = "900 52px 'Lilita One',sans-serif"; ctx.fillStyle = "#ffd34d"; ctx.strokeStyle = "#2b1d10"; ctx.lineWidth = 6; const t = n > 0 ? String(n) : "Ball up!"; ctx.strokeText(t, cx, cy + 22); ctx.fillText(t, cx, cy + 22); }
 function frame(now){
   const dt = Math.min(.05, (now - last) / 1000 || 0); last = now;
-  if (M) { step(dt); drawField(); (M.traps || []).forEach(t => { if (t.sprung > 0) t.sprung -= dt; drawTrap(t); }); M.towers.forEach(drawTower); [...M.units].sort((a, b) => a.y - b.y).forEach(drawUnit); M.fx.forEach(drawFx); updateBar(); }
+  if (M) { step(dt); drawField(); (M.traps || []).forEach(t => { if (t.sprung > 0) t.sprung -= dt; drawTrap(t); }); M.towers.forEach(drawTower); [...M.units].sort((a, b) => a.y - b.y).forEach(drawUnit); M.fx.forEach(drawFx); drawKickoff(); updateBar(); }
   else drawField();
   requestAnimationFrame(frame);
 }
@@ -281,7 +304,8 @@ function frame(now){
 // Cards use Footy Fortress's card frames (rarity by rating) and the player's sprite as the picture
 const tierOf = c => c.spell ? "star-wildcard" : c.rating >= 93 ? "legendary" : c.rating >= 85 ? "epic" : c.rating >= 75 ? "rare" : "common";
 function cardTile(id, i){ const c = R_BY_ID[id]; if (!c) return ""; const cl = c.spell ? null : clubOf(c.club);
-  const pic = c.spell ? `<span class="ricon">${c.icon}</span>` : `<span class="rpic face" style="background-image:url(art/players/${String(c.num).padStart(3, "0")}.webp)"></span>`;
+  const model = (c.build || c.trap) && MODEL[c.spell];
+  const pic = model ? `<span class="rpic model" style="background-image:url(art/${model}.webp)"></span>` : c.spell ? `<span class="ricon">${c.icon}</span>` : `<span class="rpic face" style="background-image:url(art/players/${String(c.num).padStart(3, "0")}.webp)"></span>`;
   return `<button class="rcard${c.spell ? " spell" : ""}${(M && M.sel) === id ? " on" : ""}" data-rc="${id}" style="--a:${cl ? cl.a : "#5b2d8a"};--b:${cl ? cl.b : "#c9a0ff"};${c.spell ? "" : `;--frame:url(art/cards/frame-${tierOf(c)}.webp)`}"><i class="cost">${c.cost}</i>
     <span class="rinner">${pic}${c.spell ? "" : `<i class="rrate">${c.rating}</i>`}<i class="rlv">Lv${cardLv(id)}</i></span><b>${esc(c.spell ? c.name : c.name.split(" ").slice(-1)[0])}</b><small>${c.build ? "Building" : c.trap ? "Trap" : c.spell ? "Spell" : ROLES[c.pos].name}</small></button>`; }
 function drawBattleUI(){
@@ -322,7 +346,7 @@ function home(){ M = null; resize(); const lg = leagueOf(RS.trophies), next = R_
 const ROLE_TEXT = {mid:"Fast runner who attacks whatever is nearest. Cheaper Rovers (3 💧) run on in pairs.", fwd:"Kicks goals from range. Fragile up close, so protect them.",
   ruck:"A big body that ignores players and marches straight at towers.", def:"Hunts down attacking players from further away, and each hit sweeps through a pack."};
 function cardStats(c, L = cardLv(c.id)){
-  if (c.build) { const B = BUILDS[c.spell]; return [["Cost", c.cost + " 💧"], ["Hitpoints", lvStat(B.hp, L)], ["Lasts", B.life + "s"], ["Damage", B.dmg ? `${lvStat(B.dmg, L)} every ${B.rate}s` : "None (decoy)"],
+  if (c.build) { const B = BUILDS[c.spell]; return [["Cost", c.cost + " 💧"], ["Hitpoints", lvStat(B.hp, L)], ["Lasts", B.life + "s"], ["Damage", B.dmg ? `${lvStat(B.dmg, L)} every ${B.rate}s` : B.gen ? `+1 💧 every ${B.gen}s` : B.spawn ? `Rover every ${B.spawn}s` : "None (decoy)"], B.slow ? ["Slows", "40% for " + B.slow + "s"] : ["Effect", B.gen ? Math.floor(B.life / B.gen) + " 💧 in total" : B.spawn ? Math.floor(B.life / B.spawn) + " Rovers" : "–"],
     ["Range", B.range ? (B.min ? `${B.min}–${B.range} tiles` : B.range + " tiles") : "–"], ["Area", B.splash ? "Radius " + B.splash : "Single target"], ["Pulls from", SIGHT + " tiles"], ["Level", L]]; }
   if (c.trap) { const T = TRAPS[c.spell]; return [["Cost", c.cost + " 💧"], ["Hidden", "Until sprung"], ["Trigger", "Within " + T.r + " tiles"],
     T.dmg ? ["Damage", lvStat(T.dmg, L)] : T.stun ? ["Stops players", T.stun + "s"] : T.hold ? ["Holds players", T.hold + "s"] : ["Effect", "Sends off 1 player"], ["Area", T.area ? "Radius " + T.area : "One player"], ["Level", L]]; }

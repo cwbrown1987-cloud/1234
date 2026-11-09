@@ -122,3 +122,6 @@ body{background:#13314d}
 .rbadge{border-width:2px;box-shadow:0 2px 0 #2b1d10}.rbadge span{font-size:8px;padding:1px 2px}
 .rclubh{margin:8px 0 5px}
 .rcard .rpic.face{inset:0;background-size:cover;background-position:center 15%}
+.rcard .rpic.model{inset:6% 6% 2%;background-size:contain;background-position:center bottom;background-repeat:no-repeat}
+.rcard.spell .rinner{min-height:44px}
+.rcard.spell .rlv{position:absolute;left:4px;top:4px;margin:0}

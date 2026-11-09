@@ -220,7 +220,7 @@ function updateBar(){ if (M.over || !$r("rHand")) return; const s = M.side[0], o
   const left = M.siren ? MATCH + SIREN - M.t : MATCH - M.t, mm = Math.max(0, Math.floor(left / 60)), ss = Math.max(0, Math.floor(left % 60));
   $r("rClock").textContent = `${M.siren ? "📢 Siren time " : rateNow() > 1 ? "Last quarter ×2 · " : ""}${mm}:${String(ss).padStart(2, "0")}`;
   $r("rScore").textContent = `${A.short} ${s.goals}.${s.behinds} (${s.goals * 6 + s.behinds}) v ${B.short} ${o.goals}.${o.behinds} (${o.goals * 6 + o.behinds})`;
-  const key = s.hand.join() + s.next + Math.floor(s.drink); if (key !== lastHand) { lastHand = key; renderHand(); ui.querySelectorAll("#rHand .rcard").forEach(b => b.classList.toggle("poor", R_BY_ID[b.dataset.rc].cost > s.drink)); } }
+  const key = s.hand.join() + s.next + Math.floor(s.drink); if (key !== lastHand) { lastHand = key; renderHand(); ui.querySelectorAll("#rHand .rcard").forEach(b => { const ok = R_BY_ID[b.dataset.rc].cost <= s.drink; b.classList.toggle("poor", !ok); b.classList.toggle("ready", ok); }); } }
 cv.addEventListener("pointerdown", e => { if (!M || M.over || !M.sel) return; const x = (e.clientX - OX) / SC, y = (e.clientY - OY) / SC;
   if (x < 0 || x > RW || y < 0 || y > RH) return;
   if (!play(0, M.sel, x, y)) return toast(R_BY_ID[M.sel].cost > M.side[0].drink ? "Not enough 💧 yet" : "Players start on your half");
@@ -235,12 +235,30 @@ function home(){ M = null; resize(); const lg = leagueOf(RS.trophies), next = R_
     <button class="rbtn ghost" id="rClub">Club: ${clubOf(RS.club ?? 0).name}</button><p class="tiny">Wins ${RS.wins} / ${RS.played}</p></div>`;
   $r("rPlay").onclick = startMatch; $r("rDeck").onclick = deckScreen; $r("rHow").onclick = howTo;
   $r("rClub").onclick = () => { RS.club = ((RS.club ?? 0) + 1) % CLUBS.length; RS.deck = null; rsave(); home(); }; }
+// What a card actually does, with its numbers (same maths as in battle)
+const ROLE_TEXT = {mid:"Fast runner who attacks whatever is nearest. Cheaper Rovers (3 💧) run on in pairs.", fwd:"Kicks goals from range. Fragile up close, so protect them.",
+  ruck:"A big body that ignores players and marches straight at towers.", def:"Hunts down attacking players from further away before going for towers."};
+function cardStats(c){
+  if (c.spell) return [["Cost", c.cost + " 💧"], ["Area", c.spell === "bump" ? "Radius 1.8" : "Radius 2.2"], c.spell === "bump" ? ["Damage", "220 (70 to towers)"] : ["Heals", "220 per player"]];
+  const r = ROLES[c.pos], m = .7 + .6 * (c.rating - 60) / 39, n = c.pos === "mid" && c.cost <= 3 ? 2 : 1;
+  return [["Cost", c.cost + " 💧"], ["Hitpoints", Math.round(r.hp * m)], ["Damage", Math.round(r.dmg * m)], ["Hit speed", r.rate + "s"], ["Damage/sec", Math.round(r.dmg * m / r.rate)],
+    ["Speed", r.spd >= 1.1 ? "Fast" : r.spd >= .85 ? "Medium" : "Slow"], ["Range", r.range > 2 ? r.range + " tiles" : "Melee"], ["Targets", r.towersOnly ? "Towers" : "Players & towers"], ["Count", "×" + n], ["Rating", c.rating]];
+}
+function cardInfo(id, onToggle, inDeck){
+  const c = R_BY_ID[id], el = document.createElement("div"); el.className = "rinfo";
+  el.innerHTML = `<div class="rinfo-box"><div class="rinfo-top">${cardTile(id)}<div><h3>${esc(c.name)}</h3><small>${c.spell ? "Spell" : `${ROLES[c.pos].name} · ${esc(clubOf(c.club).name)} · #${c.no}`}</small>
+    <p>${c.spell ? c.desc : ROLE_TEXT[c.pos]}</p></div></div><div class="rstats">${cardStats(c).map(([k, v]) => `<div><small>${k}</small><b>${v}</b></div>`).join("")}</div>
+    <div class="rinfo-btns"><button class="rbtn ${inDeck ? "" : "gold"}" id="rInfoGo">${inDeck ? "Remove from deck" : "Add to deck"}</button><button class="rbtn blue" id="rInfoX">Close</button></div></div>`;
+  document.body.appendChild(el); el.onclick = e => { if (e.target === el) el.remove(); };
+  el.querySelector("#rInfoX").onclick = () => el.remove(); el.querySelector("#rInfoGo").onclick = () => { el.remove(); onToggle(); };
+}
 function deckScreen(){ M = null; let deck = myDeck(); const own = ownedCards().ids.map(id => R_BY_ID[id]).concat(R_SPELLS);
   const draw = () => { const shown = own.slice().sort((a, b) => (b.rating || 0) - (a.rating || 0));
     ui.innerHTML = `<div class="rpanel deck"><h2>My deck <small>${deck.length}/8</small></h2><div class="rgrid">${deck.map(id => cardTile(id)).join("")}</div>
       <h3>All players <small>2026 season</small></h3><div class="rgrid all">${shown.map(c => cardTile(c.id).replace("rcard", "rcard" + (deck.includes(c.id) ? " in" : ""))).join("")}</div>
       <button class="rbtn gold" id="rSave">Save deck</button></div>`;
-    ui.querySelectorAll(".rgrid [data-rc]").forEach(b => b.onclick = () => { const id = b.dataset.rc; if (deck.includes(id)) deck = deck.filter(x => x !== id); else if (deck.length < 8) deck.push(id); else toast("A deck holds 8 cards"); draw(); });
+    ui.querySelectorAll(".rgrid [data-rc]").forEach(b => b.onclick = () => { const id = b.dataset.rc;
+      cardInfo(id, () => { if (deck.includes(id)) deck = deck.filter(x => x !== id); else if (deck.length < 8) deck.push(id); else toast("A deck holds 8 cards. Remove one first"); draw(); }, deck.includes(id)); });
     $r("rSave").onclick = () => { if (deck.length !== 8) return toast("Pick 8 cards"); RS.deck = deck; rsave(); home(); }; };
   M = {sel:null}; draw(); M = null; }
 function howTo(){ ui.innerHTML = `<div class="rpanel"><h2>How to play</h2><ul class="rhow">

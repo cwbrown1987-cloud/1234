@@ -72,3 +72,18 @@ html,body{margin:0;height:100%;overflow:hidden;background:#0d1a24;font-family:"L
 .rbtn.blue{background:linear-gradient(#5aa9e6,#2f6fae);border-color:#13314d}
 .rleague{background:linear-gradient(#5aa9e6,#2f6fae);border:3px solid #13314d}
 body{background:#13314d}
+/* playable cards glow */
+.rhand .rcard.ready{filter:drop-shadow(0 0 6px #ffe066) drop-shadow(0 0 2px #fff);animation:rready 1.2s ease-in-out infinite}
+@keyframes rready{50%{filter:drop-shadow(0 0 10px #ffe066) drop-shadow(0 0 3px #fff)}}
+@media (prefers-reduced-motion:reduce){.rhand .rcard.ready{animation:none}}
+.rhand .rcard.poor{filter:grayscale(.85) brightness(.7)}
+/* card info */
+.rinfo{position:fixed;inset:0;background:#000a;display:grid;place-items:center;z-index:8;padding:16px}
+.rinfo-box{width:min(92vw,380px);background:linear-gradient(#fff6dc,#e3c58e);border:4px solid #2b1d10;border-radius:18px;padding:14px;box-shadow:0 6px 0 #2b1d10}
+.rinfo-top{display:flex;gap:12px;align-items:flex-start;text-align:left}
+.rinfo-top .rcard{width:78px;flex:none}
+.rinfo-top h3{margin:0;font-size:20px}.rinfo-top small{color:#6b4a22}.rinfo-top p{margin:6px 0 0;font-size:14px;line-height:1.3}
+.rstats{display:grid;grid-template-columns:repeat(2,1fr);gap:6px;margin:12px 0}
+.rstats div{background:#fffaf0;border:2px solid #c9a56a;border-radius:10px;padding:4px 8px;display:flex;justify-content:space-between;align-items:center}
+.rstats small{color:#6b4a22}.rstats b{font-size:15px}
+.rinfo-btns{display:flex;gap:8px}.rinfo-btns .rbtn{margin:0}

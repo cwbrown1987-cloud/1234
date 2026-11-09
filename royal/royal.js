@@ -307,11 +307,13 @@ cv.addEventListener("pointerdown", e => { if (!M || M.over || !M.sel) return; co
 function toast(t){ const el = document.createElement("div"); el.className = "rtoast"; el.textContent = t; document.body.appendChild(el); setTimeout(() => el.remove(), 1800); }
 function home(){ M = null; resize(); const lg = leagueOf(RS.trophies), next = R_LEAGUES[lg + 1];
   ui.innerHTML = `<div class="rpanel home"><div class="rhub"><b>FF: <span>Royal</span></b><i class="beta">BETA</i></div>
-    <div class="rleague"><b>${R_LEAGUES[lg][0]}</b><span>🏆 ${RS.trophies}${next ? ` · ${next[1] - RS.trophies} to ${next[0]}` : ""} · 🪙 ${RS.gold}</span></div>
+    <div class="rleague"><b>${R_LEAGUES[lg][0]}</b><span>🏆 ${RS.trophies}${next ? ` · ${next[1] - RS.trophies} to ${next[0]}` : ""}</span><i class="rbarx"><i style="width:${next ? Math.min(100, (RS.trophies - R_LEAGUES[lg][1]) / (next[1] - R_LEAGUES[lg][1]) * 100) : 100}%"></i></i></div>
     <button class="rbtn battle big" id="rPlay">⚔️ Battle</button><button class="rbtn blue" id="rDeck">🃏 My deck</button><button class="rbtn" id="rHow">❓ How to play</button>
-    <button class="rbtn ghost" id="rClub">Club: ${clubOf(RS.club ?? 0).name}</button><p class="tiny">Wins ${RS.wins} / ${RS.played}</p></div>`;
+    <h3 class="rclubh">Your club · <b>${esc(clubOf(RS.club ?? 0).name)}</b></h3>
+    <div class="rclubs">${CLUBS.map((c, i) => `<button class="rbadge${i === (RS.club ?? 0) ? " on" : ""}" data-club="${i}" title="${esc(c.name)}" style="--a:${c.a};--b:${c.b}"><span>${c.short}</span></button>`).join("")}</div>
+    <div class="rstat"><span>🏆 <b>${RS.wins}</b> wins</span><span>⚔️ <b>${RS.played}</b> played</span><span>🪙 <b>${RS.gold}</b></span></div></div>`;
   $r("rPlay").onclick = startMatch; $r("rDeck").onclick = deckScreen; $r("rHow").onclick = howTo;
-  $r("rClub").onclick = () => { RS.club = ((RS.club ?? 0) + 1) % CLUBS.length; RS.deck = null; rsave(); home(); }; }
+  ui.querySelectorAll("[data-club]").forEach(b => b.onclick = () => { const i = +b.dataset.club; if (i === (RS.club ?? 0)) return; RS.club = i; RS.deck = null; rsave(); home(); toast(`Now playing as ${clubOf(i).name}`); }); }
 // What a card actually does, with its numbers (same maths as in battle)
 const ROLE_TEXT = {mid:"Fast runner who attacks whatever is nearest. Cheaper Rovers (3 💧) run on in pairs.", fwd:"Kicks goals from range. Fragile up close, so protect them.",
   ruck:"A big body that ignores players and marches straight at towers.", def:"Hunts down attacking players from further away, and each hit sweeps through a pack."};

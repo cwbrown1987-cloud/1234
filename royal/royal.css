@@ -103,3 +103,21 @@ body{background:#13314d}
 #rHint{background:linear-gradient(#fff6dc,#e3c58e);color:#2b1d10;border:3px solid #2b1d10;box-shadow:0 3px 0 #2b1d10}
 #rHint b{color:#b83a12}
 .rpanel h2,.rpanel h3{color:#2b1d10}
+/* Home: club picker + stats, Footy Fortress look */
+.rpanel.home{padding:14px 14px 16px}
+.rclubh{margin:12px 0 6px;font-size:15px;color:#6b4a22}.rclubh b{color:#2b1d10}
+.rclubs{display:grid;grid-template-columns:repeat(6,1fr);gap:6px}
+.rbadge{aspect-ratio:1/1.1;border:3px solid #2b1d10;border-radius:10px 10px 50% 50%/10px 10px 38% 38%;background:linear-gradient(90deg,var(--a) 0 50%,var(--b) 50%);display:grid;place-items:center;cursor:pointer;box-shadow:0 3px 0 #2b1d10;padding:0}
+.rbadge span{font:900 11px/1 "Lilita One","Trebuchet MS",sans-serif;color:#fff;-webkit-text-stroke:.6px #000;text-shadow:0 1px 0 #000;background:#0006;border-radius:5px;padding:2px 3px}
+.rbadge.on{outline:3px solid #ffd34d;outline-offset:2px;transform:translateY(-2px)}
+.rstat{display:flex;justify-content:space-between;gap:6px;margin-top:12px}
+.rstat span{flex:1;background:#fffaf0;border:2px solid #c9a56a;border-radius:10px;padding:5px 4px;font-size:13px;color:#6b4a22}.rstat b{color:#2b1d10}
+.rleague{gap:4px}.rbarx{display:block;height:8px;border-radius:5px;background:#13314d;overflow:hidden;margin-top:4px}.rbarx i{display:block;height:100%;background:linear-gradient(#ffe88c,#d58a12)}
+.rbtn{font-family:"Lilita One","Trebuchet MS",sans-serif;letter-spacing:.3px}
+.rpanel h2{font-family:"Lilita One","Trebuchet MS",sans-serif}
+.rpanel.home .rhub{height:74px}.rpanel.home .rhub b{font-size:34px}
+.rpanel.home .rbtn{padding:9px;margin:6px 0;font-size:17px}.rpanel.home .rbtn.big{padding:12px;font-size:22px}
+.rpanel.home .rleague{margin:4px 0 8px;padding:7px}
+.rclubs{grid-template-columns:repeat(9,1fr);gap:4px}
+.rbadge{border-width:2px;box-shadow:0 2px 0 #2b1d10}.rbadge span{font-size:8px;padding:1px 2px}
+.rclubh{margin:8px 0 5px}

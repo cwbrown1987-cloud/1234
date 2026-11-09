@@ -16,7 +16,7 @@ import os, sys, json, base64
 files, binary = {}, {}
 with open('art/manifest.json') as f:
     assets = {'/' + path for path in json.load(f)['files']}
-entrypoints = {'/index.html', '/style.css', '/sw.js', '/manifest.webmanifest', '/art/sheets.js', '/art/manifest.json'}
+entrypoints = {'/index.html', '/royal.html', '/royal.css', '/style.css', '/sw.js', '/manifest.webmanifest', '/art/sheets.js', '/art/manifest.json'}
 for root, _, names in os.walk('.'):
     for n in names:
         p = os.path.join(root, n)[1:].replace(os.sep, '/')

@@ -408,6 +408,7 @@ function openMatch(){
     <div class="center tiny">🏆 ${S.trophies} · ${left}/${rkAttacks(rk.tier)} ranked attacks left${S.shield>Date.now()?" · Attacking ends your shield":""}</div>
     <button class="btn blue match-log-link hide" id="unreadLog"></button>`;
   const revs=revengeList();
+  h+=`<a class="btn blue royal-link" href="royal.html">🏉 FF: Royal <i class="soontag beta">BETA</i><small>Real-time card battles with your album</small></a>`;
   if(revs.length) h+=`<section class="revenge-box"><h3>⚔️ Revenge</h3>${revs.slice(0,3).map(r=>{ const c=CLUBS[r.club]||CLUBS[0];
     return `<div class="fx">${badgeImg(c,"sm")}<span class="nm"><b>${esc(r.attacker||c.name)}</b>${r.friend?' <span class="tag fr">FRIEND</span>':""}<br><small>${fmtTime((Date.now()-r.at)/1000)} ago · ${r.stars?"took "+"★".repeat(r.stars):"no stars"}${r.lost&&(r.lost.pies||r.lost.drink)?` · 🥧 ${fmt(r.lost.pies)} 💧 ${fmt(r.lost.drink)}`:""}</small></span><button class="btn red" data-rev="${r.id}">⚔️ Revenge</button></div>`; }).join("")}</section>`;
   const online=typeof signedIn==="function"&&signedIn(), tutorial=tutActive();

@@ -184,7 +184,8 @@ function upgradeInfo(b){
 function startUpgrade(b){ if(lockedToast()) return;
   const u=upgradeInfo(b); if(!u.ok) return toast(u.why);
   if(u.time>0 && !freeBuilder()) return toast("All groundskeepers are busy");
-  if(!pay(u.res,u.cost)) return toast(`Not enough ${resIcon(u.res)}`);
+  if(u.cost>capOf(u.res)){ const st=u.res==="pies"?"Pie Warmers":"Eskies"; return toast(`You can only hold ${fmt(capOf(u.res))} ${resIcon(u.res)}. Upgrade or build more ${st} to hold ${fmt(u.cost)}`); }
+  if(!pay(u.res,u.cost)) return toast(`Not enough ${resIcon(u.res)}: you have ${fmt(S[u.res])} of ${fmt(u.cost)}`);
   if(u.time>0) b.busy={kind:"up",end:Date.now()+u.time*1000,total:u.time}; else b.lv++;
   track("upgrade",1); sfx("build"); save(); refreshUI();
 }

@@ -124,6 +124,8 @@ async function checkInbox() {
     const r=await api("/inbox");
     if(NET.token!==token||S!==saveGame||mode!=="home") return;
     NET.friendNew=r.friendNew||0; showSocialDot();
+    if((r.tradeNew||0)>(NET.tradeNew||0)) toast("📨 A friend sent you a card trade offer. Cards → Trade");
+    NET.tradeNew=r.tradeNew||0;
     const prev=NET.liveAttacks||[], live=r.live||[];
     const fresh=live.filter(a=>!prev.some(p=>p.attackerId===a.attackerId&&p.at===a.at));
     NET.liveAttacks=live;

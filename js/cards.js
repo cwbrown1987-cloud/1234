@@ -322,6 +322,8 @@ function openAlbum(club) { menuBack = null; hubCtx=null;
         <div class="bpage">${spread.slice(ALBUM_SPREAD_SIZE / 2).map(slot).join("")}</div></div>
       <div class="album-progress"><b>${owned}/${list.length} collected</b><progress value="${owned}" max="${list.length || 1}" aria-label="Collection progress"></progress><span>${owned === list.length ? "Set complete" : `${list.length - owned} to go`}</span></div>
     </div>`;
+  } else if (albumTab === "trade") {
+    body = `<div id="tradeBox" class="tradebox"></div>`;
   } else if (albumTab === "sets") {
     body = `<div class="setlist">${CLUBS.map((c, i) => { const [o, t] = albumCount(x => x.club === i && !x.special); return `<button class="setrow${o === t ? " done" : ""}" data-set="${i}">${badgeImg(c, "xs")}<span>${c.name}</span><i><b style="width:${o / t * 100}%"></b></i><em>${o}/${t}</em></button>`; }).join("")}
       <button class="setrow" data-set="sp"><b class="spstar">⭐</b><span>Specials</span><i><b style="width:${albumCount(x => x.special)[0] / albumCount(x => x.special)[1] * 100}%"></b></i><em>${albumCount(x => x.special)[0]}/${albumCount(x => x.special)[1]}</em></button></div>`;
@@ -334,7 +336,7 @@ function openAlbum(club) { menuBack = null; hubCtx=null;
   }
   const header = `<div class="album-head">
     <div class="fccbanner">${uiArt("ico-cards","🏉")}<div><b>Footy Card Collectors</b><small>Collect · Build your dream team</small></div></div>
-    <div class="atabs">${tab("album", '<span class="cicon"><i></i><i></i></span>', "Album")}<button class="atab soon" data-tab="trade"><b>⇄</b>Trade<i class="soontag">Soon</i></button>${tab("sets", "🛡️", "Sets")}${tab("rewards", "🎁", "Rewards")}</div></div>`;
+    <div class="atabs">${tab("album", '<span class="cicon"><i></i><i></i></span>', "Album")}<button class="atab${albumTab === "trade" ? " on" : ""}" data-tab="trade"><b>⇄</b>Trade<i class="soontag beta">BETA</i>${NET && NET.tradeNew ? `<i class="bang">${NET.tradeNew}</i>` : ""}</button>${tab("sets", "🛡️", "Sets")}${tab("rewards", "🎁", "Rewards")}</div></div>`;
   const clubRail = `<div class="woodbar"><button class="stripnext" id="stripPrev" aria-label="Previous clubs">‹</button><div class="clubstrip">${CLUBS.map((c, i) => { const [o, t] = albumCount(x => x.club === i && !x.special); return `<button aria-label="${c.name}" aria-pressed="${i === albumClub}" class="${i === albumClub ? "on" : ""}${o === t ? " done" : ""}" data-club="${i}">${badgeImg(c, "xs")}${i !== albumClub && clubHasNew(x => x.club === i && !x.special) ? '<i class="ndot"></i>' : ""}</button>`; }).join("")}<button aria-label="Special cards" aria-pressed="${albumClub === "sp"}" class="${albumClub === "sp" ? "on" : ""}" data-club="sp"><b class="spstar">⭐</b>${albumClub !== "sp" && clubHasNew(x => x.special) ? '<i class="ndot"></i>' : ""}</button></div><button class="stripnext" id="stripNext" aria-label="More clubs">›</button></div>`;
   const actions = `<div class="fccfoot">
       <div class="sets"><b class="setsicon"><span class="cicon"><i></i><i></i></span></b><div><span>Sets</span><i><b style="width:${sets / 18 * 100}%"></b></i></div><em>${sets}/18</em></div>
@@ -342,10 +344,11 @@ function openAlbum(club) { menuBack = null; hubCtx=null;
       <button class="btn green openpack" id="openPackBtn" ${canOpen ? "" : "disabled"}><b class="packicon"><span class="cicon"><i></i><i></i></span></b>Open Pack<small>${PACK_COST} 🎟️ · you have ${tokens}</small>${canOpen ? '<span class="bang">!</span>' : ""}</button>
     </div>`;
   modal(`<div class="fcc">${body}</div>`,{header,actions,album:true}); tut("cards");
+  if (albumTab === "trade" && typeof renderTrade === "function") renderTrade($("tradeBox"));
   if (albumTab === "album" && S.albumNew) { for (const c of spread) if (c && S.albumNew[c.id]) delete S.albumNew[c.id]; save(); }
   document.querySelectorAll("[data-club]").forEach(b => b.onclick = () => { const v = b.dataset.club; albumTab = "album"; openAlbum(v === "sp" ? "sp" : +v); });
   document.querySelectorAll("[data-set]").forEach(b => b.onclick = () => { const v = b.dataset.set; albumTab = "album"; openAlbum(v === "sp" ? "sp" : +v); });
-  document.querySelectorAll("[data-tab]").forEach(b => b.onclick = () => { if (b.dataset.tab === "trade") return toast("Trading cards with other players is coming soon!"); albumTab = b.dataset.tab; openAlbum(); });
+  document.querySelectorAll("[data-tab]").forEach(b => b.onclick = () => { albumTab = b.dataset.tab; openAlbum(); });
   document.querySelectorAll("[data-ac]").forEach(el => el.onclick = () => { const c = CARD_BY_ID[el.dataset.ac];
     if (!bestTier(c)) return toast(c.special ? `${SPECIALS[c.kind].name}: comes from the special slot in packs` : `#${pad3(c.num)} ${c.name}: not collected yet. Keep opening packs!`);
     showAlbumCard(c);

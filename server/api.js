@@ -33,6 +33,23 @@ async function newSession(env, userId) {
 }
 const profileOut = p => p && ({id: p.user_id, name: p.name, club: p.club, th: p.th, trophies: p.trophies, bot: !!p.bot, squad: p.squad_id, shield: p.shield_until});
 const LIVE_ATTACK_MS = 210000;
+// Bots grind like players: a bot with base.grow = {start, born, pace} climbs Clubhouse levels over time.
+// Days an average player takes to reach each Clubhouse level (index = level - 1); pace 1 = average, 1.5 = slower.
+const BOT_DAYS = [0, 0.5, 2, 6, 14, 28, 50, 80];
+function botLevel(g, t) {
+  const days = Math.max(0, t - g.born) / 864e5 / (g.pace || 1); let th = g.start || 1;
+  while (th < 8 && days >= BOT_DAYS[th] - BOT_DAYS[(g.start || 1) - 1]) th++;
+  return th;
+}
+let lastBotGrow = 0;
+async function growBots(db) {
+  if (now() - lastBotGrow < 10 * 60e3) return; lastBotGrow = now();
+  const r = await db.prepare("SELECT user_id, th, trophies, base FROM profiles WHERE bot = 1 AND json_extract(base, '$.grow') IS NOT NULL").all();
+  const ups = [];
+  for (const p of r.results) { const base = JSON.parse(p.base), th = botLevel(base.grow, now());
+    if (th !== p.th) { const tro = Math.max(p.trophies, th * 105 - 90 + (base.gen % 60)); ups.push(db.prepare("UPDATE profiles SET th = ?, trophies = ? WHERE user_id = ?").bind(th, tro, p.user_id)); } }
+  if (ups.length) await db.batch(ups);
+}
 // Friend loot shield: after 10 attacks by the same friend within an hour, that friend can still attack but takes no loot for 2 hours.
 const FRIEND_RAIDS = 10, FRIEND_WINDOW = 3600e3, FRIEND_SHIELD = 2 * 3600e3;
 let friendLootSchema;
@@ -87,6 +104,7 @@ export async function handleApi(req, env) {
       return json({token: await newSession(env, u.id), user: {id: u.id, name: u.name, email: u.email}});
     }
     if (path === "/bots" && m === "GET") {
+      await growBots(env.DB);
       const r = await env.DB.prepare("SELECT * FROM profiles WHERE bot = 1").all();
       return json({bots: r.results.map(profileOut)});
     }
@@ -131,6 +149,7 @@ export async function handleApi(req, env) {
     }
     // ----- matchmaking: a real player near your trophies, or a bot -----
     if (path === "/match" && m === "GET") {
+      await growBots(env.DB);
       const myP = await env.DB.prepare("SELECT * FROM profiles WHERE user_id = ?").bind(me.id).first();
       const ranked = url.searchParams.get("mode") === "ranked";
       const tro = myP ? myP.trophies : 0, th = myP ? myP.th : 1, skip = (url.searchParams.get("skip") || "").split(",").filter(Boolean).slice(0, 20);

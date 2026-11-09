@@ -241,7 +241,12 @@ function passReward(i) {
 }
 const rewardText = r => r.pies ? `${fmt(r.pies)} 🥧` : r.drink ? `${fmt(r.drink)} 💧` : r.tokens ? `${r.tokens} 🎟️` : r.tape ? `${r.tape} 🩹` : `${r.medals} 🏅`;
 function giveReward(r) { if (r.pies) addRes("pies", r.pies); if (r.drink) addRes("drink", r.drink); if (r.tokens) earnTokens(r.tokens); if (r.tape) addOre({ tape: r.tape }); if (r.medals) S.medals += r.medals; }
-const passReady = () => { const p = ensurePass(), t = Math.min(PASS_TIERS, Math.floor(p.pts / PASS_PER)); let n = 0; for (let i = 0; i < t; i++) if (!p.got.includes(i)) n++; return n; };
+// Bonus round: once all 30 tiers are done, every 150 more points earns a bonus reward, endlessly (like Clash's bonus bank)
+const BONUS_PER = 150, BONUS_START = PASS_TIERS * PASS_PER;
+const bonusEarned = p => Math.max(0, Math.floor((p.pts - BONUS_START) / BONUS_PER));
+function bonusReward(i) { const m = 1 + i * .1;
+  return [{ tokens: 2 }, { pies: Math.round((600 * th() * th() * th() + 2000) * m) }, { medals: 10 }, { drink: Math.round((600 * th() * th() * th() + 2000) * m) }, { tape: Math.round(150 * m) }][i % 5]; }
+const passReady = () => { const p = ensurePass(), t = Math.min(PASS_TIERS, Math.floor(p.pts / PASS_PER)); let n = 0; for (let i = 0; i < t; i++) if (!p.got.includes(i)) n++; return n + (bonusEarned(p) - (p.bonus || 0)); };
 // Red dots on the Rewards / Challenges tabs, like the Pass button's dot
 function passTabDots(){ const n={Rewards:passReady()||0, Challenges:tasksReady()||0};
   for(const [k,v] of Object.entries(n)){ const t=document.querySelector(`[data-tab="${k}"]`); if(t&&v&&!t.querySelector(".dot")){ t.style.position="relative"; t.insertAdjacentHTML("beforeend",`<i class="dot">${v}</i>`); } } }
@@ -254,7 +259,12 @@ function openPass(tab) { menuBack = null;
     <p class="tiny center">Earn points from wins (+10), knock-downs (+1), upgrades (+5), packs (+5), defences (+5) and daily challenges (+20).</p>
     <div class="passtrack">${Array.from({ length: PASS_TIERS }, (_, i) => { const r = passReward(i), open = i < tier, got = p.got.includes(i);
       return `<div class="ptier ${open ? "open" : ""} ${got ? "got" : ""}"><small>${i + 1}</small><b>${rewardText(r)}</b>${got ? "✅" : open ? `<button class="btn green" data-pt="${i}">Claim</button>` : `<span class="tiny">${(i + 1) * PASS_PER} pts</span>`}</div>`; }).join("")}</div>`;
-  modal(h, {header}); bindTabs(openPass); passTabDots();
+  const done = p.got.length >= PASS_TIERS, bE = bonusEarned(p), bG = p.bonus || 0, into = Math.max(0, p.pts - BONUS_START) % BONUS_PER;
+  const bonus = !done ? "" : `<h3>⭐ Bonus round</h3><p class="tiny center">Every ${BONUS_PER} points earns another reward, until the Pass resets.</p>
+    <div class="xpbar"><span>Bonus ${bG + 1}</span><i><b style="width:${bE > bG ? 100 : 100 * into / BONUS_PER}%"></b></i><span>${bE > bG ? "Ready!" : `${BONUS_PER - into} pts to go`}</span></div>
+    <div class="ptier ${bE > bG ? "open" : ""}" style="max-width:160px;margin:6px auto"><small>Bonus ${bG + 1}</small><b>${rewardText(bonusReward(bG))}</b>${bE > bG ? `<button class="btn green" id="bonusClaim">Claim${bE - bG > 1 ? ` (${bE - bG})` : ""}</button>` : ""}</div>`;
+  modal(h + bonus, {header}); bindTabs(openPass); passTabDots();
+  const bc = $("bonusClaim"); if (bc) bc.onclick = () => { if (bonusEarned(p) <= (p.bonus || 0)) return; giveReward(bonusReward(p.bonus || 0)); p.bonus = (p.bonus || 0) + 1; sfx("collect"); save(); openPass(); };
   document.querySelectorAll("[data-pt]").forEach(b => b.onclick = () => { const i = +b.dataset.pt; if (p.got.includes(i)) return; p.got.push(i); giveReward(passReward(i)); sfx("collect"); save(); openPass(); });
 }
 function passPoints(k, n) { const v = PASS_PTS[k]; if (!v || !S) return; ensurePass().pts += v * n; }

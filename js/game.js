@@ -347,7 +347,7 @@ function processTimers(){
 function produce(sec){
   const ev=eventNow();
   for(const b of S.buildings){ const d=BLD[b.t]; if(!d.makes||b.busy) continue;
-    const boost = (d.makes==="pies"&&ev&&ev.pies ? ev.pies : 1) * tev(d.makes);
+    const boost = (d.makes==="pies"&&ev&&ev.pies ? ev.pies : 1) * tev(d.makes) * (S.prodBoost>Date.now()?2:1);
     b.store=Math.min(d.cap[b.lv-1]*tev("cap",d.makes), (b.store||0)+d.rate[b.lv-1]*boost/60*sec); }
 }
 // Star Bonus (like Clash): earn 5 stars in Battles or Ranked, collect bonus pies and drink, then it resets 24 hours later.

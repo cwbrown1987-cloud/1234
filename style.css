@@ -905,3 +905,8 @@ body.editing #top,body.editing #homeBtns,body.editing #side,body.editing #eventB
 .tside h3{font-size:16px;margin:2px 0 6px}
 .tradebox>p.tiny{color:#f3e2c0}
 .soonpill{display:inline-block;vertical-align:middle;margin-left:6px;background:#2f6fae;color:#fff;font-size:11px;font-weight:900;border-radius:8px;padding:2px 7px;-webkit-text-stroke:0;text-shadow:none}
+.havebar{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;justify-content:center;margin:4px 0 8px;font-weight:900}
+.havebar span{font-size:13px;opacity:.75}
+.havebar b{background:#fff6dc;border:2px solid #c9a56a;border-radius:10px;padding:2px 8px;font-size:14px;color:#2b1d10}
+.havebar b img{height:1.1em;vertical-align:-2px}
+.res[data-r="pies"] .cap,.res[data-r="drink"] .cap{left:16px}

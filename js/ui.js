@@ -226,7 +226,8 @@ function openShop(tab){
   shopTab=tab||shopTab;
   const sTabs=typeof shopTabsFor==="function"?shopTabsFor():Object.keys(SHOP_TABS);
   const actions=shopTab!=="Deals"&&!tutActive()?'<button class="btn blue" id="shopLayouts" title="Copy and share layouts"><i class="uia" data-ui="ico-layouts">📋</i></button><div class="action-copy" id="shopChoice" aria-live="polite">Choose a building</div><button class="btn gold" id="shopPlace" disabled>Place building</button>':"";
-  modal(`${hubCtx?"":"<h2>Shop</h2>"}${sTabs.length?tabsHTML(sTabs,shopTab):""}<div class="grid" id="shopGrid"></div>`,{actions});
+  const have=`<div class="havebar"><span>You have</span><b>${resIcon("pies")} ${fmt(S.pies)}</b><b>${resIcon("drink")} ${fmt(S.drink)}</b><b>🏅 ${fmt(S.medals)}</b><b>🎟️ ${fmt(S.tokens||0)}</b></div>`;
+  modal(`${hubCtx?"":"<h2>Shop</h2>"}${sTabs.length?tabsHTML(sTabs,shopTab):""}${have}<div class="grid" id="shopGrid"></div>`,{actions});
   bindTabs(openShop); tut("shop"); tut("tab-"+shopTab);
   if(typeof applyUiArt==="function") applyUiArt();
   if($("shopLayouts")) $("shopLayouts").onclick=sub(()=>openLayouts(),()=>openHub("build","Buildings"));
@@ -262,7 +263,31 @@ function openShop(tab){
     g.append(it);
   }
 }
+// Shop offers for Brownlow votes: resource top-ups (like Clash's 10% / 50% / fill packs) and boosts (our take on its magic items)
+const SHOP_BOOSTS = [
+  {id:"coffee", icon:"☕", name:"Groundskeeper's Coffee", desc:"Every build and upgrade in progress jumps 9 hours ahead", cost:40,
+    ok:()=>S.buildings.some(b=>b.busy), why:"Nothing is being built", use:()=>{ for(const b of S.buildings) if(b.busy) b.busy.end-=9*3600e3; }},
+  {id:"clinic", icon:"📋", name:"Coaching Clinic", desc:"Research in the Coaches Box jumps 9 hours ahead", cost:30,
+    ok:()=>!!S.research, why:"No research running", use:()=>{ S.research.end-=9*3600e3; }},
+  {id:"icebath", icon:"🧊", name:"Ice Bath", desc:"Every hero upgrade jumps 9 hours ahead", cost:30,
+    ok:()=>Object.values(S.heroes).some(h=>h.busy), why:"No hero is upgrading", use:()=>{ for(const h of Object.values(S.heroes)) if(h.busy) h.busy.end-=9*3600e3; }},
+  {id:"oven", icon:"🔥", name:"Turbo Ovens", desc:"Pie Shops and Drink Taps work twice as fast for 24 hours", cost:25,
+    ok:()=>!(S.prodBoost>Date.now()), why:"Already boosted", use:()=>{ S.prodBoost=Date.now()+864e5; }},
+  {id:"tokens", icon:"🎟️", name:"Footy Tokens", desc:"3 tokens: enough for a card pack", cost:15, ok:()=>true, use:()=>{ earnTokens(3); }},
+];
 function shopDeals(g){
+  for(const b of SHOP_BOOSTS){
+    const it=document.createElement("div"); it.className="item";
+    it.innerHTML=`<div class="pack" style="--pc:#7a4fd0"><span style="font-size:34px">${b.icon}</span></div><div class="nm">${b.name}</div><div class="meta">${b.id==="oven"&&S.prodBoost>Date.now()?`On for ${fmtTime((S.prodBoost-Date.now())/1000)}`:b.desc}</div><div class="cost ${S.medals>=b.cost?"":"bad"}">${b.cost} 🏅</div>`;
+    it.onclick=()=>{ if(!b.ok()) return toast(b.why); if(!pay("medals",b.cost)) return toast("Not enough Brownlow votes 🏅"); b.use(); processTimers(); sfx("collect"); save(); toast(`${b.icon} ${b.name}!`); openShop("Deals"); };
+    g.append(it);
+  }
+  for(const [frac,label] of [[1,"Fill"]]) for(const r of ["pies","drink"]){
+    const it=document.createElement("div"); it.className="item"; const room=Math.max(0,capOf(r)-S[r]), amt=Math.floor(room*frac), cost=resVotes(amt);
+    it.innerHTML=`<div class="pack" style="--pc:${r==="pies"?"#e9a92a":"#1aa3d6"}">${resIcon(r)}</div><div class="nm">${label} ${r==="pies"?"pies":"drink"}</div><div class="meta">+${fmt(amt)} (fills your storage)</div><div class="cost ${S.medals>=cost?"":"bad"}">${cost} 🏅</div>`;
+    it.onclick=()=>{ if(amt<1) return toast("Storage is already full"); if(!pay("medals",cost)) return toast("Not enough Brownlow votes 🏅"); addRes(r,amt); sfx("collect"); save(); openShop("Deals"); };
+    g.append(it);
+  }
   for(const r of ["pies","drink"]){
     const it=document.createElement("div"); it.className="item"; const room=Math.max(0,capOf(r)-S[r]), amt=Math.floor(room*.25), cost=resVotes(amt);
     it.innerHTML=`<div class="pack" style="--pc:${r==="pies"?"#e9a92a":"#1aa3d6"}">${resIcon(r)}</div><div class="nm">Top up ${r==="pies"?"pies":"drink"}</div><div class="meta">+${fmt(amt)} (a quarter of your free space)</div><div class="cost ${S.medals>=cost?"":"bad"}">${cost} 🏅</div>`;
@@ -492,7 +517,7 @@ $("btnSocial").onclick=()=>{ hubCtx=null; openSocial(); };
 $("btnSettings").onclick=()=>openProfile("Settings");
 $("clubBadge").onclick=()=>openProfile();
 $("builders").onclick=()=>openBuilders();
-$("buyMedals").onclick=e=>{ e.stopPropagation(); openHub("build","Shop"); };
+for(const id of ["buyPies","buyDrink"]) $(id).onclick=e=>{ e.stopPropagation(); openHub("build","Shop"); };
 // (buttons below are optional: a missing one must never stop touch controls from loading)
 
 $("cardsIco").src=cardsButtonIcon();

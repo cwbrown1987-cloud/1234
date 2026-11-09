@@ -242,15 +242,19 @@ function passReward(i) {
 const rewardText = r => r.pies ? `${fmt(r.pies)} 🥧` : r.drink ? `${fmt(r.drink)} 💧` : r.tokens ? `${r.tokens} 🎟️` : r.tape ? `${r.tape} 🩹` : `${r.medals} 🏅`;
 function giveReward(r) { if (r.pies) addRes("pies", r.pies); if (r.drink) addRes("drink", r.drink); if (r.tokens) earnTokens(r.tokens); if (r.tape) addOre({ tape: r.tape }); if (r.medals) S.medals += r.medals; }
 const passReady = () => { const p = ensurePass(), t = Math.min(PASS_TIERS, Math.floor(p.pts / PASS_PER)); let n = 0; for (let i = 0; i < t; i++) if (!p.got.includes(i)) n++; return n; };
-function openPass(tab = "Rewards") { menuBack = null;
+// Red dots on the Rewards / Challenges tabs, like the Pass button's dot
+function passTabDots(){ const n={Rewards:passReady()||0, Challenges:tasksReady()||0};
+  for(const [k,v] of Object.entries(n)){ const t=document.querySelector(`[data-tab="${k}"]`); if(t&&v&&!t.querySelector(".dot")){ t.style.position="relative"; t.insertAdjacentHTML("beforeend",`<i class="dot">${v}</i>`); } } }
+function openPass(tab) { menuBack = null;
+  if (!tab) tab = !passReady() && tasksReady() ? "Challenges" : "Rewards"; // open on whichever tab has something waiting
   hubCtx = null; const p = ensurePass(), tier = Math.min(PASS_TIERS, Math.floor(p.pts / PASS_PER));
   const header = `<div class="passhead menu-banner" data-uibg="pass-banner"><b>Footy Pass</b><small>Ends in ${fmtTime((passEnds() - Date.now()) / 1000)}</small></div>${tabsHTML(["Rewards", "Challenges"], tab)}`;
-  if (tab === "Challenges") { openTasks(header); bindTabs(openPass); return; }
+  if (tab === "Challenges") { openTasks(header); bindTabs(openPass); passTabDots(); return; }
   const h = `<div class="xpbar"><span>Tier ${tier}</span><i><b style="width:${tier >= PASS_TIERS ? 100 : 100 * (p.pts % PASS_PER) / PASS_PER}%"></b></i><span>${p.pts} pts</span></div>
     <p class="tiny center">Earn points from wins (+10), knock-downs (+1), upgrades (+5), packs (+5), defences (+5) and daily challenges (+20).</p>
     <div class="passtrack">${Array.from({ length: PASS_TIERS }, (_, i) => { const r = passReward(i), open = i < tier, got = p.got.includes(i);
       return `<div class="ptier ${open ? "open" : ""} ${got ? "got" : ""}"><small>${i + 1}</small><b>${rewardText(r)}</b>${got ? "✅" : open ? `<button class="btn green" data-pt="${i}">Claim</button>` : `<span class="tiny">${(i + 1) * PASS_PER} pts</span>`}</div>`; }).join("")}</div>`;
-  modal(h, {header}); bindTabs(openPass);
+  modal(h, {header}); bindTabs(openPass); passTabDots();
   document.querySelectorAll("[data-pt]").forEach(b => b.onclick = () => { const i = +b.dataset.pt; if (p.got.includes(i)) return; p.got.push(i); giveReward(passReward(i)); sfx("collect"); save(); openPass(); });
 }
 function passPoints(k, n) { const v = PASS_PTS[k]; if (!v || !S) return; ensurePass().pts += v * n; }

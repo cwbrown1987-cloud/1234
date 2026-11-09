@@ -295,7 +295,7 @@ function drawKickoff(){ if (!M || !(M.wait > 0)) return; const A = clubOf(M.side
   ctx.font = "900 52px 'Lilita One',sans-serif"; ctx.fillStyle = "#ffd34d"; ctx.strokeStyle = "#2b1d10"; ctx.lineWidth = 6; const t = n > 0 ? String(n) : "Ball up!"; ctx.strokeText(t, cx, cy + 22); ctx.fillText(t, cx, cy + 22); }
 function frame(now){
   const dt = Math.min(.05, (now - last) / 1000 || 0); last = now;
-  if (M) { step(dt); drawField(); (M.traps || []).forEach(t => { if (t.sprung > 0) t.sprung -= dt; drawTrap(t); }); M.towers.forEach(drawTower); [...M.units].sort((a, b) => a.y - b.y).forEach(drawUnit); M.fx.forEach(drawFx); drawKickoff(); updateBar(); }
+  if (M) { step(dt); drawField(); (M.traps || []).forEach(t => { if (t.sprung > 0) t.sprung -= dt; drawTrap(t); }); M.towers.forEach(drawTower); [...M.units].sort((a, b) => a.y - b.y).forEach(drawUnit); M.fx.forEach(drawFx); drawGhost(); drawKickoff(); updateBar(); }
   else drawField();
   requestAnimationFrame(frame);
 }
@@ -309,9 +309,10 @@ function cardTile(id, i){ const c = R_BY_ID[id]; if (!c) return ""; const cl = c
   return `<button class="rcard${c.spell ? " spell" : ""}${(M && M.sel) === id ? " on" : ""}" data-rc="${id}" style="--a:${cl ? cl.a : "#5b2d8a"};--b:${cl ? cl.b : "#c9a0ff"};${c.spell ? "" : `;--frame:url(art/cards/frame-${tierOf(c)}.webp)`}"><i class="cost">${c.cost}</i>
     <span class="rinner">${pic}${c.spell ? "" : `<i class="rrate">${c.rating}</i>`}<i class="rlv">Lv${cardLv(id)}</i></span><b>${esc(c.spell ? c.name : c.name.split(" ").slice(-1)[0])}</b><small>${c.build ? "Building" : c.trap ? "Trap" : c.spell ? "Spell" : ROLES[c.pos].name}</small></button>`; }
 function drawBattleUI(){
-  ui.innerHTML = `<div class="rtop"><span id="rScore"></span><span id="rClock"></span></div>
+  const A = clubOf(M.side[0].club), B = clubOf(M.side[1].club), team = (c, me) => `<span class="rteam ${me ? "me" : "opp"}"><i class="rbadge mini" style="--a:${c.a};--b:${c.b}"><span>${c.short}</span></i><b>${me ? "You" : esc(c.name)}</b><em id="${me ? "rGoalsMe" : "rGoalsOpp"}">0.0</em></span>`;
+  ui.innerHTML = `<div class="rtop">${team(B, false)}<span id="rClock"></span></div><div class="rme">${team(A, true)}</div>
     <div class="rbar"><div class="rnext"><small>Next</small><div id="rNext"></div></div><div class="rhand" id="rHand"></div>
-    <div class="rdrink"><i id="rDrinkFill"></i><b id="rDrinkN"></b><span>💧</span></div></div>`;
+    <div class="rdrink"><i id="rDrinkFill"></i><span class="rpips">${"<s></s>".repeat(10)}</span><b id="rDrinkN"></b><span>💧</span></div></div>`;
   renderHand();
 }
 function cardWhat(c){ return c.spell ? c.desc : ROLE_TEXT[c.pos]; }
@@ -324,8 +325,14 @@ function updateBar(){ if (M.over || !$r("rHand")) return; const s = M.side[0], o
   $r("rDrinkFill").style.width = s.drink * 10 + "%"; $r("rDrinkN").textContent = Math.floor(s.drink);
   const left = M.siren ? MATCH + SIREN - M.t : MATCH - M.t, mm = Math.max(0, Math.floor(left / 60)), ss = Math.max(0, Math.floor(left % 60));
   $r("rClock").textContent = `${M.siren ? "📢 Siren time " : rateNow() > 1 ? "Last quarter ×2 · " : ""}${mm}:${String(ss).padStart(2, "0")}`;
-  $r("rScore").textContent = `${A.short} ${s.goals}.${s.behinds} (${s.goals * 6 + s.behinds}) v ${B.short} ${o.goals}.${o.behinds} (${o.goals * 6 + o.behinds})`;
+  $r("rGoalsMe").textContent = `${s.goals}.${s.behinds} (${s.goals * 6 + s.behinds})`; $r("rGoalsOpp").textContent = `${o.goals}.${o.behinds} (${o.goals * 6 + o.behinds})`;
   const key = s.hand.join() + s.next + Math.floor(s.drink); if (key !== lastHand) { lastHand = key; renderHand(); ui.querySelectorAll("#rHand .rcard").forEach(b => { const ok = R_BY_ID[b.dataset.rc].cost <= s.drink; b.classList.toggle("poor", !ok); b.classList.toggle("ready", ok); }); } }
+let GHOST = null;
+cv.addEventListener("pointermove", e => { if (!M || !M.sel) { GHOST = null; return; } GHOST = {x:(e.clientX - OX) / SC, y:(e.clientY - OY) / SC}; });
+function drawGhost(){ if (!M || !M.sel || !GHOST) return; const c = R_BY_ID[M.sel], own = c.spell && !c.build && !c.trap || GHOST.y > RH / 2 + .5;
+  const r = (c.spell === "hail" ? HAIL_R : c.spell === "bump" ? 1.8 : c.spell === "huddle" ? 2.2 : c.trap ? (TRAPS[c.spell].area || 1) : .8) * SC;
+  ctx.fillStyle = own ? "#ffffff30" : "#ff404040"; ctx.strokeStyle = own ? "#fff" : "#ff5a4a"; ctx.lineWidth = 2; ctx.setLineDash([6, 4]);
+  ctx.beginPath(); ctx.arc(X(GHOST.x), Y(GHOST.y), r, 0, 7); ctx.fill(); ctx.stroke(); ctx.setLineDash([]); }
 cv.addEventListener("pointerdown", e => { if (!M || M.over || !M.sel) return; const x = (e.clientX - OX) / SC, y = (e.clientY - OY) / SC;
   if (x < 0 || x > RW || y < 0 || y > RH) return;
   if (!play(0, M.sel, x, y)) return toast(R_BY_ID[M.sel].cost > M.side[0].drink ? "Not enough 💧 yet" : "Players start on your half");
@@ -336,11 +343,12 @@ function toast(t){ const el = document.createElement("div"); el.className = "rto
 function home(){ M = null; resize(); const lg = leagueOf(RS.trophies), next = R_LEAGUES[lg + 1];
   ui.innerHTML = `<div class="rpanel home"><div class="rhub"><b>FF: <span>Royal</span></b><i class="beta">BETA</i></div>
     <div class="rleague"><b>${R_LEAGUES[lg][0]}</b><span>🏆 ${RS.trophies}${next ? ` · ${next[1] - RS.trophies} to ${next[0]}` : ""}</span><i class="rbarx"><i style="width:${next ? Math.min(100, (RS.trophies - R_LEAGUES[lg][1]) / (next[1] - R_LEAGUES[lg][1]) * 100) : 100}%"></i></i></div>
-    <button class="rbtn battle big" id="rPlay">⚔️ Battle</button><button class="rbtn blue" id="rDeck">🃏 My deck</button><button class="rbtn" id="rHow">❓ How to play</button>
+    <button class="rbtn battle big" id="rPlay">⚔️ Battle</button>
     <h3 class="rclubh">Your club · <b>${esc(clubOf(RS.club ?? 0).name)}</b></h3>
     <div class="rclubs">${CLUBS.map((c, i) => `<button class="rbadge${i === (RS.club ?? 0) ? " on" : ""}" data-club="${i}" title="${esc(c.name)}" style="--a:${c.a};--b:${c.b}"><span>${c.short}</span></button>`).join("")}</div>
     <div class="rstat"><span>🏆 <b>${RS.wins}</b> wins</span><span>⚔️ <b>${RS.played}</b> played</span><span>🪙 <b>${RS.gold}</b></span></div></div>`;
-  $r("rPlay").onclick = startMatch; $r("rDeck").onclick = deckScreen; $r("rHow").onclick = howTo;
+  const nav = document.createElement("nav"); nav.className = "rnav"; nav.innerHTML = `<button id="rDeck"><b>🃏</b>Deck</button><button class="on" id="rNavPlay"><b>⚔️</b>Battle</button><button id="rHow"><b>❓</b>How to</button>`; ui.appendChild(nav);
+  $r("rPlay").onclick = startMatch; $r("rNavPlay").onclick = startMatch; $r("rDeck").onclick = deckScreen; $r("rHow").onclick = howTo;
   ui.querySelectorAll("[data-club]").forEach(b => b.onclick = () => { const i = +b.dataset.club; if (i === (RS.club ?? 0)) return; RS.club = i; RS.deck = null; rsave(); home(); toast(`Now playing as ${clubOf(i).name}`); }); }
 // What a card actually does, with its numbers (same maths as in battle)
 const ROLE_TEXT = {mid:"Fast runner who attacks whatever is nearest. Cheaper Rovers (3 💧) run on in pairs.", fwd:"Kicks goals from range. Fragile up close, so protect them.",
@@ -387,4 +395,9 @@ function howTo(){ ui.innerHTML = `<div class="rpanel"><h2>How to play</h2><ul cl
     <li>Build your deck of 8 from any 2026 player. Tap Club on the home screen to change your team.</li></ul><button class="rbtn gold" id="rBack">Got it</button></div>`;
   $r("rBack").onclick = home; }
 
-requestAnimationFrame(frame); home();
+// What's new: a small note at the side after each update, fades after 10 s
+const R_VERSION = "1.6", R_NEWS = "Drink bar with 10 pips · team panels for both sides · placement preview when a card is picked · new bottom menu bar";
+function whatsNew(){ if (RS.seen === R_VERSION) return; RS.seen = R_VERSION; rsave();
+  const n = document.createElement("div"); n.className = "rnews"; n.innerHTML = `<b>Updated · v${R_VERSION}</b>${esc(R_NEWS)}`; document.body.appendChild(n);
+  setTimeout(() => n.classList.add("out"), 9200); setTimeout(() => n.remove(), 10000); }
+requestAnimationFrame(frame); home(); whatsNew();

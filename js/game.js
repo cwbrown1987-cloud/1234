@@ -451,6 +451,10 @@ function frame(now){
   } else { drawGround(); drawSky(); }
   requestAnimationFrame(frame);
 }
+function whatsNewNote(){ let seen=null; try{ seen=localStorage.getItem("ffSeenVersion"); localStorage.setItem("ffSeenVersion",VERSION); }catch(e){}
+  if(!seen||seen===VERSION||!WHATS_NEW) return; // skip on first ever launch and when already seen
+  const n=document.createElement("div"); n.className="whatsnew"; n.innerHTML=`<b>Updated</b>${WHATS_NEW}`; document.body.appendChild(n);
+  setTimeout(()=>n.classList.add("out"),9200); setTimeout(()=>n.remove(),10000); }
 function boot(){
   resize(); addEventListener("resize",resize); addEventListener("orientationchange",()=>setTimeout(resize,250));
   if(typeof ResizeObserver!=="undefined") new ResizeObserver(resize).observe(cv);
@@ -465,4 +469,5 @@ function boot(){
   addEventListener("visibilitychange",()=>{ if(document.hidden&&mode==="home") save(); });
   addEventListener("pagehide",()=>{ if(mode==="home") save(); });
   setInterval(()=>{ if(S&&mode==="home"&&!document.hidden) save(); },20000); // keep the saved copy fresh while you play
+  setTimeout(whatsNewNote,1500);
 }

@@ -904,3 +904,4 @@ body.editing #top,body.editing #homeBtns,body.editing #side,body.editing #eventB
 .toffer,.tside,.tchat,.toffer *,.tside h3,.tside small,.tmsg,.tline span{color:#2b1d10!important;-webkit-text-stroke:0!important;text-shadow:none!important}
 .tside h3{font-size:16px;margin:2px 0 6px}
 .tradebox>p.tiny{color:#f3e2c0}
+.soonpill{display:inline-block;vertical-align:middle;margin-left:6px;background:#2f6fae;color:#fff;font-size:11px;font-weight:900;border-radius:8px;padding:2px 7px;-webkit-text-stroke:0;text-shadow:none}

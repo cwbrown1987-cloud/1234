@@ -1,5 +1,5 @@
 // ---------- Game data ----------
-const VERSION = "2026.11.11.34";
+const VERSION = "2026.11.11.35";
 // Club names + colours. Logos: drop PNGs named <abbr>.png (e.g. coll.png) into the logos/ folder and they're used everywhere.
 // Player names checked against the 2026 trade period and retirements (lists for the 2027 season); edit freely.
 const CLUBS = [
@@ -194,4 +194,23 @@ const EVENTS = { // by weekday, 0 = Sunday
   6:{name:"Grand Final Weekend", desc:"Double loot from matches", loot:2},
 };
 const eventNow = () => EVENTS[new Date().getDay()] || null;
+// ---------- Timed events (like Clash's Hammer Jam, Summer Jam bootcamps, troop events, 1-gem boosts, medal events) ----------
+// Built in but switched OFF: the Events screen lists them as "Coming soon". Flip TIMED_LIVE to true to run the calendar.
+const TIMED_LIVE = false;
+const TIMED_EVENTS = [
+  {id:"preseason", name:"Pre-Season Sale", desc:"Buildings and upgrades cost half and build twice as fast", days:7, cost:.5, time:.5},
+  {id:"pieweek", name:"Pie Week", desc:"Pie Shops bake twice as fast and hold twice as much, pie upgrades 25% faster", days:7, pies:2, cap:2, time:.75, res:"pies"},
+  {id:"drinkweek", name:"Drinks Week", desc:"Drink Taps pour twice as fast and hold twice as much, drink upgrades 25% faster", days:7, drink:2, cap:2, time:.75, res:"drink"},
+  {id:"everyweek", name:"Everything Week", desc:"Every collector doubled and every upgrade 25% faster", days:7, pies:2, drink:2, cap:2, time:.75},
+  {id:"featured", name:"Featured Player", desc:"Win 3 matches using 5 or more of the featured player for 25 🏅", days:3, featured:true},
+  {id:"onevote", name:"1-Vote Boosts", desc:"Grand Final Day special: every boost costs just 1 🏅", days:2, oneVote:true},
+  {id:"medal", name:"Medal Event", desc:"Earn event medals in matches and spend them in a special shop", days:10, medal:true},
+];
+// Fixed calendar so every phone sees the same event: [start month (1-12), day, event id]
+const TIMED_CALENDAR = [[2,1,"preseason"],[3,10,"featured"],[4,25,"onevote"],[5,15,"medal"],[7,1,"pieweek"],[7,8,"drinkweek"],[7,15,"everyweek"],[8,20,"featured"],[9,26,"onevote"],[11,1,"medal"],[12,24,"onevote"]];
+function timedEventAt(t){ const d=new Date(t), y=d.getFullYear();
+  for(const [m,day,id] of TIMED_CALENDAR){ const e=TIMED_EVENTS.find(x=>x.id===id), s=new Date(y,m-1,day).getTime(); if(t>=s&&t<s+e.days*864e5) return {...e,start:s,end:s+e.days*864e5}; }
+  return null; }
+const timedEventNow = () => TIMED_LIVE ? timedEventAt(Date.now()) : null;
+const tev = (k, res) => { const e=timedEventNow(); return e&&e[k]&&(!e.res||!res||e.res===res) ? e[k] : 1; }; // multiplier, 1 when no event
 

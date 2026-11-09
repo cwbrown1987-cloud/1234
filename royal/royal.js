@@ -143,7 +143,7 @@ function endMatch(win){
 
 // ----- drawing -----
 let SC = 20, OX = 0, OY = 0;
-function resize(){ const bar = M && !M.over ? 150 : 0, w = innerWidth, h = innerHeight - bar; SC = Math.min(w / RW, h / RH); OX = (w - RW * SC) / 2; OY = Math.max(0, (h - RH * SC) / 2);
+function resize(){ const bar = M && !M.over ? 168 : 0, w = innerWidth, h = innerHeight - bar; SC = Math.min(w / RW, h / RH); OX = (w - RW * SC) / 2; OY = Math.max(0, (h - RH * SC) / 2);
   cv.width = w * devicePixelRatio; cv.height = innerHeight * devicePixelRatio; cv.style.width = w + "px"; cv.style.height = innerHeight + "px"; ctx.setTransform(devicePixelRatio, 0, 0, devicePixelRatio, 0, 0); }
 addEventListener("resize", resize);
 const X = x => OX + x * SC, Y = y => OY + y * SC;
@@ -200,9 +200,12 @@ function frame(now){
 }
 
 // ----- battle UI: scoreboard on top, card bar at the bottom -----
+// Cards use Footy Fortress's card frames (rarity by rating) and the player's sprite as the picture
+const tierOf = c => c.spell ? "star-wildcard" : c.rating >= 93 ? "legendary" : c.rating >= 85 ? "epic" : c.rating >= 75 ? "rare" : "common";
 function cardTile(id, i){ const c = R_BY_ID[id]; if (!c) return ""; const cl = c.spell ? null : clubOf(c.club);
-  return `<button class="rcard${M.sel === id ? " on" : ""}" data-rc="${id}" style="--a:${cl ? cl.a : "#5b2d8a"};--b:${cl ? cl.b : "#c9a0ff"}"><i class="cost">${c.cost}</i>
-    <span class="ricon">${c.spell ? c.icon : ROLES[c.pos].icon}</span><b>${esc(c.spell ? c.name : c.name.split(" ").slice(-1)[0])}</b><small>${c.spell ? "Spell" : ROLES[c.pos].name + " · " + c.rating}</small></button>`; }
+  const pic = c.spell ? `<span class="ricon">${c.icon}</span>` : `<span class="rpic" style="background-image:url(art/unit-${c.pos}.webp)"></span>`;
+  return `<button class="rcard${(M && M.sel) === id ? " on" : ""}" data-rc="${id}" style="--a:${cl ? cl.a : "#5b2d8a"};--b:${cl ? cl.b : "#c9a0ff"};--frame:url(art/cards/frame-${tierOf(c)}.webp)"><i class="cost">${c.cost}</i>
+    <span class="rinner">${pic}${c.spell ? "" : `<i class="rrate">${c.rating}</i>`}</span><b>${esc(c.spell ? c.name : c.name.split(" ").slice(-1)[0])}</b><small>${c.spell ? "Spell" : ROLES[c.pos].name}</small></button>`; }
 function drawBattleUI(){
   ui.innerHTML = `<div class="rtop"><span id="rScore"></span><span id="rClock"></span></div>
     <div class="rbar"><div class="rnext"><small>Next</small><div id="rNext"></div></div><div class="rhand" id="rHand"></div>

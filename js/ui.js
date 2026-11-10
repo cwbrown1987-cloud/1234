@@ -486,8 +486,12 @@ function openSettings(header){
     ${document.fullscreenEnabled?`<div class="stat"><span>Screen</span><button class="btn blue" id="fullScreen">${document.fullscreenElement?"Exit full screen":"Full screen"}</button></div>`:""}
     <div class="stat"><span>Version ${VERSION}</span><button class="btn gold" id="updBtn">Check for updates</button></div>
     <p class="tiny">Progress saves on this device automatically.</p><button class="btn red" id="reset">Start over (new club)</button>
+    <div class="stat"><span>Share the game</span><button class="btn green" id="shareBtn">🔗 Copy link</button></div>
     <h3>Report a bug</h3><form id="bugForm" class="bugform"><textarea id="bugText" maxlength="1000" rows="3" placeholder="What went wrong? What were you doing?"></textarea><button class="btn gold" type="submit">Send report</button></form>
     <p class="madefor">Made for Jaxon, Jake and Chloe 💙💜</p>`,{header});
+  $("shareBtn").onclick=async()=>{ const url="https://ff.backyardlegendsgames.app";
+    try{ await navigator.clipboard.writeText(url); toast("🔗 Link copied! Send it to your mates"); }
+    catch(e){ const t=document.createElement("textarea"); t.value=url; document.body.appendChild(t); t.select(); let ok=false; try{ ok=document.execCommand("copy"); }catch(e2){} t.remove(); toast(ok?"🔗 Link copied! Send it to your mates":url); } };
   $("bugForm").onsubmit=async e=>{ e.preventDefault(); const text=$("bugText").value.trim(); if(!text) return toast("Type what went wrong first");
     const report={text, at:new Date().toISOString(), v:VERSION, club:CLUBS[S.club]?.name, th:th(), ua:navigator.userAgent.slice(0,140), user:NET&&NET.user?NET.user.name:"guest"};
     try{ const r=await fetch("/api/bug",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify(report)}); if(!r.ok) throw 0; $("bugText").value=""; toast("Thanks! Bug report sent"); }

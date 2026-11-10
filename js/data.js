@@ -1,7 +1,7 @@
 // ---------- Game data ----------
-const VERSION = "2026.11.11.46";
+const VERSION = "2026.11.11.48";
 // One-line gist of this update, shown once in a small note that fades after 10 seconds. Update it with every release.
-const WHATS_NEW = "Report a bug in Settings · this little update note";
+const WHATS_NEW = "Footy Pass bonus round after tier 30 · Share the game from Settings";
 // Club names + colours. Logos: drop PNGs named <abbr>.png (e.g. coll.png) into the logos/ folder and they're used everywhere.
 // Player names checked against the 2026 trade period and retirements (lists for the 2027 season); edit freely.
 const CLUBS = [

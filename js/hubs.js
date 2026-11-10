@@ -294,6 +294,7 @@ function checkOrientation() {
   const prompt = $("rotateMsg");
   // iPad players should never be blocked from their base by a rotate prompt.
   if (isIPadDevice()) {
+    document.body.classList.add("ipad-device");
     try { screen.orientation?.unlock?.(); } catch (e) {}
     prompt.classList.add("hide");
     return;

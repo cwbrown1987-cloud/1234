@@ -286,14 +286,23 @@ function openEvents() { menuBack = null;
   document.querySelectorAll("[data-go]").forEach(b => b.onclick = () => ({ play: () => openHub("battle", "Play"), rk: sub(() => { hubCtx = null; openRankedTable(); }, openEvents), pass: () => openPass() })[b.dataset.go]());
 }
 
-// ---------- rotation: phones stay portrait; tablets and computers stay landscape ----------
+// ---------- rotation: phones portrait, other tablets landscape; iPads allow either ----------
 const isPhone = () => Math.min(screen.width, screen.height) < 600;
+const isIPadDevice = () => /ipad/i.test(navigator.userAgent) ||
+  (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
 function checkOrientation() {
+  const prompt = $("rotateMsg");
+  // iPad players should never be blocked from their base by a rotate prompt.
+  if (isIPadDevice()) {
+    try { screen.orientation?.unlock?.(); } catch (e) {}
+    prompt.classList.add("hide");
+    return;
+  }
   const want = isPhone() ? "portrait" : "landscape";
   try { if (screen.orientation?.lock && (isStandalone() || document.fullscreenElement)) screen.orientation.lock(want).catch(() => {}); } catch (e) {}
   const land = innerWidth > innerHeight, wrong = want === "portrait" ? land : (!land && "ontouchstart" in window);
-  $("rotateMsg").classList.toggle("hide", !wrong);
-  $("rotateMsg").querySelector("b").textContent = want === "portrait" ? "Turn your phone upright" : "Turn your tablet sideways";
+  prompt.classList.toggle("hide", !wrong);
+  prompt.querySelector("b").textContent = want === "portrait" ? "Turn your phone upright" : "Turn your tablet sideways";
 }
 addEventListener("resize", checkOrientation); addEventListener("orientationchange", () => setTimeout(checkOrientation, 200));
 setTimeout(checkOrientation, 50);

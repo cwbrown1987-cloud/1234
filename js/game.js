@@ -42,6 +42,11 @@ function fixup(s){
     let xp=0; for(const b of s.buildings){ const d=BLD[b.t]; if(!d) continue; for(let l=0;l<b.lv;l++) xp+=Math.max(1,Math.floor(Math.sqrt(Math.max(1,d.time[l]||1)))); }
     s.lvl=1; s.xp=0; s.prizePacks=s.prizePacks||0; let g=0; while(xp>=30+s.lvl*20&&g++<200){ xp-=30+s.lvl*20; s.lvl++; if(s.lvl%5===0) s.prizePacks++; } s.xp=xp; }
   s.tokens=s.tokens||0;
+  // Older players can have an unfinished/forced tutorial in their saved game.
+  // Preserve their progress and only auto-skip for established clubs or XP levels.
+  const clubhouseLevel = Number((s.buildings || []).find(b => b.t === "clubhouse")?.lv || 1);
+  if ((Number(s.lvl || 1) > 2 || clubhouseLevel > 2) &&
+      (s.tut === "choose" || (typeof s.tut === "number" && s.tut >= 0))) s.tut = "done";
   s.nextRaid=s.nextRaid||Date.now()+8*60000; s.shield=s.shield||0; if(s.sound===undefined) s.sound=true;
   return s;
 }

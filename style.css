@@ -850,17 +850,17 @@ body:not(.ffui) .albummode .rwd{background:linear-gradient(#2a2e37,#16181e);bord
 body.editing #top,body.editing #homeBtns,body.editing #side,body.editing #eventBanner,body.editing #selPanel,body.editing #placePanel,body.editing #battleHint,body.editing #battleUI{display:none!important}
 /* All sizes come from Clash's Village Edit Mode screenshot, measured against the SHORT side of the screen (1 --u = 1% of it),
    so a phone held upright and a tablet held sideways look the same as Clash. Clash at 1125 px tall: button 75 px = 6.7u. */
-#editUI{--u:calc(min(100vw,100vh) / 100);position:fixed;inset:0;pointer-events:none;z-index:400;font-family:inherit}
+#editUI{--u:min(1vmin,6px);position:fixed;inset:0;pointer-events:none;z-index:400;font-family:inherit}
 #editUI>*{pointer-events:auto}
 #editUI.photo>*{display:none}
 #editUI .uia img{width:100%;height:100%;object-fit:contain}
 .vem-title{position:absolute;top:calc(1.5*var(--u) + env(safe-area-inset-top));left:calc(1.5*var(--u));display:flex;align-items:center;gap:calc(.6*var(--u));color:#fff;font-weight:900;font-size:calc(4*var(--u));line-height:1;-webkit-text-stroke:calc(.15*var(--u)) #222;text-shadow:0 calc(.35*var(--u)) 0 #222;pointer-events:none!important}
 .vem-title i{width:calc(4.5*var(--u));height:calc(4.5*var(--u));font-style:normal;font-size:calc(3.8*var(--u));-webkit-text-stroke:0}
-.vem-bar{position:absolute;right:0;top:calc(9*var(--u) + env(safe-area-inset-top));display:flex;align-items:center;transition:transform .2s}
+.vem-bar{position:absolute;right:0;top:calc(9*var(--u) + env(safe-area-inset-top));display:flex;align-items:flex-start;transition:transform .2s}
 .barhide .vem-bar{transform:translateX(calc(100% - 5.3*var(--u)))}
 .vem-tab{width:calc(5.3*var(--u));height:calc(17*var(--u));border:calc(.4*var(--u)) solid #333;border-right:0;border-radius:calc(2*var(--u)) 0 0 calc(2*var(--u));background:linear-gradient(90deg,#f1ece0,#c3bba8);background-size:cover;font-size:calc(3.4*var(--u));padding:0;display:grid;place-items:center}
 .vem-tab i{width:calc(4*var(--u));height:calc(8*var(--u));font-style:normal}
-.vem-list{background:#2b2b2bd9;padding:calc(1.5*var(--u)) calc(1.4*var(--u));border-radius:calc(1.6*var(--u)) 0 0 calc(1.6*var(--u));display:flex;flex-direction:column;gap:calc(2.3*var(--u))}
+.vem-list{background:#2b2b2bd9;padding:calc(1.5*var(--u)) calc(1.4*var(--u));border-radius:calc(1.6*var(--u)) 0 0 calc(1.6*var(--u));display:flex;flex-direction:column;gap:calc(2.3*var(--u));max-height:calc(100dvh - 85px - env(safe-area-inset-top) - env(safe-area-inset-bottom));overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
 .vem-b{width:calc(29.3*var(--u));height:calc(6.7*var(--u));display:flex;align-items:center;gap:calc(1*var(--u));padding:0 calc(1.2*var(--u));border:calc(.3*var(--u)) solid #1d3a0a;border-radius:calc(1.2*var(--u));background:linear-gradient(#a5e75a,#58b51f 55%,#3f9a16);background-size:100% 100%;color:#fff;font-weight:900;font-size:calc(2.8*var(--u));line-height:1;-webkit-text-stroke:calc(.1*var(--u)) #222;text-shadow:0 calc(.3*var(--u)) 0 #2228;box-shadow:inset 0 calc(.35*var(--u)) 0 #ffffff66,0 calc(.45*var(--u)) 0 #1d3a0a}
 .vem-b i{width:calc(5*var(--u));height:calc(5*var(--u));display:grid;place-items:center;font-style:normal;font-size:calc(3.6*var(--u));-webkit-text-stroke:0;flex:none}
 .vem-b.grey{background:linear-gradient(#e6e6e6,#a9a9a9 55%,#8c8c8c);border-color:#444;box-shadow:inset 0 calc(.35*var(--u)) 0 #fff8,0 calc(.45*var(--u)) 0 #444}
@@ -876,6 +876,8 @@ body.editing #top,body.editing #homeBtns,body.editing #side,body.editing #eventB
 .vem-card canvas{width:78%;height:78%;pointer-events:none}
 .vem-card b,.vem-card span{position:absolute;color:#fff;font-weight:900;font-size:calc(2.9*var(--u));line-height:1;-webkit-text-stroke:calc(.12*var(--u)) #222;text-shadow:0 calc(.3*var(--u)) 0 #222;pointer-events:none}
 .vem-card b{top:calc(.6*var(--u))}.vem-card span{bottom:calc(.8*var(--u));font-size:calc(2.6*var(--u))}
+#shopLayouts{display:inline-flex;align-items:center;justify-content:center;gap:6px;white-space:nowrap}
+@media(max-width:600px){#shopLayouts .shop-edit-label{display:none}}
 #shopLayouts .uia,#bCopy .uia,.modal h3 .uia{display:inline-block;width:1.5em;height:1.5em;vertical-align:middle}
 #shopLayouts .uia img,#bCopy .uia img,.modal h3 .uia img,#searchFx .sfoot img{width:100%;height:100%;object-fit:contain}
 #searchFx .sfoot .uia{display:inline-block;width:110px;height:110px}
